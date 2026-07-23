@@ -1,0 +1,374 @@
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+
+import { PGlite } from "@electric-sql/pglite";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+const migrationPath = fileURLToPath(
+  new URL(
+    "../prisma/migrations/20260723000000_phase_0_foundation/migration.sql",
+    import.meta.url,
+  ),
+);
+
+let database: PGlite;
+
+beforeAll(async () => {
+  database = new PGlite();
+  await database.exec(`
+    CREATE SCHEMA auth;
+    CREATE SCHEMA storage;
+    CREATE ROLE authenticated NOLOGIN;
+
+    CREATE OR REPLACE FUNCTION auth.uid()
+    RETURNS uuid
+    LANGUAGE sql
+    STABLE
+    AS $$
+      SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid
+    $$;
+
+    CREATE TABLE storage.buckets (
+      id text PRIMARY KEY,
+      name text NOT NULL,
+      public boolean NOT NULL DEFAULT false
+    );
+
+    CREATE TABLE storage.objects (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      bucket_id text NOT NULL,
+      name text NOT NULL,
+      owner_id text
+    );
+
+    ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+    GRANT USAGE ON SCHEMA storage TO authenticated;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON storage.objects TO authenticated;
+  `);
+
+  const migration = await readFile(migrationPath, "utf8");
+  await database.exec(migration);
+});
+
+afterAll(async () => {
+  await database.close();
+});
+
+describe("Phase 0 database guarantees", () => {
+  it("normalizes phone keys and prevents duplicate client phone entries", async () => {
+    const branchId = "10000000-0000-4000-8000-000000000001";
+    const clientA = "20000000-0000-4000-8000-000000000001";
+    const clientB = "20000000-0000-4000-8000-000000000002";
+
+    await database.query(
+      `INSERT INTO branches (id, name) VALUES ($1, 'Phone Test Branch')`,
+      [branchId],
+    );
+    await database.query(
+      `INSERT INTO clients (client_id, primary_name, primary_phone, last_branch_id)
+       VALUES ($1, 'Client A', '9876543210', $3),
+              ($2, 'Client B', '9876543210', $3)`,
+      [clientA, clientB, branchId],
+    );
+    await database.query(
+      `INSERT INTO client_phone_index (phone, client_id) VALUES ($1, $2)`,
+      ["+91 98765-43210", clientA],
+    );
+
+    await expect(
+      database.query(
+        `INSERT INTO client_phone_index (phone, client_id) VALUES ($1, $2)`,
+        ["9876543210", clientB],
+      ),
+    ).rejects.toThrow(/unique|duplicate/i);
+
+    const result = await database.query<{ phone: string }>(
+      `SELECT phone FROM client_phone_index WHERE client_id = $1`,
+      [clientA],
+    );
+    expect(result.rows[0]?.phone).toBe("9876543210");
+  });
+
+  it("recalculates total_visits after each new timeline event", async () => {
+    const branchId = "10000000-0000-4000-8000-000000000002";
+    const clientId = "20000000-0000-4000-8000-000000000003";
+
+    await database.query(
+      `INSERT INTO branches (id, name) VALUES ($1, 'Rollup Test Branch')`,
+      [branchId],
+    );
+    await database.query(
+      `INSERT INTO clients (client_id, primary_name, primary_phone, last_branch_id)
+       VALUES ($1, 'Rollup Client', '9000000001', $2)`,
+      [clientId, branchId],
+    );
+    await database.query(
+      `INSERT INTO client_timeline (
+        client_id, event_date, buy_status, branch_id
+      ) VALUES
+        ($1, '2026-07-22T10:00:00Z', 'NO', $2),
+        ($1, '2026-07-23T10:00:00Z', 'YES', $2)`,
+      [clientId, branchId],
+    );
+
+    const result = await database.query<{
+      total_visits: number;
+      total_purchase_visits: number;
+      total_non_purchase_visits: number;
+    }>(
+      `SELECT total_visits, total_purchase_visits, total_non_purchase_visits
+       FROM clients WHERE client_id = $1`,
+      [clientId],
+    );
+
+    expect(result.rows[0]).toMatchObject({
+      total_visits: 2,
+      total_purchase_visits: 1,
+      total_non_purchase_visits: 1,
+    });
+  });
+
+  it("allows cross-branch history reads but rejects a false visit branch", async () => {
+    const branchA = "10000000-0000-4000-8000-000000000003";
+    const branchB = "10000000-0000-4000-8000-000000000004";
+    const salespersonId = "30000000-0000-4000-8000-000000000001";
+    const ownClientId = "20000000-0000-4000-8000-000000000004";
+    const otherClientId = "20000000-0000-4000-8000-000000000005";
+
+    await database.query(
+      `INSERT INTO branches (id, name)
+       VALUES ($1, 'RLS Branch A'), ($2, 'RLS Branch B')`,
+      [branchA, branchB],
+    );
+    await database.query(
+      `INSERT INTO users (id, name, email, role, branch_id)
+       VALUES ($1, 'Salesperson', 'salesperson@example.com', 'salesperson', $2)`,
+      [salespersonId, branchA],
+    );
+    await database.query(
+      `INSERT INTO clients (
+        client_id, primary_name, primary_phone, last_branch_id
+      ) VALUES
+        ($1, 'Own Branch Client', '9000000002', $3),
+        ($2, 'Other Branch Client', '9000000003', $4)`,
+      [ownClientId, otherClientId, branchA, branchB],
+    );
+    await database.query(
+      `INSERT INTO client_timeline (
+        client_id, event_date, buy_status, branch_id
+      ) VALUES ($1, '2026-07-23T11:00:00Z', 'STORE_VISIT', $2)`,
+      [otherClientId, branchB],
+    );
+
+    await database.exec("SET ROLE authenticated");
+    await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [
+      salespersonId,
+    ]);
+
+    try {
+      const clientsResult = await database.query<{ client_id: string }>(
+        `SELECT client_id
+         FROM clients
+         WHERE client_id IN ($1, $2)
+         ORDER BY client_id`,
+        [ownClientId, otherClientId],
+      );
+      expect(clientsResult.rows.map((row) => row.client_id)).toEqual([
+        ownClientId,
+        otherClientId,
+      ]);
+
+      const timelineResult = await database.query<{ client_id: string }>(
+        `SELECT client_id FROM client_timeline WHERE client_id = $1`,
+        [otherClientId],
+      );
+      expect(timelineResult.rows).toHaveLength(1);
+
+      await expect(
+        database.query(
+          `INSERT INTO client_timeline (
+            client_id, event_date, buy_status, branch_id, salesperson_id
+          ) VALUES ($1, '2026-07-23T12:00:00Z', 'YES', $2, $3)`,
+          [otherClientId, branchB, salespersonId],
+        ),
+      ).rejects.toThrow(/row-level security|policy/i);
+
+      await expect(
+        database.query(
+          `INSERT INTO client_timeline (
+            client_id, event_date, buy_status, branch_id, salesperson_id
+          ) VALUES ($1, '2026-07-23T12:30:00Z', 'YES', $2, $3)`,
+          [otherClientId, branchA, salespersonId],
+        ),
+      ).resolves.toBeDefined();
+    } finally {
+      await database.exec("RESET ROLE");
+    }
+  });
+
+  it("derives canonical event types from representative buy statuses", async () => {
+    const branchId = "10000000-0000-4000-8000-000000000005";
+    const clientId = "20000000-0000-4000-8000-000000000006";
+
+    await database.query(
+      `INSERT INTO branches (id, name) VALUES ($1, 'Event Mapping Branch')`,
+      [branchId],
+    );
+    await database.query(
+      `INSERT INTO clients (client_id, primary_name, primary_phone)
+       VALUES ($1, 'Event Mapping Client', '9000000004')`,
+      [clientId],
+    );
+    await database.query(
+      `INSERT INTO client_timeline (
+        client_id, event_date, buy_status, branch_id, reference_number
+      ) VALUES
+        ($1, '2026-07-23T09:00:00Z', 'ORDER_PLACED_AND_BUYING_NEW_PRODUCT', $2, 'MAP-1'),
+        ($1, '2026-07-23T09:01:00Z', 'YES', $2, 'MAP-2'),
+        ($1, '2026-07-23T09:02:00Z', 'ORDER_PICKUP', $2, 'MAP-3'),
+        ($1, '2026-07-23T09:03:00Z', 'REPAIR_PLACED', $2, 'MAP-4'),
+        ($1, '2026-07-23T09:04:00Z', 'PRODUCT_RETURN', $2, 'MAP-5'),
+        ($1, '2026-07-23T09:05:00Z', 'NO', $2, 'MAP-6'),
+        ($1, '2026-07-23T09:06:00Z', NULL, $2, 'MAP-7')`,
+      [clientId, branchId],
+    );
+
+    const result = await database.query<{
+      reference_number: string;
+      event_type: string;
+    }>(
+      `SELECT reference_number, event_type::text
+       FROM client_timeline
+       WHERE client_id = $1
+       ORDER BY reference_number`,
+      [clientId],
+    );
+
+    expect(result.rows).toEqual([
+      { reference_number: "MAP-1", event_type: "UPSALE_VISIT" },
+      { reference_number: "MAP-2", event_type: "READY_PRODUCT_PURCHASE" },
+      { reference_number: "MAP-3", event_type: "ORDER_PICKUP_VISIT" },
+      { reference_number: "MAP-4", event_type: "REPAIR_PLACED_VISIT" },
+      { reference_number: "MAP-5", event_type: "PRODUCT_RETURN_VISIT" },
+      { reference_number: "MAP-6", event_type: "NON_PURCHASE_VISIT" },
+      { reference_number: "MAP-7", event_type: "VISIT" },
+    ]);
+
+    const rollups = await database.query<{
+      total_visits: number;
+      total_purchase_visits: number;
+      total_non_purchase_visits: number;
+      total_repair_visits: number;
+      total_order_visits: number;
+    }>(
+      `SELECT
+         total_visits,
+         total_purchase_visits,
+         total_non_purchase_visits,
+         total_repair_visits,
+         total_order_visits
+       FROM clients
+       WHERE client_id = $1`,
+      [clientId],
+    );
+    expect(rollups.rows[0]).toMatchObject({
+      total_visits: 7,
+      total_purchase_visits: 1,
+      total_non_purchase_visits: 2,
+      total_repair_visits: 1,
+      total_order_visits: 2,
+    });
+  });
+
+  it("shares documents globally but restricts deletion to the uploader", async () => {
+    const branchA = "10000000-0000-4000-8000-000000000006";
+    const branchB = "10000000-0000-4000-8000-000000000007";
+    const uploaderId = "30000000-0000-4000-8000-000000000002";
+    const otherUserId = "30000000-0000-4000-8000-000000000003";
+    const clientId = "20000000-0000-4000-8000-000000000007";
+    const documentId = "40000000-0000-4000-8000-000000000001";
+    const objectId = "50000000-0000-4000-8000-000000000001";
+    const fileUuid = "60000000-0000-4000-8000-000000000001";
+    const storagePath = `${clientId}/general/${fileUuid}_id-proof.pdf`;
+
+    await database.query(
+      `INSERT INTO branches (id, name)
+       VALUES ($1, 'Document Branch A'), ($2, 'Document Branch B')`,
+      [branchA, branchB],
+    );
+    await database.query(
+      `INSERT INTO users (id, name, email, role, branch_id)
+       VALUES
+         ($1, 'Uploader', 'uploader@example.com', 'salesperson', $3),
+         ($2, 'Other Staff', 'other-staff@example.com', 'salesperson', $4)`,
+      [uploaderId, otherUserId, branchA, branchB],
+    );
+    await database.query(
+      `INSERT INTO clients (client_id, primary_name, primary_phone)
+       VALUES ($1, 'Document Client', '9000000005')`,
+      [clientId],
+    );
+    await database.query(
+      `INSERT INTO documents (
+        id, client_id, uploaded_by, file_name, storage_path, mime_type
+      ) VALUES ($1, $2, $3, 'id-proof.pdf', $4, 'application/pdf')`,
+      [documentId, clientId, uploaderId, storagePath],
+    );
+    await database.query(
+      `INSERT INTO storage.objects (id, bucket_id, name, owner_id)
+       VALUES ($1, 'crm-documents', $2, $3)`,
+      [objectId, storagePath, uploaderId],
+    );
+
+    await database.exec("SET ROLE authenticated");
+    await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [
+      otherUserId,
+    ]);
+
+    try {
+      const visibleDocument = await database.query<{ id: string }>(
+        `SELECT id FROM documents WHERE id = $1`,
+        [documentId],
+      );
+      const visibleObject = await database.query<{ id: string }>(
+        `SELECT id FROM storage.objects WHERE id = $1`,
+        [objectId],
+      );
+      expect(visibleDocument.rows).toHaveLength(1);
+      expect(visibleObject.rows).toHaveLength(1);
+
+      const deniedMetadataDelete = await database.query<{ id: string }>(
+        `DELETE FROM documents WHERE id = $1 RETURNING id`,
+        [documentId],
+      );
+      const deniedObjectDelete = await database.query<{ id: string }>(
+        `DELETE FROM storage.objects WHERE id = $1 RETURNING id`,
+        [objectId],
+      );
+      expect(deniedMetadataDelete.rows).toHaveLength(0);
+      expect(deniedObjectDelete.rows).toHaveLength(0);
+    } finally {
+      await database.exec("RESET ROLE");
+    }
+
+    await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [
+      uploaderId,
+    ]);
+    await database.exec("SET ROLE authenticated");
+
+    try {
+      const metadataDelete = await database.query<{ id: string }>(
+        `DELETE FROM documents WHERE id = $1 RETURNING id`,
+        [documentId],
+      );
+      const objectDelete = await database.query<{ id: string }>(
+        `DELETE FROM storage.objects WHERE id = $1 RETURNING id`,
+        [objectId],
+      );
+      expect(metadataDelete.rows).toHaveLength(1);
+      expect(objectDelete.rows).toHaveLength(1);
+    } finally {
+      await database.exec("RESET ROLE");
+    }
+  });
+});

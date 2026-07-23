@@ -1,0 +1,5295 @@
+
+
+
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MK JEWELS CRM</title>
+
+  <style>
+    :root{
+      --bg:#f4f5f7;
+      --card:#ffffff;
+      --text:#1f2328;
+      --muted:#6b7280;                                    
+      --line:#e5e7eb;
+      --dark:#0f1115;
+      --dark2:#171a21;
+      --accent:#c9a24a;
+      --accent-dark:#a88436;
+      --success:#166534;
+      --danger:#b91c1c;
+      --warning:#92400e;
+      --shadow:0 10px 25px rgba(0,0,0,.08);
+      --radius:16px;
+      --radius-sm:10px;
+      --sidebar-w:280px;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; font-family:Calibri, Arial, system-ui, sans-serif; background:var(--bg); color:var(--text); }
+    body{ min-height:100vh; }
+
+    .appShell{
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .topbar{
+      height:64px;
+      background:linear-gradient(90deg,var(--dark),var(--dark2));
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 14px;
+      position:sticky;
+      top:0;
+      z-index:50;
+      box-shadow:0 2px 12px rgba(0,0,0,.15);
+      border-bottom:3px solid var(--accent);
+    }
+
+    .topbarLeft{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width:0;
+    }
+
+    .iconBtn{
+      border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.06);
+      color:#fff;
+      width:42px;
+      height:42px;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      flex:0 0 auto;
+    }
+    .iconBtn:hover{ background:rgba(255,255,255,.1); }
+
+    .brandWrap{
+      display:flex;
+      flex-direction:column;
+      min-width:0;
+    }
+    .brandTitle{
+      font-size:16px;
+      font-weight:800;
+      letter-spacing:.08em;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .brandSub{
+      font-size:11px;
+      color:rgba(255,255,255,.72);
+      letter-spacing:.06em;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .topbarRight{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      color:rgba(255,255,255,.8);
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:.05em;
+    }
+
+    .layout{
+      display:flex;
+      min-height:calc(100vh - 64px);
+      position:relative;
+    }
+
+    .sidebarBackdrop{
+      position:fixed;
+      inset:64px 0 0 0;
+      background:rgba(0,0,0,.35);
+      opacity:0;
+      pointer-events:none;
+      transition:.22s ease;
+      z-index:40;
+    }
+    .sidebarBackdrop.show{
+      opacity:1;
+      pointer-events:auto;
+    }
+
+    .sidebar{
+      width:var(--sidebar-w);
+      max-width:calc(100vw - 40px);
+      position:fixed;
+      top:64px;
+      left:0;
+      bottom:0;
+      background:#fff;
+      border-right:1px solid var(--line);
+      transform:translateX(-100%);
+      transition:.22s ease;
+      z-index:45;
+      display:flex;
+      flex-direction:column;
+      box-shadow:var(--shadow);
+    }
+    .sidebar.show{
+      transform:translateX(0);
+    }
+
+    .sidebarHead{
+      padding:18px 16px 14px;
+      border-bottom:1px solid var(--line);
+      background:linear-gradient(180deg,#fff,#faf8f2);
+    }
+    .sidebarTitle{
+      font-size:15px;
+      font-weight:800;
+      letter-spacing:.08em;
+      color:#111827;
+    }
+    .sidebarSub{
+      margin-top:5px;
+      font-size:12px;
+      color:var(--muted);
+      font-weight:700;
+      letter-spacing:.04em;
+    }
+
+    .menu{
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+   
+    .menuBtn{
+      width:100%;
+      text-align:left;
+      border:1px solid var(--line);
+      background:#fff;
+      color:#111827;
+      padding:14px 14px;
+      border-radius:14px;
+      cursor:pointer;
+      font-size:13px;
+      font-weight:800;
+      letter-spacing:.06em;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .menuBtn:hover{ border-color:#d4d4d8; background:#fafafa; }
+    .menuBtn.active{
+      background:#111827;
+      color:#fff;
+      border-color:#111827;
+    }
+
+    .menuBadge{
+      margin-left:auto;
+      background:var(--accent);
+      color:#111827;
+      border-radius:999px;
+      padding:4px 8px;
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.04em;
+    }
+
+    .content{
+      width:100%;
+      padding:16px;
+    }
+
+    .page{
+      display:none;
+      max-width:1400px;
+      margin:0 auto;
+    }
+    .page.active{ display:block; }
+
+    .pageHead{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:16px;
+      flex-wrap:wrap;
+    }
+    .pageTitle{
+      font-size:22px;
+      font-weight:800;
+      letter-spacing:.04em;
+      margin:0;
+    }
+    .pageDesc{
+      margin:6px 0 0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.45;
+      font-weight:600;
+    }
+
+    .headActions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+    }
+
+    .btn{
+      border:1px solid #111827;
+      background:#111827;
+      color:#fff;
+      border-radius:12px;
+      padding:12px 16px;
+      min-height:44px;
+      cursor:pointer;
+      font-size:13px;
+      font-weight:800;
+      letter-spacing:.06em;
+    }
+    .btn:hover{ opacity:.95; }
+    .btn.secondary{
+      background:#fff;
+      color:#111827;
+      border-color:var(--line);
+    }
+    .btn.accent{
+      background:var(--accent);
+      color:#111827;
+      border-color:var(--accent-dark);
+    }
+    .btn.small{
+      min-height:38px;
+      padding:9px 12px;
+      font-size:12px;
+      border-radius:10px;
+    }
+    .btn[disabled]{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+
+    .grid{
+      display:grid;
+      gap:16px;
+    }
+    .grid.cards6{
+      grid-template-columns:repeat(6, minmax(0,1fr));
+    }
+
+
+    .grid.cards8{
+  grid-template-columns:repeat(5, minmax(0,1fr));
+}
+
+    .grid.cols2{
+      grid-template-columns:1.2fr .8fr;
+    }
+    .grid.cols3{
+      grid-template-columns:repeat(3, minmax(0,1fr));
+    }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .cardHead{
+      padding:14px 16px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      background:#fff;
+    }
+    .cardTitle{
+      font-size:13px;
+      font-weight:800;
+      letter-spacing:.07em;
+      color:#111827;
+    }
+    .cardBody{
+      padding:16px;
+    }
+
+    .statCard{
+  background:linear-gradient(180deg,#ffffff,#fbfbfc);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:12px; /* reduced */
+  box-shadow:var(--shadow);
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  min-height:80px; /* reduced from 108 */
+}
+
+.statLabel{
+  font-size:11px;
+  color:var(--muted);
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  text-align:center;
+}
+
+.statValue{
+  margin-top:8px;
+  font-size:28px;
+  font-weight:800;
+  color:#111827;
+  line-height:1;
+  text-align:center;
+}
+
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .listItem{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:12px;
+      padding:12px 14px;
+    }
+    .listLeft{
+      min-width:0;
+    }
+    .listTitle{
+      font-size:13px;
+      font-weight:800;
+      color:#111827;
+      word-break:break-word;
+    }
+    .listSub{
+      margin-top:3px;
+      font-size:12px;
+      color:var(--muted);
+      font-weight:600;
+      word-break:break-word;
+    }
+    .listValue{
+      font-size:14px;
+      font-weight:800;
+      color:#111827;
+      flex:0 0 auto;
+    }
+
+    .toolbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-bottom:14px;
+      align-items:center;
+    }
+
+    .input, .select, .textarea{
+      width:100%;
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:12px;
+      padding:12px 14px;
+      font-size:14px;
+      outline:none;
+      font-family:inherit;
+    }
+    .textarea{ min-height:90px; resize:vertical; }
+    .input:focus, .select:focus, .textarea:focus{
+      border-color:#c9a24a;
+      box-shadow:0 0 0 3px rgba(201,162,74,.18);
+    }
+
+    .searchBar{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) auto auto;
+      gap:10px;
+    }
+
+    .tableWrap{
+      width:100%;
+      overflow:auto;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#fff;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:760px;
+      background:#fff;
+    }
+
+    th, td{
+      padding:12px 12px;
+      border-bottom:1px solid var(--line);
+      text-align:left;
+      vertical-align:top;
+      font-size:13px;
+    }
+
+    th{
+      font-size:12px;
+      letter-spacing:.06em;
+      color:#374151;
+      background:#fafafa;
+      font-weight:800;
+      position:sticky;
+      top:0;
+      z-index:1;
+    }
+
+    tr:hover td{
+      background:#fcfcfd;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:5px 9px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:.05em;
+      background:#f3f4f6;
+      color:#374151;
+      border:1px solid #e5e7eb;
+      white-space:nowrap;
+    }
+    .pill.yes{ background:#ecfdf5; color:#166534; border-color:#bbf7d0; }
+    .pill.no{ background:#fef2f2; color:#b91c1c; border-color:#fecaca; }
+    .pill.muted{ background:#f3f4f6; color:#6b7280; }
+    .pill.info{ background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+
+    .emptyState{
+      border:1px dashed #d1d5db;
+      border-radius:16px;
+      background:#fff;
+      padding:28px 18px;
+      text-align:center;
+      color:var(--muted);
+      font-weight:700;
+    }
+
+    .launchCard{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      align-items:flex-start;
+      padding:22px;
+      background:linear-gradient(180deg,#fff,#faf8f3);
+      border:1px solid #eadfc4;
+      border-radius:18px;
+      box-shadow:var(--shadow);
+    }
+    .launchTitle{
+      font-size:20px;
+      font-weight:800;
+      letter-spacing:.04em;
+      color:#111827;
+    }
+    .launchText{
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.5;
+      font-weight:600;
+      max-width:760px;
+    }
+
+    .profileShell{
+      display:grid;
+      grid-template-columns:360px minmax(0,1fr);
+      gap:16px;
+      margin-top:16px;
+    }
+
+    .profileSidebar{
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+
+    .profileMain{
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+
+    .profileHero{
+      background:linear-gradient(180deg,#111827,#1f2937);
+      color:#fff;
+      border-radius:18px;
+      padding:20px;
+      box-shadow:var(--shadow);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .profileName{
+      font-size:24px;
+      font-weight:800;
+      letter-spacing:.03em;
+      word-break:break-word;
+    }
+    .profileMeta{
+      margin-top:8px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .kv{
+      display:grid;
+      grid-template-columns:170px minmax(0,1fr);
+      gap:10px;
+      padding:9px 0;
+      border-bottom:1px dashed #ececec;
+    }
+    .kv:last-child{ border-bottom:none; }
+    .kvKey{
+      color:var(--muted);
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.06em;
+    }
+    .kvVal{
+      color:#111827;
+      font-size:13px;
+      font-weight:700;
+      word-break:break-word;
+    }
+
+    .sectionGrid2{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:16px;
+    }
+
+    .statusBar{
+      margin-top:10px;
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.04em;
+      color:#374151;
+      min-height:18px;
+    }
+
+    .muted{
+      color:var(--muted);
+    }
+
+    .hidden{
+      display:none !important;
+    }
+
+    .loader{
+      width:18px;
+      height:18px;
+      border:2px solid rgba(255,255,255,.3);
+      border-top-color:#fff;
+      border-radius:50%;
+      animation:spin .8s linear infinite;
+    }
+
+    .inlineLoader{
+      width:16px;
+      height:16px;
+      border:2px solid rgba(0,0,0,.15);
+      border-top-color:#111827;
+      border-radius:50%;
+      animation:spin .8s linear infinite;
+      display:inline-block;
+      vertical-align:middle;
+    }
+
+    @keyframes spin{
+      to{ transform:rotate(360deg); }
+    }
+
+    .grid.cards8{
+  grid-template-columns:repeat(5, minmax(0,1fr));
+}
+
+@media (max-width: 1200px){
+  .grid.cards6{ grid-template-columns:repeat(3, minmax(0,1fr)); }
+  .grid.cards8{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .grid.cols2{ grid-template-columns:1fr; }
+  .profileShell{ grid-template-columns:1fr; }
+  .sectionGrid2{ grid-template-columns:1fr; }
+}
+
+@media (max-width: 760px){
+  .grid.cards6{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .grid.cards8{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .searchBar{ grid-template-columns:1fr; }
+  .pageTitle{ font-size:20px; }
+  .profileName{ font-size:20px; }
+  .kv{ grid-template-columns:1fr; gap:4px; }
+}
+
+@media (max-width: 480px){
+  .grid.cards6{ grid-template-columns:1fr; }
+  .grid.cards8{ grid-template-columns:1fr; }
+  .topbarRight{ display:none; }
+  .brandSub{ display:none; }
+}
+
+     
+    .editingField{
+  background:#fffdf7 !important;
+  border:1px solid #c9a24a !important;
+  box-shadow:0 0 0 3px rgba(201,162,74,.12);
+}
+
+#clientProfileWrap{
+  margin-top:16px;
+}
+
+
+.chartSplit{
+  display:grid;
+  grid-template-columns:1.45fr .85fr;
+  gap:16px;
+  align-items:stretch;
+}
+
+.chartPanel{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:16px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+
+.chartPanelHead{
+  padding:14px 16px;
+  border-bottom:1px solid var(--line);
+  background:#fff;
+}
+
+.chartPanelTitle{
+  font-size:13px;
+  font-weight:800;
+  letter-spacing:.07em;
+  color:#111827;
+}
+
+.chartPanelBody{
+  padding:16px;
+  height:340px;
+}
+
+.chartPanelBody canvas{
+  width:100% !important;
+  height:100% !important;
+}
+
+@media (max-width: 1100px){
+  .chartSplit{
+    grid-template-columns:1fr;
+  }
+}
+
+
+
+.dashboardLoadingPopup{
+  position:fixed;
+  inset:0;
+  background:rgba(15,17,21,.35);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+  padding:20px;
+}
+
+.dashboardLoadingPopup.hidden{
+  display:none !important;
+}
+
+.dashboardLoadingCard{
+  min-width:280px;
+  max-width:420px;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:18px;
+  box-shadow:0 18px 40px rgba(0,0,0,.18);
+  padding:22px 20px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+
+.dashboardLoadingSpinner{
+  width:24px;
+  height:24px;
+  border:3px solid rgba(0,0,0,.12);
+  border-top-color:#111827;
+  border-radius:50%;
+  animation:spin .8s linear infinite;
+  flex:0 0 auto;
+}
+
+.dashboardLoadingText{
+  font-size:14px;
+  font-weight:800;
+  letter-spacing:.04em;
+  color:#111827;
+}
+
+
+
+
+/* =========================
+   CRM WEBAPP SAFE MOBILE / READABILITY FIX
+   KEEP SAME COLORS + SAME DESIGN
+   ========================= */
+
+/* stop mobile browser random text enlargement */
+html{
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+}
+
+body{
+  line-height:1.5;
+}
+
+/* better readability */
+.pageTitle{
+  line-height:1.2;
+}
+
+.pageDesc{
+  font-size:14px !important;
+  line-height:1.5 !important;
+}
+
+.cardTitle{
+  font-size:14px !important;
+}
+
+.input,
+.select,
+.textarea{
+  font-size:16px !important;   /* prevents mobile zoom */
+  min-height:46px;
+}
+
+.btn{
+  min-height:48px !important;
+  font-size:14px !important;
+}
+
+.btn.small{
+  min-height:40px !important;
+}
+
+.statusBar{
+  font-size:13px !important;
+  line-height:1.4;
+}
+
+.listTitle{
+  line-height:1.35;
+}
+
+.listSub{
+  line-height:1.4;
+}
+
+.kvKey,
+.kvVal{
+  line-height:1.4;
+}
+
+/* table readability */
+th, td{
+  line-height:1.4;
+}
+
+/* safer wrapping */
+.pageTitle,
+.pageDesc,
+.cardTitle,
+.listTitle,
+.listSub,
+.kvKey,
+.kvVal,
+.statLabel,
+.statValue,
+.brandTitle,
+.brandSub{
+  word-break:break-word;
+}
+
+/* profile inputs while editing */
+.editingField{
+  font-size:16px !important;
+}
+
+/* mobile / tablet usability */
+@media (max-width: 1100px){
+
+  .content{
+    padding:14px !important;
+  }
+
+  .pageHead{
+    gap:14px !important;
+  }
+
+  .headActions{
+    width:100%;
+    gap:10px !important;
+  }
+
+  .headActions .btn{
+    flex:1 1 220px;
+  }
+
+  .toolbar{
+    gap:12px !important;
+  }
+
+  .toolbar > div{
+    flex:1 1 220px;
+    min-width:0 !important;
+  }
+
+  .searchBar{
+    gap:12px !important;
+  }
+
+  .cardBody{
+    padding:14px !important;
+  }
+
+  .cardHead{
+    padding:14px !important;
+  }
+
+  .chartPanelBody{
+    height:300px !important;
+  }
+}
+
+/* phone */
+@media (max-width: 760px){
+
+  .topbar{
+    padding:0 10px !important;
+  }
+
+  .iconBtn{
+    width:44px;
+    height:44px;
+  }
+
+  .brandTitle{
+    font-size:15px !important;
+  }
+
+  .content{
+    padding:10px !important;
+  }
+
+  .pageTitle{
+    font-size:20px !important;
+  }
+
+  .pageDesc{
+    font-size:13px !important;
+  }
+
+  .headActions{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .headActions .btn{
+    width:100%;
+  }
+
+  .toolbar{
+    flex-direction:column;
+    align-items:stretch !important;
+  }
+
+  .toolbar > div{
+    width:100%;
+  }
+
+  .toolbar .btn{
+    width:100%;
+  }
+
+  .searchBar{
+    grid-template-columns:1fr !important;
+  }
+
+  .profileMeta{
+    gap:6px !important;
+  }
+
+  .profileHero{
+    padding:16px !important;
+  }
+
+  .profileName{
+    line-height:1.2;
+  }
+
+  .statCard{
+    min-height:88px !important;
+    padding:14px 10px !important;
+  }
+
+  .statLabel{
+    font-size:11px !important;
+    line-height:1.25;
+  }
+
+  .statValue{
+    font-size:24px !important;
+  }
+
+  .tableWrap{
+    -webkit-overflow-scrolling:touch;
+  }
+
+  table{
+    min-width:720px;
+  }
+}
+
+/* very small phones */
+@media (max-width: 480px){
+
+  .content{
+    padding:8px !important;
+  }
+
+  .pageTitle{
+    font-size:18px !important;
+  }
+
+  .cardHead,
+  .cardBody{
+    padding:12px !important;
+  }
+
+  .profileHero{
+    padding:14px !important;
+  }
+
+  .profileName{
+    font-size:18px !important;
+  }
+
+  .chartPanelBody{
+    height:260px !important;
+  }
+
+  .dashboardLoadingCard{
+    min-width:0 !important;
+    width:100%;
+  }
+}
+
+
+
+/* =========================
+   TOPBAR IMPROVEMENT
+   ========================= */
+
+/* increase height */
+.topbar{
+  height:72px !important;
+  padding:0 12px !important;
+}
+
+/* make menu button bigger */
+.iconBtn{
+  width:48px !important;
+  height:48px !important;
+  border-radius:14px;
+}
+
+/* increase logo text */
+.brandTitle{
+  font-size:18px !important;
+}
+
+/* subtitle readability */
+.brandSub{
+  font-size:12px !important;
+}
+
+/* spacing */
+.topbarLeft{
+  gap:14px !important;
+}
+
+/* mobile optimization */
+@media (max-width:760px){
+
+  .topbar{
+    height:72px !important;
+  }
+
+  .iconBtn{
+    width:50px !important;
+    height:50px !important;
+  }
+
+  .brandTitle{
+    font-size:17px !important;
+  }
+
+}
+
+
+/* CLIENT WALKIN FORM DESKTOP CENTER FIX */
+#page-client_walkin_form .pageHead,
+.walkinFormTop,
+.walkinQueueWrap{
+  width:100%;
+  max-width:900px;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+@media (max-width:760px){
+  #page-client_walkin_form .pageHead,
+  .walkinFormTop,
+  .walkinQueueWrap{
+    max-width:100%;
+  }
+}
+
+
+/* =========================
+   WALKIN FORM HEADER BOX
+   ========================= */
+
+#page-client_walkin_form .pageHead{
+  background:#fff; /* white*/
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:18px 20px;
+  margin-bottom:16px;
+}
+
+/* make it match centered layout */
+#page-client_walkin_form .pageHead{
+  max-width:900px;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+/* mobile adjustment */
+@media (max-width:760px){
+  #page-client_walkin_form .pageHead{
+    padding:14px;
+    border-radius:12px;
+  }
+}
+
+
+  
+
+/* =========================
+   PREMIUM UI — CLIENT WALKIN FORM
+   ========================= */
+
+#page-client_walkin_form{
+  max-width:980px;
+  margin:0 auto;
+}
+
+.premiumHeroHead{
+  position:relative;
+  background:
+    radial-gradient(circle at top left, rgba(201,162,74,.20), transparent 32%),
+    linear-gradient(135deg, #ffffff, #f8f8fa 55%, #f6f1e7);
+  border:1px solid rgba(201,162,74,.22);
+  border-radius:24px;
+  padding:24px 24px 20px;
+  box-shadow:
+    0 18px 40px rgba(15,17,21,.08),
+    inset 0 1px 0 rgba(255,255,255,.9);
+  overflow:hidden;
+}
+
+.heroBadge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:8px 14px;
+  border-radius:999px;
+  margin-bottom:12px;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.12em;
+  color:#7a5a19;
+  background:rgba(201,162,74,.12);
+  border:1px solid rgba(201,162,74,.22);
+}
+
+.premiumCard{
+  border:1px solid rgba(17,24,39,.06);
+  border-radius:24px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,1), rgba(250,250,251,1));
+  box-shadow:
+    0 20px 45px rgba(15,17,21,.08),
+    0 4px 12px rgba(15,17,21,.04);
+  overflow:hidden;
+}
+
+.premiumSectionHead{
+  background:
+    linear-gradient(180deg, rgba(255,255,255,1), rgba(250,248,243,1));
+  border-bottom:1px solid rgba(17,24,39,.07);
+  padding:18px 20px;
+}
+
+.sectionEyebrow{
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.16em;
+  color:#9a7a34;
+  margin-bottom:6px;
+}
+
+.premiumCardBody{
+  padding:18px;
+}
+
+.premiumFormGrid,
+.queueFilterGrid{
+  display:grid;
+  gap:14px;
+}
+
+.fieldGroup{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  min-width:0;
+}
+
+.fieldLabel{
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.08em;
+  color:#6b7280;
+}
+
+.selectWrap{
+  position:relative;
+}
+
+.premiumInput{
+  width:100%;
+  min-height:56px;
+  border-radius:18px !important;
+  border:1px solid #e5e7eb !important;
+  background:linear-gradient(180deg,#ffffff,#fcfcfd) !important;
+  box-shadow:inset 0 1px 2px rgba(15,17,21,.03);
+  padding:14px 16px !important;
+  font-size:16px !important;
+  font-weight:700;
+  color:#111827;
+}
+
+.premiumInput:focus{
+  border-color:#c9a24a !important;
+  box-shadow:
+    0 0 0 4px rgba(201,162,74,.14),
+    inset 0 1px 2px rgba(15,17,21,.03) !important;
+}
+
+
+.phoneInputRow{
+  display:grid;
+  grid-template-columns:190px minmax(0,1fr);
+  gap:8px;
+}
+
+.phoneInputRow .premiumInput{
+  min-width:0;
+}
+
+@media (max-width:480px){
+  .phoneInputRow{
+    grid-template-columns:1fr;
+  }
+}
+
+.premiumButtonRow{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+
+.premiumBtn{
+  min-height:56px !important;
+  border-radius:18px !important;
+  font-size:14px !important;
+  font-weight:800;
+  letter-spacing:.08em;
+  box-shadow:
+    0 10px 22px rgba(15,17,21,.10),
+    inset 0 1px 0 rgba(255,255,255,.10);
+}
+
+.secondaryBtnSoft{
+  background:linear-gradient(180deg,#ffffff,#f8fafc) !important;
+  border:1px solid #e5e7eb !important;
+  color:#111827 !important;
+  box-shadow:0 8px 20px rgba(15,17,21,.05) !important;
+}
+
+.queueActionWrap{
+  display:flex;
+  align-items:end;
+}
+
+.queueActionWrap .premiumBtn{
+  width:100%;
+}
+
+.premiumStatusBar{
+  min-height:20px;
+  padding-top:2px;
+  font-size:12px !important;
+  font-weight:800;
+  color:#4b5563;
+}
+
+.tableCardWrap{
+  margin-top:6px;
+  border-radius:20px;
+  overflow:hidden;
+  border:1px solid rgba(17,24,39,.06);
+  background:#fff;
+}
+
+.premiumTableWrap{
+  border:none !important;
+  border-radius:0 !important;
+  background:transparent !important;
+}
+
+.walkinFormTop,
+.walkinQueueWrap{
+  width:100%;
+  max-width:980px;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+.walkinQueueWrap{
+  margin-top:16px;
+}
+
+@media (min-width:761px){
+  .queueFilterGrid{
+    grid-template-columns:1fr 1fr 220px;
+    align-items:end;
+  }
+
+  .premiumFormGrid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .premiumFormGrid .fieldGroup:first-child{
+    grid-column:1 / -1;
+  }
+
+  .premiumButtonRow,
+  .premiumStatusBar{
+    grid-column:1 / -1;
+  }
+}
+
+@media (max-width:760px){
+
+  #page-client_walkin_form{
+    max-width:100%;
+  }
+
+  .premiumHeroHead{
+    border-radius:18px;
+    padding:18px 16px 16px;
+    margin-bottom:14px;
+  }
+
+  .heroBadge{
+    margin-bottom:10px;
+    font-size:10px;
+  }
+
+  .premiumCard{
+    border-radius:20px;
+  }
+
+  .premiumSectionHead{
+    padding:16px;
+  }
+
+  .premiumCardBody{
+    padding:14px;
+  }
+
+  .premiumButtonRow{
+    grid-template-columns:1fr;
+  }
+
+  .queueFilterGrid{
+    grid-template-columns:1fr;
+    gap:12px;
+  }
+
+  .queueActionWrap{
+    display:block;
+  }
+
+  .queueActionWrap .premiumBtn{
+    width:100%;
+  }
+
+  .walkinQueueWrap{
+    margin-top:14px;
+  }
+
+  .premiumInput{
+    min-height:54px;
+    border-radius:16px !important;
+  }
+
+  .premiumBtn{
+    min-height:54px !important;
+    border-radius:16px !important;
+  }
+}
+
+@media (max-width:480px){
+  .premiumHeroHead{
+    padding:16px 14px 14px;
+  }
+
+  .premiumSectionHead{
+    padding:14px;
+  }
+
+  .premiumCardBody{
+    padding:12px;
+  }
+
+  .premiumInput{
+    min-height:52px;
+    padding:13px 14px !important;
+  }
+
+  .premiumBtn{
+    min-height:52px !important;
+    font-size:13px !important;
+  }
+}
+
+
+  
+
+/* =========================
+   FINAL FIX — DASHBOARD + CLIENT DATABASE LAYOUT
+   ========================= */
+
+#page-dashboard,
+#page-client_database{
+  max-width:1180px;
+  margin:0 auto;
+}
+
+#page-dashboard .pageHead,
+#page-client_database .pageHead{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:18px 20px;
+  margin-bottom:16px;
+  box-shadow:var(--shadow);
+}
+
+#page-dashboard .headActions,
+#page-client_database .headActions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+  justify-content:flex-end;
+  width:auto;
+}
+
+#page-dashboard .headActions .btn,
+#page-client_database .headActions .btn{
+  flex:0 0 auto;
+  min-width:210px;
+}
+
+#page-dashboard .toolbar{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0,1fr));
+  gap:12px;
+  align-items:end;
+}
+
+#page-dashboard .toolbar > div,
+#page-dashboard .toolbar > button{
+  min-width:0 !important;
+  width:100%;
+}
+
+#page-dashboard #applyDashboardFilterBtn{
+  width:100%;
+}
+
+#page-dashboard .grid.cards8{
+  grid-template-columns:repeat(3, minmax(0,1fr));
+  gap:14px;
+}
+
+#page-client_database .searchBar{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 150px 120px;
+  gap:10px;
+  align-items:center;
+}
+
+@media (max-width:900px){
+  #page-dashboard .pageHead,
+  #page-client_database .pageHead{
+    padding:16px;
+  }
+
+  #page-dashboard .headActions,
+  #page-client_database .headActions{
+    width:100%;
+    justify-content:stretch;
+  }
+
+  #page-dashboard .headActions .btn,
+  #page-client_database .headActions .btn{
+    flex:1 1 calc(50% - 5px);
+    min-width:0;
+  }
+
+  #page-dashboard .toolbar{
+    grid-template-columns:1fr 1fr;
+  }
+
+  #page-dashboard .grid.cards8{
+    grid-template-columns:repeat(2, minmax(0,1fr));
+  }
+
+  #page-client_database .searchBar{
+    grid-template-columns:1fr;
+  }
+}
+
+@media (max-width:760px){
+  #page-dashboard .pageHead,
+  #page-client_database .pageHead{
+    border-radius:14px;
+    padding:14px;
+  }
+
+  #page-dashboard .pageTitle,
+  #page-client_database .pageTitle{
+    margin-bottom:6px;
+  }
+
+  #page-dashboard .pageDesc,
+  #page-client_database .pageDesc{
+    font-size:13px !important;
+    line-height:1.45 !important;
+  }
+
+  #page-dashboard .headActions,
+  #page-client_database .headActions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+
+  #page-dashboard .headActions .btn,
+  #page-client_database .headActions .btn{
+    width:100%;
+    min-width:0;
+    min-height:52px !important;
+    padding:12px 10px !important;
+    font-size:12px !important;
+    letter-spacing:.04em;
+    white-space:normal;
+    text-align:center;
+  }
+
+  #page-dashboard .toolbar{
+    grid-template-columns:1fr;
+    gap:10px;
+  }
+
+  #page-dashboard .grid.cards8{
+    grid-template-columns:repeat(2, minmax(0,1fr));
+    gap:12px;
+  }
+
+  #page-dashboard .statCard{
+    min-height:92px !important;
+    padding:12px 10px !important;
+  }
+
+  #page-dashboard .statLabel{
+    font-size:10px !important;
+    line-height:1.25;
+  }
+
+  #page-dashboard .statValue{
+    font-size:22px !important;
+  }
+
+  #page-client_database .searchBar{
+    grid-template-columns:1fr;
+    gap:10px;
+  }
+
+  #page-client_database .searchBar .btn{
+    width:100%;
+  }
+}
+
+@media (max-width:480px){
+  #page-dashboard .headActions,
+  #page-client_database .headActions{
+    grid-template-columns:1fr;
+  }
+
+  #page-dashboard .grid.cards8{
+    grid-template-columns:1fr;
+  }
+}
+
+
+  
+
+/* =========================
+   NOT BOUGHT FOLLOW UP ADD-ON
+   ========================= */
+#page-not_bought_follow_up{
+  max-width:1180px;
+  margin:0 auto;
+}
+#page-not_bought_follow_up .pageHead{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:18px 20px;
+  margin-bottom:16px;
+  box-shadow:var(--shadow);
+}
+.nbTabs{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  margin-bottom:14px;
+}
+.nbTabBtn{
+  border:1px solid var(--line);
+  background:#fff;
+  color:#111827;
+  border-radius:14px;
+  padding:13px 12px;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.06em;
+  cursor:pointer;
+}
+.nbTabBtn.active{
+  background:#111827;
+  color:#fff;
+  border-color:#111827;
+}
+.nbFilterGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr 160px 160px;
+  gap:10px;
+  align-items:end;
+}
+.nbCards{
+  display:grid;
+  gap:12px;
+}
+.nbClientCard{
+  border:1px solid var(--line);
+  background:#fff;
+  border-radius:16px;
+  padding:14px;
+  box-shadow:0 8px 20px rgba(0,0,0,.05);
+}
+.nbClientTop{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:flex-start;
+  flex-wrap:wrap;
+}
+.nbClientName{
+  font-size:16px;
+  font-weight:800;
+  color:#111827;
+  letter-spacing:.03em;
+}
+.nbClientMeta{
+  margin-top:5px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.nbActionPoint{
+  margin-top:12px;
+  padding:12px;
+  border-radius:14px;
+  border:1px solid rgba(201,162,74,.25);
+  background:#fffdf7;
+  color:#3f3012;
+  font-size:13px;
+  font-weight:700;
+  line-height:1.45;
+}
+.nbInfoGrid{
+  margin-top:12px;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+}
+.nbInfoBox{
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:10px;
+  background:#fafafa;
+}
+.nbInfoLabel{
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.08em;
+  color:#6b7280;
+  margin-bottom:4px;
+}
+.nbInfoValue{
+  font-size:13px;
+  font-weight:700;
+  color:#111827;
+  word-break:break-word;
+}
+.nbFollowForm{
+  margin-top:12px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.nbFollowForm .full{
+  grid-column:1 / -1;
+}
+.nbHistoryBox{
+  margin-top:12px;
+  border-top:1px dashed var(--line);
+  padding-top:12px;
+}
+.nbHistoryItem{
+  border:1px solid var(--line);
+  background:#fcfcfd;
+  border-radius:12px;
+  padding:10px;
+  margin-bottom:8px;
+}
+
+.nbListRow{
+  border:1px solid var(--line);
+  background:#fff;
+  border-radius:16px;
+  padding:14px;
+  box-shadow:0 8px 20px rgba(0,0,0,.05);
+  display:flex;
+  gap:12px;
+  justify-content:space-between;
+  align-items:flex-start;
+  flex-wrap:wrap;
+}
+.nbListMain{
+  flex:1 1 620px;
+  min-width:0;
+}
+.nbListTitleRow{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:8px;
+}
+.nbListActions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:flex-end;
+  flex:0 0 auto;
+}
+.nbMiniGrid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  margin-top:8px;
+}
+.nbMiniBox{
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fafafa;
+  padding:9px 10px;
+}
+.nbMiniLabel{
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.08em;
+  color:#6b7280;
+  margin-bottom:3px;
+}
+.nbMiniValue{
+  font-size:12px;
+  font-weight:800;
+  color:#111827;
+  word-break:break-word;
+}
+.nbFollowPanel{
+  flex:1 1 100%;
+  width:100%;
+  margin-top:12px;
+  border-top:1px dashed var(--line);
+  padding-top:12px;
+}
+
+.nbTopScroll{
+  width:100%;
+  overflow-x:auto;
+  overflow-y:hidden;
+  height:16px;
+  margin-bottom:8px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:#fff;
+}
+.nbTopScrollInner{
+  height:1px;
+}
+.nbFollowTableWrap{
+  border-radius:16px;
+  overflow:auto;
+}
+.nbFollowTable{
+  min-width:1760px;
+  table-layout:fixed;
+}
+.nbFollowTable th:nth-child(1), .nbFollowTable td:nth-child(1){ width:120px; }
+.nbFollowTable th:nth-child(2), .nbFollowTable td:nth-child(2){ width:150px; }
+.nbFollowTable th:nth-child(3), .nbFollowTable td:nth-child(3){ width:120px; }
+.nbFollowTable th:nth-child(4), .nbFollowTable td:nth-child(4){ width:130px; }
+.nbFollowTable th:nth-child(5), .nbFollowTable td:nth-child(5){ width:130px; }
+.nbFollowTable th:nth-child(6), .nbFollowTable td:nth-child(6){ width:130px; }
+.nbFollowTable th:nth-child(7), .nbFollowTable td:nth-child(7){ width:165px; }
+.nbFollowTable th:nth-child(8), .nbFollowTable td:nth-child(8){ width:165px; }
+.nbFollowTable th:nth-child(9), .nbFollowTable td:nth-child(9){ width:180px; }
+.nbFollowTable th:nth-child(10), .nbFollowTable td:nth-child(10){ width:180px; }
+.nbFollowTable th:nth-child(11), .nbFollowTable td:nth-child(11){ width:230px; }
+.nbFollowTable th:nth-child(12), .nbFollowTable td:nth-child(12){ width:132px; }
+.nbFollowTable th{
+  white-space:nowrap;
+  font-size:11px;
+}
+.nbFollowTable td{
+  font-size:12px;
+  vertical-align:top;
+  word-break:break-word;
+  overflow-wrap:anywhere;
+}
+.nbFollowListRow:hover td{
+  background:#fcfcfd;
+}
+.nbActionPointInline{
+  min-width:0;
+  max-width:100%;
+  padding:8px 9px;
+  border-radius:12px;
+  border:1px solid rgba(201,162,74,.25);
+  background:#fffdf7;
+  color:#3f3012;
+  font-size:11px;
+  font-weight:700;
+  line-height:1.35;
+}
+.nbRemarkInline{
+  min-width:0;
+  max-width:100%;
+  padding:8px 9px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:#fafafa;
+  color:#111827;
+  font-size:11px;
+  font-weight:700;
+  line-height:1.35;
+}
+.nbTableActions{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width:112px;
+}
+.nbTableActions .btn{
+  width:100%;
+  min-height:30px !important;
+  padding:5px 7px !important;
+  font-size:9.5px !important;
+  line-height:1.15;
+  text-align:center;
+}
+.nbFollowTable th:last-child,
+.nbFollowTable td:last-child{
+  position:sticky;
+  right:0;
+  background:#fff;
+  z-index:3;
+  box-shadow:-6px 0 12px rgba(0,0,0,.04);
+}
+.nbFollowTable th:last-child{
+  z-index:4;
+}
+.nbExpandRow td{
+  background:#fffdf7 !important;
+}
+@media(max-width:900px){
+  .nbMiniGrid{ grid-template-columns:1fr 1fr; }
+  .nbListActions{ justify-content:flex-start; width:100%; }
+}
+@media(max-width:760px){
+  .nbMiniGrid{ grid-template-columns:1fr; }
+}
+@media(max-width:900px){
+  .nbFilterGrid{ grid-template-columns:1fr 1fr; }
+  .nbInfoGrid{ grid-template-columns:1fr 1fr; }
+}
+@media(max-width:760px){
+  .nbTabs{ grid-template-columns:1fr; }
+  .nbFilterGrid{ grid-template-columns:1fr; }
+  .nbInfoGrid{ grid-template-columns:1fr; }
+  .nbFollowForm{ grid-template-columns:1fr; }
+  #page-not_bought_follow_up .pageHead{ padding:14px; border-radius:14px; }
+}
+
+
+/* =========================================================
+   PROFESSIONAL RESPONSIVE UI FIX — NOT BOUGHT FOLLOW UP
+   Desktop: clean wide table
+   Tablet: scrollable table with comfortable columns
+   Phone: card-style layout, no left-right scrolling needed
+   ========================================================= */
+#page-not_bought_follow_up{
+  max-width:min(1600px, calc(100vw - 32px)) !important;
+}
+
+#page-not_bought_follow_up .card,
+#page-not_bought_follow_up .pageHead{
+  border-radius:20px;
+}
+
+#page-not_bought_follow_up .cardBody{
+  padding:18px;
+}
+
+.nbFilterGrid{
+  grid-template-columns:minmax(220px,.75fr) minmax(260px,1fr) 150px 150px !important;
+}
+
+.nbFollowTableWrap{
+  border:1px solid var(--line) !important;
+  border-radius:18px !important;
+  overflow:auto !important;
+  background:#fff;
+  -webkit-overflow-scrolling:touch;
+}
+
+.nbTopScroll{
+  height:18px !important;
+  margin:0 0 12px 0 !important;
+  background:#f9fafb !important;
+}
+
+.nbFollowTable{
+  min-width:1910px !important;
+  width:1910px !important;
+  table-layout:fixed !important;
+}
+
+.nbFollowTable th,
+.nbFollowTable td{
+  padding:14px 12px !important;
+  line-height:1.45 !important;
+}
+
+.nbFollowTable th{
+  background:#fafafa !important;
+  color:#374151 !important;
+  font-size:11px !important;
+  letter-spacing:.08em !important;
+}
+
+.nbFollowTable td{
+  font-size:12.5px !important;
+}
+
+.nbFollowTable th:nth-child(1), .nbFollowTable td:nth-child(1){ width:130px !important; }
+.nbFollowTable th:nth-child(2), .nbFollowTable td:nth-child(2){ width:170px !important; }
+.nbFollowTable th:nth-child(3), .nbFollowTable td:nth-child(3){ width:125px !important; }
+.nbFollowTable th:nth-child(4), .nbFollowTable td:nth-child(4){ width:130px !important; }
+.nbFollowTable th:nth-child(5), .nbFollowTable td:nth-child(5){ width:130px !important; }
+.nbFollowTable th:nth-child(6), .nbFollowTable td:nth-child(6){ width:140px !important; }
+.nbFollowTable th:nth-child(7), .nbFollowTable td:nth-child(7){ width:190px !important; }
+.nbFollowTable th:nth-child(8), .nbFollowTable td:nth-child(8){ width:190px !important; }
+.nbFollowTable th:nth-child(9), .nbFollowTable td:nth-child(9){ width:210px !important; }
+.nbFollowTable th:nth-child(10), .nbFollowTable td:nth-child(10){ width:210px !important; }
+.nbFollowTable th:nth-child(11), .nbFollowTable td:nth-child(11){ width:275px !important; }
+.nbFollowTable th:nth-child(12), .nbFollowTable td:nth-child(12){ width:150px !important; }
+
+.nbRemarkInline,
+.nbActionPointInline{
+  font-size:11.5px !important;
+  line-height:1.45 !important;
+  max-height:120px;
+  overflow:auto;
+}
+
+.nbTableActions{
+  min-width:124px !important;
+  gap:7px !important;
+}
+
+.nbTableActions .btn{
+  min-height:34px !important;
+  padding:6px 8px !important;
+  font-size:10px !important;
+  border-radius:9px !important;
+  letter-spacing:.08em !important;
+}
+
+.nbFollowPanel{
+  background:#fffdf7;
+  border:1px solid rgba(201,162,74,.24);
+  border-radius:16px;
+  padding:14px;
+}
+
+@media (max-width:1200px){
+  #page-not_bought_follow_up{
+    max-width:calc(100vw - 20px) !important;
+  }
+  .nbFilterGrid{
+    grid-template-columns:1fr 1fr !important;
+  }
+}
+
+@media (max-width:760px){
+  #page-not_bought_follow_up{
+    max-width:100% !important;
+  }
+
+  #page-not_bought_follow_up .content,
+  .content{
+    padding-left:10px !important;
+    padding-right:10px !important;
+  }
+
+  #page-not_bought_follow_up .pageHead{
+    padding:16px !important;
+    margin-bottom:12px !important;
+  }
+
+  #page-not_bought_follow_up .pageTitle{
+    font-size:20px !important;
+    letter-spacing:.10em !important;
+  }
+
+  #page-not_bought_follow_up .pageDesc{
+    font-size:12px !important;
+    line-height:1.45 !important;
+  }
+
+  #page-not_bought_follow_up .headActions{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    width:100% !important;
+  }
+
+  #page-not_bought_follow_up .headActions .btn{
+    width:100% !important;
+    min-height:48px !important;
+  }
+
+  .nbTabs{
+    grid-template-columns:1fr !important;
+    gap:8px !important;
+  }
+
+  .nbTabBtn{
+    min-height:48px !important;
+    border-radius:14px !important;
+  }
+
+  .nbFilterGrid{
+    grid-template-columns:1fr !important;
+    gap:10px !important;
+  }
+
+  .nbFilterGrid .btn{
+    width:100% !important;
+  }
+
+  #nbListTitle{
+    font-size:13px !important;
+  }
+
+  .nbTopScroll{
+    display:none !important;
+  }
+
+  .nbFollowTableWrap{
+    overflow:visible !important;
+    border:none !important;
+    background:transparent !important;
+  }
+
+  .nbFollowTable{
+    min-width:0 !important;
+    width:100% !important;
+    display:block !important;
+    background:transparent !important;
+  }
+
+  .nbFollowTable thead{
+    display:none !important;
+  }
+
+  .nbFollowTable tbody{
+    display:flex !important;
+    flex-direction:column !important;
+    gap:14px !important;
+  }
+
+  .nbFollowTable tr.nbFollowListRow{
+    display:block !important;
+    border:1px solid var(--line) !important;
+    border-radius:18px !important;
+    background:#fff !important;
+    box-shadow:0 10px 24px rgba(0,0,0,.07) !important;
+    padding:14px !important;
+  }
+
+  .nbFollowTable tr.nbFollowListRow:hover td{
+    background:transparent !important;
+  }
+
+  .nbFollowTable tr.nbFollowListRow td{
+    display:grid !important;
+    grid-template-columns:122px minmax(0,1fr) !important;
+    gap:10px !important;
+    width:100% !important;
+    border:0 !important;
+    border-bottom:1px dashed #edf0f2 !important;
+    padding:10px 0 !important;
+    font-size:13px !important;
+    background:transparent !important;
+  }
+
+  .nbFollowTable tr.nbFollowListRow td::before{
+    content:attr(data-label);
+    color:#6b7280;
+    font-size:10px;
+    font-weight:900;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    line-height:1.3;
+  }
+
+  .nbFollowTable tr.nbFollowListRow td:nth-child(2){
+    padding-top:2px !important;
+  }
+
+  .nbFollowTable tr.nbFollowListRow td:last-child{
+    position:static !important;
+    box-shadow:none !important;
+    border-bottom:0 !important;
+    display:block !important;
+    padding-top:12px !important;
+  }
+
+  .nbFollowTable tr.nbFollowListRow td:last-child::before{
+    display:block;
+    margin-bottom:10px;
+  }
+
+  .nbTableActions{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    gap:9px !important;
+    min-width:0 !important;
+    width:100% !important;
+  }
+
+  .nbTableActions .btn{
+    width:100% !important;
+    min-height:44px !important;
+    font-size:12px !important;
+    padding:10px 12px !important;
+    border-radius:13px !important;
+  }
+
+  .nbRemarkInline,
+  .nbActionPointInline{
+    padding:10px !important;
+    font-size:12px !important;
+    max-height:none !important;
+    overflow:visible !important;
+  }
+
+  .nbExpandRow{
+    display:block !important;
+    margin-top:-12px !important;
+  }
+
+  .nbExpandRow.hidden{
+    display:none !important;
+  }
+
+  .nbExpandRow td{
+    display:block !important;
+    width:100% !important;
+    border:0 !important;
+    padding:0 !important;
+    background:transparent !important;
+  }
+
+  .nbFollowPanel,
+  .nbHistoryBox{
+    border-radius:18px !important;
+    margin:0 0 14px 0 !important;
+    padding:14px !important;
+    box-shadow:0 8px 18px rgba(0,0,0,.05);
+  }
+
+  .nbFollowForm{
+    grid-template-columns:1fr !important;
+    gap:12px !important;
+  }
+
+  .nbFollowForm .btn{
+    width:100% !important;
+  }
+
+  .pill{
+    font-size:10px !important;
+    padding:5px 8px !important;
+  }
+}
+
+@media (max-width:420px){
+  .nbFollowTable tr.nbFollowListRow td{
+    grid-template-columns:104px minmax(0,1fr) !important;
+    gap:8px !important;
+  }
+  .nbFollowTable tr.nbFollowListRow{
+    padding:12px !important;
+  }
+}
+
+
+  
+
+/* =========================================================
+   FINAL PHONE FIX — FOLLOW UP FORM FULL WIDTH
+   Fixes expanded follow-up form getting squeezed on mobile.
+   ========================================================= */
+@media (max-width: 760px){
+  #page-not_bought_follow_up .cardBody{
+    padding:12px !important;
+  }
+
+  .nbFollowTable tbody{
+    width:100% !important;
+  }
+
+  .nbFollowTable tbody tr.nbExpandRow{
+    display:block !important;
+    width:100% !important;
+    min-width:100% !important;
+    max-width:100% !important;
+    padding:0 !important;
+    margin:-8px 0 14px 0 !important;
+    border:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+  }
+
+  .nbFollowTable tbody tr.nbExpandRow > td,
+  .nbFollowTable tbody tr.nbExpandRow > td:nth-child(1),
+  .nbFollowTable tbody tr.nbExpandRow > td:last-child{
+    display:block !important;
+    width:100% !important;
+    min-width:100% !important;
+    max-width:100% !important;
+    padding:0 !important;
+    margin:0 !important;
+    border:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+    position:static !important;
+  }
+
+  .nbFollowTable tbody tr.nbExpandRow > td::before{
+    display:none !important;
+    content:'' !important;
+  }
+
+  .nbFollowPanel{
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    margin:0 !important;
+    padding:16px !important;
+    border:1px solid rgba(201,162,74,.28) !important;
+    border-radius:18px !important;
+    background:#fffdf7 !important;
+    box-shadow:0 10px 24px rgba(0,0,0,.07) !important;
+  }
+
+  .nbFollowPanel .nbFollowForm{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    width:100% !important;
+    gap:14px !important;
+  }
+
+  .nbFollowPanel .nbFollowForm > div,
+  .nbFollowPanel .nbFollowForm .full{
+    width:100% !important;
+    min-width:0 !important;
+    grid-column:1 / -1 !important;
+  }
+
+  .nbFollowPanel .input,
+  .nbFollowPanel .select,
+  .nbFollowPanel .textarea{
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    min-height:54px !important;
+    font-size:16px !important;
+    border-radius:16px !important;
+    padding:13px 14px !important;
+  }
+
+  .nbFollowPanel .textarea{
+    min-height:110px !important;
+  }
+
+  .nbFollowPanel .btn{
+    width:100% !important;
+    min-height:54px !important;
+    border-radius:16px !important;
+    font-size:14px !important;
+  }
+
+  .nbHistoryBox{
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+  }
+}
+
+@media (max-width:420px){
+  .nbFollowPanel{
+    padding:14px !important;
+    border-radius:16px !important;
+  }
+}
+
+
+/* CRM PRESENT TODAY - ADD BRANCH / CRM MOBILE FIX */
+@media (max-width:760px){
+  #crmAvailabilityPanel .premiumFormGrid{
+    grid-template-columns:1fr !important;
+  }
+  #addCrmBranchBtn, #cancelCrmEditBtn{
+    width:100% !important;
+  }
+}
+
+.crmMasterRow{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+  font-size:13px;
+  font-weight:700;
+}
+.crmMasterRow .crmNameLabel{
+  flex:1 1 auto;
+  word-break:break-word;
+}
+.crmMasterRow .crmMasterActions{
+  display:flex;
+  gap:6px;
+  flex:0 0 auto;
+}
+.crmMasterRow .miniActionBtn{
+  min-height:30px !important;
+  padding:5px 8px !important;
+  border-radius:8px !important;
+  font-size:10px !important;
+  letter-spacing:.05em !important;
+}
+@media (max-width:760px){
+  .crmMasterRow{
+    width:100%;
+    align-items:flex-start;
+  }
+  .crmMasterRow .crmMasterActions{
+    flex-direction:column;
+  }
+}
+
+  
+
+/* =========================
+   REFERRALS CALLING ADD-ON
+   ========================= */
+#page-referrals_calling{ max-width:min(1600px, calc(100vw - 32px)); margin:0 auto; }
+#page-referrals_calling .pageHead{ background:#fff; border:1px solid var(--line); border-radius:20px; padding:18px 20px; margin-bottom:16px; box-shadow:var(--shadow); }
+.refFollowTable{ min-width:1500px; table-layout:fixed; }
+.refFollowTable th:nth-child(1), .refFollowTable td:nth-child(1){ width:140px; }
+.refFollowTable th:nth-child(2), .refFollowTable td:nth-child(2){ width:180px; }
+.refFollowTable th:nth-child(3), .refFollowTable td:nth-child(3){ width:170px; }
+.refFollowTable th:nth-child(4), .refFollowTable td:nth-child(4){ width:140px; }
+.refFollowTable th:nth-child(5), .refFollowTable td:nth-child(5){ width:150px; }
+.refFollowTable th:nth-child(6), .refFollowTable td:nth-child(6){ width:150px; }
+.refFollowTable th:nth-child(7), .refFollowTable td:nth-child(7){ width:130px; }
+.refFollowTable th:nth-child(8), .refFollowTable td:nth-child(8){ width:260px; }
+.refFollowTable th:nth-child(9), .refFollowTable td:nth-child(9){ width:150px; }
+.refFollowTable th:nth-child(10), .refFollowTable td:nth-child(10){ width:150px; }
+@media(max-width:760px){
+  #page-referrals_calling{ max-width:100%; }
+  #page-referrals_calling .pageHead{ padding:16px; border-radius:16px; }
+  .refFollowTable{ min-width:0 !important; width:100% !important; display:block; }
+  .refFollowTable thead{ display:none; }
+  .refFollowTable tbody{ display:flex; flex-direction:column; gap:14px; }
+  .refFollowTable tr.refRow{ display:block; border:1px solid var(--line); border-radius:18px; background:#fff; box-shadow:0 10px 24px rgba(0,0,0,.07); padding:14px; }
+  .refFollowTable tr.refRow td{ display:grid; grid-template-columns:112px minmax(0,1fr); gap:8px; width:100%; border:0; border-bottom:1px dashed #edf0f2; padding:10px 0; font-size:13px; background:transparent; }
+  .refFollowTable tr.refRow td::before{ content:attr(data-label); color:#6b7280; font-size:10px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+  .refFollowTable tr.refRow td:last-child{ display:block; border-bottom:0; }
+  .refFollowTable tr.refRow td:last-child::before{ display:block; margin-bottom:10px; }
+}
+
+  </style>
+</head>
+
+<body>
+  <div class="appShell">
+    <header class="topbar">
+      <div class="topbarLeft">
+        <button class="iconBtn" id="menuBtn" title="Open Menu" aria-label="Open Menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M4 7H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M4 12H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M4 17H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+
+        <div class="brandWrap">
+          <div class="brandTitle" id="brandTitle">MK JEWELS CRM</div>
+          <div class="brandSub">CLIENT INTELLIGENCE SYSTEM</div>
+        </div>
+      </div>
+
+      <div class="topbarRight">
+        <span id="topbarStatus">LOADING...</span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <div class="sidebarBackdrop" id="sidebarBackdrop"></div>
+
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebarHead">
+          <div class="sidebarTitle">MK JEWELS CRM</div>
+          <div class="sidebarSub">NAVIGATION MENU</div>
+        </div>
+
+        <div class="menu" id="menuContainer"></div>
+      </aside>
+
+      <main class="content">
+        <!-- DASHBOARD -->
+        <section class="page" id="page-dashboard">
+          <div class="pageHead">
+            <div>
+              <h1 class="pageTitle">DASHBOARD</h1>
+              <p class="pageDesc">
+                WALK-IN SUMMARY, CLIENT METRICS, BRANCH / CRM BREAKDOWN, AND RECENT VISITS.
+              </p>
+            </div>
+
+            <div class="headActions">
+              <button class="btn secondary" id="syncBtn">RUN INCREMENTAL SYNC</button>
+              <button class="btn accent" id="refreshDashboardBtn">REFRESH DASHBOARD</button>
+            </div>
+          </div>
+           
+
+          <div class="card" style="margin-bottom:16px;">
+  <div class="cardBody">
+    <div class="toolbar" style="gap:12px; align-items:end;">
+      <div style="min-width:180px;">
+        <div class="muted" style="margin-bottom:6px; font-size:12px; font-weight:700;">FILTER TYPE</div>
+        <select id="dashboardFilterMode" class="select">
+  <option value="ALL">ALL DATA</option>
+  <option value="MONTH">THIS MONTH</option>
+  <option value="WEEK">THIS WEEK</option>
+  <option value="DATE_TO_DATE">DATE TO DATE</option>
+</select>
+      </div>
+
+      <div id="dashboardStartWrap" class="hidden" style="min-width:180px;">
+        <div class="muted" style="margin-bottom:6px; font-size:12px; font-weight:700;">START DATE</div>
+        <input type="date" id="dashboardStartDate" class="input" />
+      </div>
+
+      <div id="dashboardEndWrap" class="hidden" style="min-width:180px;">
+        <div class="muted" style="margin-bottom:6px; font-size:12px; font-weight:700;">END DATE</div>
+        <input type="date" id="dashboardEndDate" class="input" />
+      </div>
+
+      <button class="btn" id="applyDashboardFilterBtn">APPLY FILTER</button>
+    </div>
+  </div>
+</div>
+
+
+
+          <div class="grid cards8" id="statsGrid">
+  <div class="statCard"><div class="statLabel">TOTAL WALK-INS</div><div class="statValue">-</div></div>
+  <div class="statCard"><div class="statLabel">TOTAL NOT BOUGHT</div><div class="statValue">-</div></div>
+  <div class="statCard"><div class="statLabel">TOTAL BOUGHT</div><div class="statValue">-</div></div>
+  <div class="statCard"><div class="statLabel">TOTAL ORDER PLACE</div><div class="statValue">-</div></div>
+  <div class="statCard"><div class="statLabel">TOTAL REPAIR PLACE</div><div class="statValue">-</div></div>
+  <div class="statCard"><div class="statLabel">TOTAL ORDER PICK UP</div><div class="statValue">-</div></div>
+  <div class="statCard"><div class="statLabel">TOTAL REPAIR PICKUP</div><div class="statValue">-</div></div>
+  <div class="statCard"><div class="statLabel">TOTAL UPSALE</div><div class="statValue">-</div></div>
+  <div class="statCard"><div class="statLabel">TOTAL PRODUCT RETURN</div><div class="statValue">-</div></div>
+</div>
+
+          <div style="height:16px;"></div>
+
+<div style="margin-bottom:16px;">
+  <div class="chartSplit">
+    <div class="chartPanel">
+      <div class="chartPanelHead">
+        <div class="chartPanelTitle">WALK-IN TREND</div>
+      </div>
+      <div class="chartPanelBody">
+        <canvas id="dashboardTrendChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chartPanel">
+      <div class="chartPanelHead">
+        <div class="chartPanelTitle">WALK-IN STATUS DISTRIBUTION</div>
+      </div>
+      <div class="chartPanelBody">
+        <canvas id="dashboardPieChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grid cols2">
+
+
+            <div class="card">
+              <div class="cardHead">
+                <div class="cardTitle">RECENT VISITS</div>
+              </div>
+              <div class="cardBody">
+                <div class="tableWrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>DATE</th>
+                        <th>CLIENT ID</th>
+                        <th>TYPE</th>
+                        <th>STATUS</th>
+                        <th>BRANCH</th>
+                        <th>CRM</th>
+                        <th>REMARK</th>
+                      </tr>
+                    </thead>
+                    <tbody id="recentVisitsTbody">
+                      <tr><td colspan="7" class="muted">LOADING...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:16px;">
+              <div class="card">
+                <div class="cardHead">
+                  <div class="cardTitle">BRANCH BREAKDOWN</div>
+                </div>
+                <div class="cardBody">
+                  <div class="list" id="branchBreakdownList">
+                    <div class="muted">LOADING...</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="cardHead">
+                  <div class="cardTitle">CRM BREAKDOWN</div>
+                </div>
+                <div class="cardBody">
+                  <div class="list" id="crmBreakdownList">
+                    <div class="muted">LOADING...</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="statusBar" id="dashboardStatus"></div>
+        </section>
+
+
+
+        <!-- CLIENT WALKIN FORM -->
+<!-- CLIENT WALKIN FORM -->
+<section class="page" id="page-client_walkin_form">
+  <div class="pageHead premiumHeroHead">
+    <div class="heroBadge">MK JEWELS CRM</div>
+    <div>
+      <h1 class="pageTitle">CLIENT WALKIN FORM</h1>
+      <p class="pageDesc">
+        THIS REGISTRATION FORM IS USED TO ASSIGN A CRM TO THE CLIENT.
+      </p>
+    </div>
+  </div>
+
+  <div class="walkinFormTop">
+
+    <div class="card premiumCard">
+  <div class="cardHead premiumSectionHead" style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+    <div>
+      <div class="sectionEyebrow">CLIENT REGISTRATION</div>
+      <div class="cardTitle">REGISTER CLIENT ENTRY</div>
+    </div>
+
+    <button class="btn small secondary" id="toggleAvailabilityBtn" type="button">
+      CRM PRESENT TODAY
+    </button>
+  </div>
+
+      <div class="cardBody premiumCardBody">
+
+       <div id="crmAvailabilityPanel" class="hidden" style="margin-bottom:16px; border:1px solid var(--line); border-radius:16px; padding:14px; background:#fffdf7;">
+  <div style="font-size:12px; font-weight:800; letter-spacing:.08em; color:#6b7280; margin-bottom:10px;">
+    SELECT CRM WHO ARE PRESENT TODAY FOR THIS BRANCH
+  </div>
+
+  <div class="fieldGroup" style="margin-bottom:12px;">
+    <label class="fieldLabel">BRANCH</label>
+    <select id="crmAvailabilityBranch" class="select premiumInput">
+      <option value="">SELECT BRANCH</option>
+    </select>
+  </div>
+
+  <div id="crmAvailabilityDateInfo" class="statusBar premiumStatusBar" style="margin-bottom:10px;"></div>
+
+  <div style="margin:12px 0; padding:12px; border:1px solid rgba(201,162,74,.25); border-radius:14px; background:#fff;">
+    <div style="font-size:12px; font-weight:800; letter-spacing:.08em; color:#6b7280; margin-bottom:10px;">
+      ADD / EDIT BRANCH / CRM
+    </div>
+    <div class="premiumFormGrid" style="grid-template-columns:1fr 1fr auto; gap:10px; align-items:end;">
+      <div class="fieldGroup">
+        <label class="fieldLabel">BRANCH NAME</label>
+        <input type="text" id="crmNewBranchName" class="input premiumInput" placeholder="TYPE NEW OR EXISTING BRANCH" />
+      </div>
+      <div class="fieldGroup">
+        <label class="fieldLabel">CRM NAME</label>
+        <input type="text" id="crmNewName" class="input premiumInput" placeholder="TYPE CRM NAME" />
+      </div>
+      <button class="btn small accent" id="addCrmBranchBtn" type="button" style="min-height:54px;">ADD</button>
+      <button class="btn small secondary hidden" id="cancelCrmEditBtn" type="button" style="min-height:54px;">CANCEL EDIT</button>
+    </div>
+    <div class="muted" style="font-size:12px; margin-top:8px; font-weight:700;">
+      Use ADD for new branch/CRM. Use EDIT beside a CRM name to change CRM name or move it to another branch. Use DELETE to remove a CRM name.
+    </div>
+  </div>
+
+  <div id="crmAvailabilityOptions" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px;"></div>
+
+  <div style="display:flex; gap:10px; flex-wrap:wrap;">
+    <button class="btn small accent" id="saveCrmAvailabilityBtn" type="button">SAVE FOR TODAY</button>
+    <button class="btn small secondary" id="closeCrmAvailabilityBtn" type="button">CLOSE</button>
+  </div>
+
+  <div class="statusBar premiumStatusBar" id="crmAvailabilityStatus"></div>
+</div>
+
+
+        <div class="premiumFormGrid">
+          <div class="fieldGroup">
+            <label class="fieldLabel">BRANCH</label>
+            <div class="selectWrap">
+              <select id="crmRegisterBranch" class="select premiumInput">
+                <option value="">SELECT BRANCH</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="fieldGroup">
+            <label class="fieldLabel">CLIENT NAME</label>
+            <input type="text" id="crmRegisterClientName" class="input premiumInput" placeholder="FULL NAME" />
+          </div>
+
+          <div class="fieldGroup">
+            <label class="fieldLabel">MOBILE NUMBER</label>
+            <div class="phoneInputRow">
+              <select id="crmRegisterCountryCode" class="select premiumInput"></select>
+              <input type="text" id="crmRegisterMobile" class="input premiumInput" placeholder="MOBILE NUMBER" inputmode="numeric" />
+            </div>
+          </div>
+
+          <div class="premiumButtonRow">
+            <button class="btn accent premiumBtn" id="crmRegisterBtn">REGISTER CLIENT</button>
+            <button class="btn secondary premiumBtn secondaryBtnSoft" id="crmOpenQueueBtn">OPEN CRM QUEUE</button>
+          </div>
+
+          <div class="statusBar premiumStatusBar" id="crmRegisterStatus"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="walkinQueueWrap">
+    <div class="card premiumCard">
+      <div class="cardHead premiumSectionHead">
+        <div>
+          <div class="sectionEyebrow">QUEUE MANAGEMENT</div>
+          <div class="cardTitle">CRM QUEUE</div>
+        </div>
+      </div>
+
+      <div class="cardBody premiumCardBody">
+        <div class="queueFilterGrid">
+          <div class="fieldGroup">
+            <label class="fieldLabel">CRM NAME</label>
+            <div class="selectWrap">
+              <select id="crmQueueCrm" class="select premiumInput">
+                <option value="">SELECT CRM</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="fieldGroup">
+            <label class="fieldLabel">BRANCH</label>
+            <div class="selectWrap">
+              <select id="crmQueueBranch" class="select premiumInput">
+                <option value="">SELECT BRANCH</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="queueActionWrap">
+            <button class="btn premiumBtn" id="crmLoadQueueBtn">LOAD QUEUE</button>
+          </div>
+        </div>
+
+        <div class="statusBar premiumStatusBar" id="crmQueueStatus"></div>
+
+        <div class="tableCardWrap">
+          <div class="tableWrap premiumTableWrap" style="margin-top:12px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>ENTRY TIME</th>
+                  <th>CLIENT NAME</th>
+                  <th>MOBILE</th>
+                  <th>BRANCH</th>
+                  <th>CRM</th>
+                  <th>TYPE</th>
+                  <th>ACTION</th>
+                </tr>
+              </thead>
+              <tbody id="crmQueueTbody">
+                <tr><td colspan="7" class="muted">NO QUEUE LOADED YET.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+
+
+
+
+        <!-- NOT BOUGHT FOLLOW UP -->
+        <section class="page" id="page-not_bought_follow_up">
+          <div class="pageHead">
+            <div>
+              <h1 class="pageTitle">NOT BOUGHT FOLLOW UP</h1>
+              <p class="pageDesc">
+                CLIENTS WHERE CLIENT BOUGHT ANY PRODUCT? = NO, PLUS REPAIR/ORDER CLIENTS WHO SAW PRODUCTS AND NEED FOLLOW UP. CRM CAN SEE TODAY FOLLOW UPS, ALL PENDING, INPROCESS, ALL DONE, ACTION POINTS, AND FULL FOLLOW UP HISTORY.
+              </p>
+            </div>
+            <div class="headActions">
+              <button class="btn secondary" id="nbSyncBtn">SYNC NOT BOUGHT DATA</button>
+              <button class="btn accent" id="nbRefreshBtn">REFRESH</button>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom:16px;">
+            <div class="cardBody">
+              <div class="nbTabs">
+                <button class="nbTabBtn active" data-nb-tab="TODAY">TODAY FOLLOW UP</button>
+                <button class="nbTabBtn" data-nb-tab="PENDING">ALL PENDING FOLLOW UP</button>
+                <button class="nbTabBtn" data-nb-tab="INPROCESS">INPROCESS FOLLOW UP</button>
+                <button class="nbTabBtn" data-nb-tab="DONE">ALL DONE</button>
+              </div>
+
+              <div class="nbFilterGrid">
+                <div>
+                  <div class="muted" style="margin-bottom:6px; font-size:12px; font-weight:700;">CRM NAME</div>
+                  <select id="nbCrmFilter" class="select">
+                    <option value="ALL">ALL CRM</option>
+                  </select>
+                </div>
+                <div>
+                  <div class="muted" style="margin-bottom:6px; font-size:12px; font-weight:700;">SEARCH CLIENT / PHONE / REFERENCE</div>
+                  <input type="text" id="nbSearchInput" class="input" placeholder="SEARCH" />
+                </div>
+                <button class="btn" id="nbApplyFilterBtn">APPLY</button>
+                <button class="btn secondary" id="nbClearFilterBtn">CLEAR</button>
+              </div>
+              <div class="statusBar" id="nbStatusBar"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="cardHead">
+              <div class="cardTitle" id="nbListTitle">TODAY FOLLOW UP</div>
+            </div>
+            <div class="cardBody">
+              <div id="nbCardsWrap" class="nbCards">
+                <div class="emptyState">NO DATA LOADED YET.</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+
+        <!-- REFERRALS CALLING -->
+        <section class="page" id="page-referrals_calling">
+          <div class="pageHead">
+            <div>
+              <h1 class="pageTitle">REFERRALS CALLING</h1>
+              <p class="pageDesc">
+                CALL REFERRALS GIVEN BY CLIENTS. CRM CAN SEE WHO GAVE THE REFERRAL, SAVE FOLLOW-UP HISTORY, AND TRACK CONVERTED REFERRALS.
+              </p>
+            </div>
+            <div class="headActions">
+              <button class="btn secondary" id="refSyncBtn">SYNC REFERRALS DATA</button>
+              <button class="btn accent" id="refRefreshBtn">REFRESH</button>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom:16px;">
+            <div class="cardBody">
+              <div class="nbTabs">
+                <button class="nbTabBtn active" data-ref-tab="TODAY">TODAY FOLLOW UP</button>
+                <button class="nbTabBtn" data-ref-tab="PENDING">ALL PENDING</button>
+                <button class="nbTabBtn" data-ref-tab="INPROCESS">INPROCESS</button>
+                <button class="nbTabBtn" data-ref-tab="DONE">ALL DONE</button>
+                <button class="nbTabBtn" data-ref-tab="CONVERTED">CONVERTED TO CLIENT</button>
+              </div>
+
+              <div class="nbFilterGrid">
+                <div>
+                  <div class="muted" style="margin-bottom:6px; font-size:12px; font-weight:700;">CRM / DOER</div>
+                  <select id="refCrmFilter" class="select"><option value="ALL">ALL CRM</option></select>
+                </div>
+                <div>
+                  <div class="muted" style="margin-bottom:6px; font-size:12px; font-weight:700;">SEARCH REFERRAL / PHONE / GIVEN BY</div>
+                  <input id="refSearchInput" class="input" placeholder="SEARCH" />
+                </div>
+                <button class="btn" id="refApplyBtn">APPLY</button>
+                <button class="btn secondary" id="refClearBtn">CLEAR</button>
+              </div>
+              <div class="statusBar" id="refStatusBar"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="cardHead">
+              <div class="cardTitle" id="refListTitle">TODAY FOLLOW UP</div>
+            </div>
+            <div class="cardBody">
+              <div class="tableWrap nbFollowTableWrap">
+                <table class="refFollowTable">
+                  <thead>
+                    <tr>
+                      <th>CRM / DOER</th>
+                      <th>GIVEN BY CLIENT</th>
+                      <th>REFERRAL NAME</th>
+                      <th>REFERRAL NUMBER</th>
+                      <th>SALESPERSON</th>
+                      <th>STATUS</th>
+                      <th>NEXT FOLLOW UP</th>
+                      <th>LAST REMARK</th>
+                      <th>CONVERTED CLIENT</th>
+                      <th>ACTION</th>
+                    </tr>
+                  </thead>
+                  <tbody id="refTbody">
+                    <tr><td colspan="10" class="muted">NO DATA LOADED YET.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- CLIENT DATABASE -->
+        <section class="page" id="page-client_database">
+          <div class="pageHead">
+            <div>
+              <h1 class="pageTitle">CLIENT DATABASE</h1>
+              <p class="pageDesc">
+                SEARCH CLIENTS BY PHONE OR NAME. OPEN PROFILE TO VIEW PERSONAL DETAILS, PREFERENCES, STATS, AND FULL TIMELINE.
+              </p>
+            </div>
+
+           <div class="headActions">
+  <button class="btn accent" id="addWalkinEntryBtn">ADD WALKIN ENTRY</button>
+  <button class="btn secondary" id="runClientDbSyncBtn">RUN INCREMENTAL SYNC</button>
+</div>
+          </div>
+
+          <div class="card">
+            <div class="cardBody">
+              <div class="searchBar">
+                <input
+                  type="text"
+                  id="clientSearchInput"
+                  class="input"
+                  placeholder="SEARCH BY PRIMARY PHONE / SECONDARY PHONE / BILLING PHONE / OTHER PHONES / CLIENT NAME"
+                />
+                <button class="btn" id="clientSearchBtn">SEARCH</button>
+                <button class="btn secondary" id="clientSearchClearBtn">CLEAR</button>
+              </div>
+              <div class="statusBar" id="clientSearchStatus"></div>
+            </div>
+          </div>
+
+          <div style="height:16px;"></div>
+
+          <div class="card">
+            <div class="cardHead">
+              <div class="cardTitle">SEARCH RESULTS</div>
+            </div>
+            <div class="cardBody">
+              <div class="tableWrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>CLIENT ID</th>
+                      <th>NAME</th>
+                      <th>PHONE</th>
+                      <th>CITY</th>
+                      <th>STATE</th>
+                      <th>TOTAL VISITS</th>
+                      <th>LAST VISIT</th>
+                      <th>LAST STATUS</th>
+                      <th>ACTION</th>
+                    </tr>
+                  </thead>
+                  <tbody id="clientResultsTbody">
+                    <tr><td colspan="9" class="muted">NO RESULTS YET.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div id="clientProfileWrap" class="hidden"></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+
+
+    const App = {
+  bootstrap: null,
+  activePage: 'client_walkin_form',
+  sidebarOpen: false,
+  currentProfile: null,
+  dashboardTrendChart: null,
+  dashboardPieChart: null,
+  editingCrmAllocation: null,
+  dashboardFilter: {
+    mode: 'MONTH',
+    startDate: '',
+    endDate: ''
+  }
+};
+
+    const $ = (id) => document.getElementById(id);
+
+
+    const COUNTRY_CODE_OPTIONS = [
+      ['91','INDIA'], ['1','USA / CANADA'], ['44','UNITED KINGDOM'], ['971','UAE'], ['966','SAUDI ARABIA'], ['974','QATAR'], ['968','OMAN'], ['973','BAHRAIN'], ['965','KUWAIT'], ['971','DUBAI / UAE'],
+      ['93','AFGHANISTAN'], ['355','ALBANIA'], ['213','ALGERIA'], ['376','ANDORRA'], ['244','ANGOLA'], ['54','ARGENTINA'], ['374','ARMENIA'], ['61','AUSTRALIA'], ['43','AUSTRIA'], ['994','AZERBAIJAN'],
+      ['880','BANGLADESH'], ['32','BELGIUM'], ['975','BHUTAN'], ['55','BRAZIL'], ['359','BULGARIA'], ['855','CAMBODIA'], ['86','CHINA'], ['57','COLOMBIA'], ['385','CROATIA'], ['357','CYPRUS'],
+      ['420','CZECH REPUBLIC'], ['45','DENMARK'], ['20','EGYPT'], ['372','ESTONIA'], ['251','ETHIOPIA'], ['358','FINLAND'], ['33','FRANCE'], ['995','GEORGIA'], ['49','GERMANY'], ['30','GREECE'],
+      ['852','HONG KONG'], ['36','HUNGARY'], ['354','ICELAND'], ['62','INDONESIA'], ['98','IRAN'], ['964','IRAQ'], ['353','IRELAND'], ['972','ISRAEL'], ['39','ITALY'], ['81','JAPAN'],
+      ['962','JORDAN'], ['7','KAZAKHSTAN / RUSSIA'], ['254','KENYA'], ['82','KOREA SOUTH'], ['996','KYRGYZSTAN'], ['856','LAOS'], ['371','LATVIA'], ['961','LEBANON'], ['60','MALAYSIA'], ['960','MALDIVES'],
+      ['230','MAURITIUS'], ['52','MEXICO'], ['373','MOLDOVA'], ['377','MONACO'], ['976','MONGOLIA'], ['212','MOROCCO'], ['95','MYANMAR'], ['977','NEPAL'], ['31','NETHERLANDS'], ['64','NEW ZEALAND'],
+      ['234','NIGERIA'], ['47','NORWAY'], ['92','PAKISTAN'], ['507','PANAMA'], ['63','PHILIPPINES'], ['48','POLAND'], ['351','PORTUGAL'], ['40','ROMANIA'], ['65','SINGAPORE'], ['27','SOUTH AFRICA'],
+      ['34','SPAIN'], ['94','SRI LANKA'], ['46','SWEDEN'], ['41','SWITZERLAND'], ['886','TAIWAN'], ['992','TAJIKISTAN'], ['66','THAILAND'], ['90','TURKEY'], ['993','TURKMENISTAN'], ['380','UKRAINE'],
+      ['598','URUGUAY'], ['998','UZBEKISTAN'], ['84','VIETNAM'], ['967','YEMEN'], ['260','ZAMBIA'], ['263','ZIMBABWE']
+    ];
+
+    function populateRegisterCountryCodes(){
+      const sel = $('crmRegisterCountryCode');
+      if (!sel) return;
+      sel.innerHTML = COUNTRY_CODE_OPTIONS.map(([code, name]) => {
+        const selected = code === '91' && name === 'INDIA' ? ' selected' : '';
+        return `<option value="${escapeHtml(code)}"${selected}>+${escapeHtml(code)} ${escapeHtml(name)}</option>`;
+      }).join('');
+    }
+
+    function cleanPhoneDigits(value){
+      return String(value || '').replace(/\D/g, '');
+    }
+
+    function formatQueueMobileDisplay(value){
+      const digits = cleanPhoneDigits(value);
+      return digits ? '+' + digits : '';
+    }
+
+    function escapeHtml(value){
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+     
+     function escapeJsString(value){
+  return String(value == null ? '' : value)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/"/g, '\"')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r');
+}
+
+   
+    function formatDateDisplay(value){
+  if (!value) return '';
+
+  const d = new Date(value);
+  if (isNaN(d)) return escapeHtml(value);
+
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+
+  if (hh === '00' && min === '00') {
+    return `${dd}/${mm}/${yyyy}`;
+  }
+
+  return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+}
+
+function formatDateOnlyDisplay(value){
+  if (!value) return '';
+
+  const d = new Date(value);
+  if (isNaN(d)) return escapeHtml(value);
+
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+
+
+    function statusPill(value){
+      const v = String(value || '').trim().toUpperCase();
+      let cls = 'pill muted';
+      if (v === 'YES') cls = 'pill yes';
+      else if (v === 'NO') cls = 'pill no';
+      else if (v) cls = 'pill info';
+      return `<span class="${cls}">${escapeHtml(v || 'NA')}</span>`;
+    }
+
+    function eventPill(value){
+      return `<span class="pill">${escapeHtml(value || 'NA')}</span>`;
+    }
+
+    function showSidebar(){
+      App.sidebarOpen = true;
+      $('sidebar').classList.add('show');
+      $('sidebarBackdrop').classList.add('show');
+    }
+
+    function hideSidebar(){
+      App.sidebarOpen = false;
+      $('sidebar').classList.remove('show');
+      $('sidebarBackdrop').classList.remove('show');
+    }
+
+    function toggleSidebar(){
+      App.sidebarOpen ? hideSidebar() : showSidebar();
+    }
+
+    function buildMenu(menu){
+      const container = $('menuContainer');
+      container.innerHTML = '';
+
+      (menu || []).forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'menuBtn' + (item.id === App.activePage ? ' active' : '');
+        btn.innerHTML = `
+          <span>${escapeHtml(item.label)}</span>
+        `;
+        btn.addEventListener('click', () => {
+          setActivePage(item.id);
+          hideSidebar();
+        });
+        container.appendChild(btn);
+      });
+    }
+
+function setActivePage(pageId){
+  App.activePage = pageId;
+
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const page = $('page-' + pageId);
+  if (page) page.classList.add('active');
+
+  document.querySelectorAll('.menuBtn').forEach(btn => btn.classList.remove('active'));
+  const menu = App.bootstrap?.menu || [];
+  const idx = menu.findIndex(m => m.id === pageId);
+  const menuBtns = Array.from(document.querySelectorAll('.menuBtn'));
+  if (idx >= 0 && menuBtns[idx]) menuBtns[idx].classList.add('active');
+
+  if (pageId === 'dashboard') {
+    loadDashboard();
+  }
+
+  if (pageId === 'not_bought_follow_up') {
+    loadNotBoughtFollowups();
+  }
+
+  if (pageId === 'referrals_calling') {
+    loadReferralCallingRows();
+  }
+
+  if (pageId === 'client_database') {
+    const tbody = $('clientResultsTbody');
+    const hasRealRows =
+      tbody &&
+      tbody.querySelectorAll('tr').length &&
+      !tbody.textContent.includes('NO RESULTS YET.');
+
+    if (!hasRealRows) {
+      loadRecentClients();
+    }
+  }
+
+  hideSidebar();
+}
+
+
+
+function setTopbarStatus(text){
+      $('topbarStatus').textContent = text || '';
+    }
+
+    function callServer(fnName, args = []){
+  return new Promise((resolve, reject) => {
+    let runner = google.script.run
+      .withSuccessHandler(resolve)
+      .withFailureHandler(reject);
+
+    runner[fnName](...args);
+  });
+}
+
+function getDashboardFilterPayload(){
+  return {
+    mode: $('dashboardFilterMode') ? $('dashboardFilterMode').value : 'ALL',
+    startDate: $('dashboardStartDate') ? $('dashboardStartDate').value : '',
+    endDate: $('dashboardEndDate') ? $('dashboardEndDate').value : ''
+  };
+}
+
+function toggleDashboardDateInputs(){
+  const mode = $('dashboardFilterMode').value;
+  const show = mode === 'DATE_TO_DATE';
+
+  $('dashboardStartWrap').classList.toggle('hidden', !show);
+  $('dashboardEndWrap').classList.toggle('hidden', !show);
+}
+
+function populateRegisterBranches(branches){
+  const branchSel1 = $('crmRegisterBranch');
+  const branchSel2 = $('crmQueueBranch');
+  const branchSel3 = $('crmAvailabilityBranch');
+
+  [branchSel1, branchSel2, branchSel3].forEach(sel => {
+    if (!sel) return;
+
+    const oldValue = sel.value || '';
+    sel.innerHTML = '<option value="">SELECT BRANCH</option>';
+
+    (branches || []).forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = b;
+      opt.textContent = b;
+      sel.appendChild(opt);
+    });
+
+    if (oldValue && (branches || []).map(x => String(x || '').toUpperCase()).includes(String(oldValue).toUpperCase())) {
+      sel.value = oldValue;
+    }
+  });
+
+  // Keep CRM Queue CRM dropdown filled even before branch selection.
+  loadQueueCrmNamesByBranch(branchSel2 ? branchSel2.value : '');
+}
+
+
+function setCrmAllocationEditMode(oldBranch, oldCrmName){
+  const branchInput = $('crmNewBranchName');
+  const crmInput = $('crmNewName');
+  const branchSelect = $('crmAvailabilityBranch');
+  const addBtn = $('addCrmBranchBtn');
+  const cancelBtn = $('cancelCrmEditBtn');
+  const statusEl = $('crmAvailabilityStatus');
+
+  const b = String(oldBranch || '').trim().toUpperCase();
+  const c = String(oldCrmName || '').trim().toUpperCase();
+
+  App.editingCrmAllocation = { oldBranch: b, oldCrmName: c };
+  if (branchInput) branchInput.value = b;
+  if (crmInput) crmInput.value = c;
+  if (branchSelect) branchSelect.value = b;
+  if (addBtn) addBtn.textContent = 'UPDATE';
+  if (cancelBtn) cancelBtn.classList.remove('hidden');
+  if (statusEl) statusEl.textContent = 'EDIT MODE: CHANGE BRANCH NAME / CRM NAME, THEN CLICK UPDATE.';
+}
+
+function cancelCrmAllocationEditMode(){
+  const branchInput = $('crmNewBranchName');
+  const crmInput = $('crmNewName');
+  const addBtn = $('addCrmBranchBtn');
+  const cancelBtn = $('cancelCrmEditBtn');
+  const statusEl = $('crmAvailabilityStatus');
+
+  App.editingCrmAllocation = null;
+  if (branchInput) branchInput.value = '';
+  if (crmInput) crmInput.value = '';
+  if (addBtn) addBtn.textContent = 'ADD';
+  if (cancelBtn) cancelBtn.classList.add('hidden');
+  if (statusEl) statusEl.textContent = 'EDIT CANCELLED.';
+}
+
+function refreshBranchDropdownsAfterMasterChange(res, selectedBranch){
+  const branch = (res && res.branch) ? res.branch : selectedBranch;
+  if (res && res.branches) {
+    if (!App.bootstrap) App.bootstrap = {};
+    App.bootstrap.registerBranches = res.branches;
+    populateRegisterBranches(res.branches);
+  }
+
+  const branchSelect = $('crmAvailabilityBranch');
+  if (branchSelect && branch) branchSelect.value = branch;
+
+  const registerBranch = $('crmRegisterBranch');
+  const queueBranch = $('crmQueueBranch');
+  if (registerBranch && !registerBranch.value && branch) registerBranch.value = branch;
+  if (queueBranch && !queueBranch.value && branch) queueBranch.value = branch;
+
+  if (branch) loadCrmAvailability(branch);
+  else renderCrmAvailabilityOptions([], []);
+
+  // Refresh CRM Queue CRM dropdown after add/edit/delete CRM master.
+  loadQueueCrmNamesByBranch(queueBranch ? queueBranch.value : '');
+}
+
+function addCrmBranchFromAvailability(){
+  const branchInput = $('crmNewBranchName');
+  const crmInput = $('crmNewName');
+  const branchSelect = $('crmAvailabilityBranch');
+  const statusEl = $('crmAvailabilityStatus');
+
+  const branch = String((branchInput && branchInput.value) || (branchSelect && branchSelect.value) || '').trim().toUpperCase();
+  const crmName = String((crmInput && crmInput.value) || '').trim().toUpperCase();
+
+  if (!branch) {
+    if (statusEl) statusEl.textContent = 'PLEASE ENTER BRANCH NAME.';
+    return;
+  }
+  if (!crmName) {
+    if (statusEl) statusEl.textContent = 'PLEASE ENTER CRM NAME.';
+    return;
+  }
+
+  const editing = App.editingCrmAllocation;
+  if (statusEl) statusEl.textContent = editing ? 'UPDATING CRM / BRANCH...' : 'ADDING CRM / BRANCH...';
+
+  const runner = google.script.run
+    .withSuccessHandler(function(res){
+      if (branchInput) branchInput.value = '';
+      if (crmInput) crmInput.value = '';
+      cancelCrmAllocationEditMode();
+      if (statusEl) statusEl.textContent = editing ? 'CRM / BRANCH UPDATED SUCCESSFULLY.' : 'CRM / BRANCH ADDED SUCCESSFULLY.';
+      refreshBranchDropdownsAfterMasterChange(res, branch);
+    })
+    .withFailureHandler(function(err){
+      console.error(err);
+      if (statusEl) statusEl.textContent = 'ERROR: ' + (err && err.message ? err.message : err);
+    });
+
+  if (editing) {
+    runner.apiUpdateBranchCrmAllocation(editing.oldBranch, editing.oldCrmName, branch, crmName);
+  } else {
+    runner.apiAddBranchCrmAllocation(branch, crmName);
+  }
+}
+
+function deleteCrmBranchFromAvailability(branch, crmName){
+  const branchUp = String(branch || '').trim().toUpperCase();
+  const crmUp = String(crmName || '').trim().toUpperCase();
+  const statusEl = $('crmAvailabilityStatus');
+
+  if (!branchUp || !crmUp) return;
+  if (!confirm(`DELETE CRM "${crmUp}" FROM BRANCH "${branchUp}"?`)) return;
+
+  if (statusEl) statusEl.textContent = 'DELETING CRM...';
+
+  google.script.run
+    .withSuccessHandler(function(res){
+      cancelCrmAllocationEditMode();
+      if (statusEl) statusEl.textContent = 'CRM DELETED SUCCESSFULLY.';
+      const selectedBranch = (res && (res.allCrms || []).length) ? branchUp : '';
+      refreshBranchDropdownsAfterMasterChange(res, selectedBranch);
+    })
+    .withFailureHandler(function(err){
+      console.error(err);
+      if (statusEl) statusEl.textContent = 'ERROR: ' + (err && err.message ? err.message : err);
+    })
+    .apiDeleteBranchCrmAllocation(branchUp, crmUp);
+}
+
+function loadQueueCrmNamesByBranch(branch){
+  const branchUp = String(branch || '').trim().toUpperCase();
+  const crmSel = $('crmQueueCrm');
+  if (!crmSel) return;
+
+  crmSel.innerHTML = '<option value="">LOADING...</option>';
+
+  google.script.run
+    .withSuccessHandler(function(list){
+      const oldValue = crmSel.value || '';
+      const cleanList = Array.from(new Set((list || [])
+        .map(v => String(v || '').trim().toUpperCase())
+        .filter(v => v)));
+
+      crmSel.innerHTML = '<option value="">SELECT CRM</option>';
+
+      cleanList.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        crmSel.appendChild(opt);
+      });
+
+      if (oldValue && cleanList.includes(String(oldValue).trim().toUpperCase())) {
+        crmSel.value = String(oldValue).trim().toUpperCase();
+      } else if (cleanList.length === 1) {
+        crmSel.value = cleanList[0];
+      }
+
+      const statusEl = $('crmQueueStatus');
+      if (statusEl && !cleanList.length) {
+        statusEl.textContent = branchUp
+          ? 'NO CRM FOUND FOR SELECTED BRANCH. ADD CRM IN CRM PRESENT TODAY.'
+          : 'NO CRM FOUND. ADD CRM IN CRM PRESENT TODAY.';
+      }
+    })
+    .withFailureHandler(function(err){
+      console.error(err);
+      crmSel.innerHTML = '<option value="">SELECT CRM</option>';
+      const statusEl = $('crmQueueStatus');
+      if (statusEl) statusEl.textContent = 'CRM DROPDOWN ERROR: ' + (err && err.message ? err.message : err);
+    })
+    .apiGetQueueCrmNames(branchUp);
+}
+
+
+
+/*
+
+function renderRegisterResult(result){
+  const wrap = $('crmRegisterResultWrap');
+  if (!wrap) return;
+
+  if (!result || !result.ok) {
+    wrap.className = 'emptyState';
+    wrap.textContent = 'REGISTRATION FAILED.';
+    return;
+  }
+
+  wrap.className = '';
+  wrap.innerHTML = `
+    <div class="list">
+      <div class="listItem">
+        <div class="listLeft">
+          <div class="listTitle">${escapeHtml(result.clientName)}</div>
+          <div class="listSub">TOKEN: ${escapeHtml(result.token)}</div>
+        </div>
+        <div class="listValue">${escapeHtml(result.assignedCRM)}</div>
+      </div>
+      <div class="listItem">
+        <div class="listLeft">
+          <div class="listTitle">${escapeHtml(result.mobile)}</div>
+          <div class="listSub">${escapeHtml(result.branch)}</div>
+        </div>
+        <div class="pill info">${escapeHtml(result.status)}</div>
+      </div>
+    </div>
+  `;
+} 
+*/
+
+
+function renderCrmAvailabilityOptions(allCrms, availableCrms){
+  const wrap = $('crmAvailabilityOptions');
+  if (!wrap) return;
+
+  wrap.innerHTML = '';
+
+  const fullList = allCrms || [];
+  const currentBranch = String(($('crmAvailabilityBranch') && $('crmAvailabilityBranch').value) || '').trim().toUpperCase();
+  const availableSet = new Set((availableCrms || []).map(v => String(v || '').trim().toUpperCase()));
+
+  if (!fullList.length) {
+    wrap.innerHTML = '<div class="muted">NO CRM FOUND FOR THIS BRANCH.</div>';
+    return;
+  }
+
+  wrap.innerHTML = fullList.map(name => {
+    const rawName = String(name || '').trim().toUpperCase();
+    const safeName = escapeHtml(rawName);
+    const safeBranch = escapeHtml(currentBranch);
+    const checked = availableSet.has(rawName) ? 'checked' : '';
+
+    return `
+      <div class="crmMasterRow">
+        <input type="checkbox" class="crmAvailabilityCheckbox" value="${safeName}" ${checked} />
+        <span class="crmNameLabel">${safeName}</span>
+        <div class="crmMasterActions">
+          <button class="btn small secondary miniActionBtn" type="button" onclick="setCrmAllocationEditMode('${safeBranch}','${safeName}')">EDIT</button>
+          <button class="btn small secondary miniActionBtn" type="button" onclick="deleteCrmBranchFromAvailability('${safeBranch}','${safeName}')">DELETE</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function loadCrmAvailability(branch){
+  const branchUp = String(branch || '').trim().toUpperCase();
+  const statusEl = $('crmAvailabilityStatus');
+  const infoEl = $('crmAvailabilityDateInfo');
+
+  if (!branchUp) {
+    renderCrmAvailabilityOptions([], []);
+    if (statusEl) statusEl.textContent = 'PLEASE SELECT BRANCH.';
+    if (infoEl) infoEl.textContent = '';
+    return;
+  }
+
+  if (statusEl) statusEl.textContent = 'LOADING TODAY AVAILABILITY...';
+
+  google.script.run
+    .withSuccessHandler(function(res){
+      renderCrmAvailabilityOptions(res.allCrms || [], res.availableCrms || []);
+
+      if (infoEl) {
+        infoEl.textContent = res.isSavedForToday
+          ? `TODAY (${res.today}) AVAILABILITY ALREADY SAVED. YOU CAN UPDATE IT ANYTIME.`
+          : `TODAY (${res.today}) AVAILABILITY NOT SAVED YET. FULL BRANCH LIST IS CURRENTLY ACTIVE.`;
+      }
+
+      if (statusEl) statusEl.textContent = 'AVAILABILITY LOADED.';
+    })
+    .withFailureHandler(function(err){
+      console.error(err);
+      renderCrmAvailabilityOptions([], []);
+      if (statusEl) statusEl.textContent = 'ERROR: ' + (err && err.message ? err.message : err);
+      if (infoEl) infoEl.textContent = '';
+    })
+    .apiGetCrmAvailability(branchUp);
+}
+
+function saveCrmAvailability(){
+  const branch = $('crmAvailabilityBranch')?.value || '';
+  const statusEl = $('crmAvailabilityStatus');
+
+  if (!branch) {
+    if (statusEl) statusEl.textContent = 'PLEASE SELECT BRANCH.';
+    return;
+  }
+
+  const selected = Array.from(document.querySelectorAll('.crmAvailabilityCheckbox:checked'))
+    .map(el => String(el.value || '').trim().toUpperCase());
+
+  if (statusEl) statusEl.textContent = 'SAVING TODAY AVAILABILITY...';
+
+  google.script.run
+    .withSuccessHandler(function(res){
+      if (statusEl) {
+        statusEl.textContent = `TODAY AVAILABILITY SAVED SUCCESSFULLY FOR ${res.branch}.`;
+      }
+      loadCrmAvailability(branch);
+    })
+    .withFailureHandler(function(err){
+      console.error(err);
+      if (statusEl) {
+        statusEl.textContent = 'ERROR: ' + (err && err.message ? err.message : err);
+      }
+    })
+    .apiSaveCrmAvailability(branch, selected);
+}
+
+
+
+function renderCrmQueue(items){
+  const tbody = $('crmQueueTbody');
+  if (!tbody) return;
+
+  if (!items || !items.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="muted">NO PENDING CLIENTS FOUND.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = items.map(item => `
+    <tr>
+      <td>${escapeHtml(item.ts || '')}</td>
+      <td><strong>${escapeHtml(item.name || '')}</strong></td>
+      <td>${escapeHtml(formatQueueMobileDisplay(item.mobile || ''))}</td>
+      <td>${escapeHtml(item.branch || '')}</td>
+      <td>${escapeHtml(item.crm || '')}</td>
+      <td>${item.isExisting ? '<span class="pill info">EXISTING</span>' : '<span class="pill muted">NEW</span>'}</td>
+      <td>
+        <button class="btn small premiumBtn" onclick="window.top.location.href='${escapeHtml(item.actionUrl || '')}'">
+          ${escapeHtml(item.actionText || 'OPEN')}
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function registerClientFromCrm(){
+  const branch = $('crmRegisterBranch')?.value || '';
+  const clientName = $('crmRegisterClientName')?.value || '';
+  const mobile = $('crmRegisterMobile')?.value || '';
+  const countryCode = $('crmRegisterCountryCode')?.value || '91';
+  const statusEl = $('crmRegisterStatus');
+  const mobileDigits = cleanPhoneDigits(mobile);
+
+  if (!branch) {
+    statusEl.textContent = 'PLEASE SELECT BRANCH.';
+    return;
+  }
+  if (!clientName.trim()) {
+    statusEl.textContent = 'PLEASE ENTER CLIENT NAME.';
+    return;
+  }
+  if (!mobileDigits) {
+    statusEl.textContent = 'PLEASE ENTER MOBILE NUMBER.';
+    return;
+  }
+
+  statusEl.textContent = 'REGISTERING...';
+
+  google.script.run
+    .withSuccessHandler(function(res){
+  statusEl.textContent = 'CLIENT REGISTERED SUCCESSFULLY.';
+
+  $('crmRegisterClientName').value = '';
+  $('crmRegisterMobile').value = '';
+  $('crmQueueBranch').value = branch;
+  loadQueueCrmNamesByBranch(branch);
+})
+    .withFailureHandler(function(err){
+      console.error(err);
+      statusEl.textContent = 'ERROR: ' + (err && err.message ? err.message : err);
+    })
+    .apiRegisterClientEntry({
+      branch: branch,
+      clientName: clientName,
+      countryCode: countryCode,
+      mobile: mobileDigits
+    });
+}
+
+function loadCrmQueue(){
+  const crmName = $('crmQueueCrm')?.value || '';
+  const branch = $('crmQueueBranch')?.value || '';
+  const statusEl = $('crmQueueStatus');
+
+  statusEl.textContent = 'LOADING QUEUE...';
+
+  google.script.run
+    .withSuccessHandler(function(items){
+      renderCrmQueue(items || []);
+      statusEl.textContent = `QUEUE LOADED. TOTAL: ${(items || []).length}`;
+    })
+    .withFailureHandler(function(err){
+      console.error(err);
+      statusEl.textContent = 'ERROR: ' + (err && err.message ? err.message : err);
+    })
+    .apiGetCrmQueue(crmName, branch);
+}
+
+function bindClientWalkinFormTabEvents(){
+  $('crmRegisterBtn')?.addEventListener('click', registerClientFromCrm);
+
+  $('crmOpenQueueBtn')?.addEventListener('click', function(){
+    setActivePage('client_walkin_form');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  $('crmQueueBranch')?.addEventListener('change', function(){
+    loadQueueCrmNamesByBranch(this.value || '');
+  });
+
+  $('crmLoadQueueBtn')?.addEventListener('click', loadCrmQueue);
+
+  $('toggleAvailabilityBtn')?.addEventListener('click', function(){
+    $('crmAvailabilityPanel')?.classList.toggle('hidden');
+  });
+
+  $('closeCrmAvailabilityBtn')?.addEventListener('click', function(){
+    $('crmAvailabilityPanel')?.classList.add('hidden');
+  });
+
+  $('addCrmBranchBtn')?.addEventListener('click', addCrmBranchFromAvailability);
+  $('cancelCrmEditBtn')?.addEventListener('click', cancelCrmAllocationEditMode);
+
+  $('crmAvailabilityBranch')?.addEventListener('change', function(){
+    loadCrmAvailability(this.value || '');
+  });
+
+  $('saveCrmAvailabilityBtn')?.addEventListener('click', saveCrmAvailability);
+}
+
+
+
+
+async function initializeApp(){
+  try{
+    setTopbarStatus('LOADING.');
+    const data = await callServer('getCrmAppBootstrap');
+    App.bootstrap = data || {};
+    $('brandTitle').textContent = App.bootstrap.appName || 'MK JEWELS CRM';
+    buildMenu(App.bootstrap.menu || []);
+
+    populateRegisterCountryCodes();
+    populateRegisterBranches((App.bootstrap && App.bootstrap.registerBranches) || []);
+    loadQueueCrmNamesByBranch('');
+    bindClientWalkinFormTabEvents();
+
+    setActivePage('client_walkin_form');
+    await loadRecentClients();
+
+    setTopbarStatus('READY');
+  }catch(err){
+    console.error(err);
+    setTopbarStatus('ERROR');
+    $('clientSearchStatus').textContent = 'FAILED TO LOAD APP.';
+  }
+}
+
+
+
+
+async function loadDashboard(){
+  const applyBtn = $('applyDashboardFilterBtn');
+  const oldBtnText = applyBtn ? applyBtn.textContent : '';
+
+  $('dashboardStatus').textContent = 'LOADING DASHBOARD...';
+  showDashboardLoadingPopup();
+
+  if (applyBtn) {
+    applyBtn.disabled = true;
+    applyBtn.textContent = 'LOADING...';
+  }
+
+  try{
+    App.dashboardFilter = getDashboardFilterPayload();
+    const data = await callServer('getDashboardData', [App.dashboardFilter]);
+    renderDashboard(data || {});
+    $('dashboardStatus').textContent = 'DASHBOARD LOADED.';
+  }catch(err){
+    console.error(err);
+    $('dashboardStatus').textContent = 'FAILED TO LOAD DASHBOARD.';
+  }finally{
+    hideDashboardLoadingPopup();
+
+    if (applyBtn) {
+      applyBtn.disabled = false;
+      applyBtn.textContent = oldBtnText || 'APPLY FILTER';
+    }
+  }
+}
+
+
+
+
+function renderDashboard(data){
+      const stats = data.stats || {};
+      const cards = $('statsGrid').querySelectorAll('.statCard');
+
+      const statValues = [
+  stats.totalWalkins || 0,
+  stats.totalNotBought || 0,
+  stats.totalBought || 0,
+  stats.totalOrderPlace || 0,
+  stats.totalRepairPlace || 0,
+  stats.totalOrderPickup || 0,
+  stats.totalRepairPickup || 0,
+  stats.totalUpsale || 0,
+  stats.totalProductReturn || 0
+];
+
+      cards.forEach((card, idx) => {
+        const valEl = card.querySelector('.statValue');
+        if (valEl) valEl.textContent = String(statValues[idx] ?? 0);
+      });
+
+      const recentTbody = $('recentVisitsTbody');
+      const recent = data.recentVisits || [];
+      if (!recent.length) {
+        recentTbody.innerHTML = `<tr><td colspan="7" class="muted">NO VISITS FOUND.</td></tr>`;
+      } else {
+        recentTbody.innerHTML = recent.map(r => `
+          <tr>
+            <td>${formatDateDisplay(r.eventDate || r.timestamp || '')}</td>
+            <td>${escapeHtml(r.clientId || '')}</td>
+            <td>${eventPill(r.eventType || '')}</td>
+            <td>${statusPill(r.buyStatus || '')}</td>
+            <td>${escapeHtml(r.branch || '')}</td>
+            <td>${escapeHtml(r.crmName || '')}</td>
+            <td>${escapeHtml(r.remark || '')}</td>
+          </tr>
+        `).join('');
+      }
+
+      renderTrendChart(data.trendChart || []);
+renderPieChart(data.stats || {});
+renderBreakdownList('branchBreakdownList', data.branchBreakdown || [], 'branch');
+renderBreakdownList('crmBreakdownList', data.crmBreakdown || [], 'crmName');
+
+  
+      if (data.appliedFilter) {
+  const f = data.appliedFilter;
+  $('dashboardStatus').textContent =
+    `FILTER: ${f.mode} | ${formatDateOnlyDisplay(f.startDate)} TO ${formatDateOnlyDisplay(f.endDate)}`;
+}
+   
+}
+
+    
+function renderTrendChart(rows){
+  const canvas = $('dashboardTrendChart');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  const labels = rows.map(r => formatDateOnlyDisplay(r.label));
+  const totalWalkins = rows.map(r => Number(r.totalWalkins || 0));
+  const bought = rows.map(r => Number(r.bought || 0));
+  const notBought = rows.map(r => Number(r.notBought || 0));
+
+  if (App.dashboardTrendChart) {
+    App.dashboardTrendChart.destroy();
+  }
+
+  App.dashboardTrendChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'TOTAL WALK-INS',
+          data: totalWalkins,
+          borderWidth: 2,
+          tension: 0.3
+        },
+        {
+          label: 'BOUGHT',
+          data: bought,
+          borderWidth: 2,
+          tension: 0.3
+        },
+        {
+          label: 'DID NOT BOUGHT',
+          data: notBought,
+          borderWidth: 2,
+          tension: 0.3
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: {
+        legend: {
+          display: true
+        },
+        tooltip: {
+          enabled: true
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            precision: 0
+          }
+        }
+      }
+    }
+  });
+}
+
+
+
+function renderPieChart(stats){
+  const canvas = $('dashboardPieChart');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  const labels = [
+    'TOTAL WALK-INS',
+    'TOTAL NOT BOUGHT',
+    'TOTAL BOUGHT',
+    'TOTAL ORDER PLACE',
+    'TOTAL REPAIR PLACE',
+    'TOTAL ORDER PICK UP',
+    'TOTAL REPAIR PICKUP',
+    'TOTAL PRODUCT RETURN'
+  ];
+
+  const values = [
+    Number(stats.totalWalkins || 0),
+    Number(stats.totalNotBought || 0),
+    Number(stats.totalBought || 0),
+    Number(stats.totalOrderPlace || 0),
+    Number(stats.totalRepairPlace || 0),
+    Number(stats.totalOrderPickup || 0),
+    Number(stats.totalRepairPickup || 0),
+    Number(stats.totalProductReturn || 0)
+  ];
+
+  if (App.dashboardPieChart) {
+    App.dashboardPieChart.destroy();
+  }
+
+  App.dashboardPieChart = new Chart(canvas, {
+    type: 'pie',
+    data: {
+      labels,
+      datasets: [
+        {
+          data: values,
+          borderWidth: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'bottom'
+        },
+        tooltip: {
+          enabled: true
+        }
+      }
+    }
+  });
+}
+
+
+
+    function renderBreakdownList(containerId, rows, keyField){
+      const el = $(containerId);
+      if (!rows.length) {
+        el.innerHTML = `<div class="emptyState">NO DATA FOUND.</div>`;
+        return;
+      }
+
+      el.innerHTML = rows.map(r => `
+        <div class="listItem">
+          <div class="listLeft">
+            <div class="listTitle">${escapeHtml(r[keyField] || 'UNKNOWN')}</div>
+          </div>
+          <div class="listValue">${escapeHtml(r.count || 0)}</div>
+        </div>
+      `).join('');
+    }
+
+
+function normalizeWalkinEditUrl_(editUrl){
+  const raw = String(editUrl || '').trim();
+  if (!raw) return '';
+
+  try{
+    const urlObj = new URL(raw);
+
+    // Your WALKIN DATASET reference number is now in DY = column 129.
+    // These extra params help the walk-in form edit loader search the correct column.
+    if (!urlObj.searchParams.get('mode')) {
+      urlObj.searchParams.set('mode', 'EDIT_WALKIN_ENTRY');
+    }
+    urlObj.searchParams.set('referenceCol', '129');
+    urlObj.searchParams.set('legacyReferenceCol', '123');
+    urlObj.searchParams.set('sourceSheetName', 'WALKIN DATASET');
+    urlObj.searchParams.set('editSource', 'CRM_TIMELINE');
+    urlObj.searchParams.set('_ts', String(Date.now()));
+
+    return urlObj.toString();
+  }catch(e){
+    // Fallback for any non-standard URL string.
+    const joiner = raw.indexOf('?') >= 0 ? '&' : '?';
+    return raw + joiner +
+      'referenceCol=129' +
+      '&legacyReferenceCol=123' +
+      '&sourceSheetName=' + encodeURIComponent('WALKIN DATASET') +
+      '&editSource=CRM_TIMELINE' +
+      '&_ts=' + encodeURIComponent(String(Date.now()));
+  }
+}
+
+function openTimelineEditEntry(editUrl){
+  const url = normalizeWalkinEditUrl_(editUrl);
+
+  if (!url) {
+    alert('EDIT URL NOT AVAILABLE FOR THIS ENTRY.');
+    return;
+  }
+
+  const ok = confirm(
+    'THIS WILL OPEN THE OLD WALK-IN ENTRY FOR EDIT.\n\n' +
+    'AFTER UPDATING THE FORM, COME BACK TO CRM AND CLICK RUN INCREMENTAL SYNC / REFRESH DASHBOARD.'
+  );
+
+  if (!ok) return;
+
+  window.open(url, '_blank', 'noopener');
+}
+
+
+    function openExistingClientWalkin(clientId){
+  const baseUrl = App.bootstrap?.walkinWebAppUrl || '';
+  if (!baseUrl || !clientId) return;
+
+  const url = `${baseUrl}?mode=EXISTING_CLIENT&clientId=${encodeURIComponent(String(clientId).trim())}`;
+  window.open(url, '_blank');
+}
+
+    async function runIncrementalSync(){
+      const btn = $('syncBtn');
+      const oldText = btn.textContent;
+      btn.disabled = true;
+      btn.innerHTML = 'RUNNING...';
+      $('dashboardStatus').textContent = 'RUNNING INCREMENTAL SYNC...';
+      try{
+        await callServer('runIncrementalSync');
+        $('dashboardStatus').textContent = 'INCREMENTAL SYNC COMPLETED.';
+        await loadDashboard();
+      }catch(err){
+        console.error(err);
+        $('dashboardStatus').textContent = 'INCREMENTAL SYNC FAILED.';
+      }finally{
+        btn.disabled = false;
+        btn.textContent = oldText;
+      }
+    }
+
+    async function refreshDashboardCacheAndReload(){
+      const btn = $('refreshDashboardBtn');
+      const oldText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'REFRESHING...';
+      $('dashboardStatus').textContent = 'REFRESHING DASHBOARD...';
+      try{
+        await callServer('rebuildDashboardCache');
+        await loadDashboard();
+        $('dashboardStatus').textContent = 'DASHBOARD REFRESHED.';
+      }catch(err){
+        console.error(err);
+        $('dashboardStatus').textContent = 'FAILED TO REFRESH DASHBOARD.';
+      }finally{
+        btn.disabled = false;
+        btn.textContent = oldText;
+      }
+    }
+
+    async function searchClients(){
+      const q = $('clientSearchInput').value.trim();
+      $('clientSearchStatus').textContent = 'SEARCHING...';
+      try{
+        const data = await callServer('searchClients', [q]);
+        renderClientResults(data.results || []);
+        $('clientSearchStatus').textContent = `${(data.results || []).length} RESULT(S) FOUND.`;
+      }catch(err){
+        console.error(err);
+        $('clientSearchStatus').textContent = 'SEARCH FAILED.';
+      }
+    }
+
+    async function loadRecentClients(){
+      $('clientSearchStatus').textContent = 'LOADING RECENT CLIENTS...';
+      try{
+        const data = await callServer('getClientQuickList', [100]);
+        renderClientResults(data.results || []);
+        $('clientSearchStatus').textContent = `${(data.results || []).length} CLIENT(S) LOADED.`;
+      }catch(err){
+        console.error(err);
+        $('clientSearchStatus').textContent = 'FAILED TO LOAD RECENT CLIENTS.';
+      }
+    }
+
+    function renderClientResults(rows){
+      const tbody = $('clientResultsTbody');
+
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="9" class="muted">NO CLIENTS FOUND.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map(r => `
+        <tr>
+          <td>${escapeHtml(r.clientId || '')}</td>
+          <td>${escapeHtml(r.primaryName || '')}</td>
+          <td>${escapeHtml(r.primaryPhone || r.secondaryPhone || r.billingPhone || '')}</td>
+          <td>${escapeHtml(r.city || '')}</td>
+          <td>${escapeHtml(r.state || '')}</td>
+          <td>${escapeHtml(r.totalVisits || 0)}</td>
+          <td>${formatDateOnlyDisplay(r.lastVisitDate || '')}</td>
+          <td>${statusPill(r.lastStatus || '')}</td>
+          <td>
+  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    <button class="btn small" onclick="loadClientProfile('${String(r.clientId || '').replace(/'/g, "\\'")}')">
+      VIEW CLIENT PROFILE
+    </button>
+
+    <button class="btn small secondary" onclick="openExistingClientWalkin('${String(r.clientId || '').replace(/'/g, "\\'")}')">
+      MAKE WALK-IN ENTRY
+    </button>
+  </div>
+</td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadClientProfile(clientId){
+  $('clientProfileWrap').classList.remove('hidden');
+  $('clientProfileWrap').innerHTML = `
+    <div class="card">
+      <div class="cardBody">
+        <span class="inlineLoader"></span>
+        <span style="margin-left:8px; font-weight:700;">LOADING CLIENT PROFILE...</span>
+      </div>
+    </div>
+  `;
+
+  $('clientProfileWrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  try{
+    const data = await callServer('getClientProfile', [clientId]);
+    if (!data || !data.ok) {
+      $('clientProfileWrap').innerHTML = `<div class="emptyState">CLIENT PROFILE NOT FOUND.</div>`;
+      return;
+    }
+
+    App.currentProfile = data;
+    renderClientProfile(data.profile || {}, data.timeline || []);
+
+    setTimeout(() => {
+      $('clientProfileWrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+
+  }catch(err){
+    console.error(err);
+    $('clientProfileWrap').innerHTML = `<div class="emptyState">FAILED TO LOAD CLIENT PROFILE.</div>`;
+  }
+}
+
+   
+
+  
+
+
+
+
+
+async function saveClientProfile(){
+  if (!App.currentProfile || !App.currentProfile.profile) return;
+
+  const profile = App.currentProfile.profile;
+  const inputs = Array.from(document.querySelectorAll('[data-editable="true"]'));
+
+  const payload = {
+    clientId: profile.clientId,
+    editedBy: 'CRM WEB APP'
+  };
+
+  inputs.forEach(input => {
+    const field = input.getAttribute('data-field');
+    if (!field) return;
+    payload[field] = input.value.trim();
+  });
+
+  const saveBtn = $('saveClientProfileBtn');
+
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'SAVING...';
+  }
+
+  try {
+    const result = await callServer('updateClientProfile', [payload]);
+
+    if (!result || !result.ok) {
+      alert((result && result.message) ? result.message : 'FAILED TO SAVE PROFILE.');
+      return;
+    }
+
+    alert('CLIENT PROFILE UPDATED SUCCESSFULLY.');
+    App.currentProfile = null;
+    await loadClientProfile(profile.clientId);
+  } catch (err) {
+    console.error(err);
+    alert('FAILED TO SAVE PROFILE: ' + (err && err.message ? err.message : err));
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'SAVE';
+    }
+  }
+}
+
+
+
+
+
+    function renderClientProfile(profile, timeline){
+      $('clientProfileWrap').innerHTML = `
+        <div class="profileShell">
+          <div class="profileSidebar">
+            <div class="profileHero">
+  <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+    <div>
+      <div class="profileName">${escapeHtml(profile.primaryName || 'UNKNOWN CLIENT')}</div>
+      <div class="profileMeta">
+        <span class="pill">${escapeHtml(profile.clientId || '')}</span>
+        ${statusPill(profile.lastBuyStatus || '')}
+        <span class="pill">${escapeHtml(profile.city || 'NA')}</span>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn small secondary" onclick="enableClientEditMode()">EDIT PROFILE</button>
+      <button class="btn small hidden" id="saveClientProfileBtn" onclick="saveClientProfile()">SAVE</button>
+      <button class="btn small secondary hidden" id="cancelClientProfileBtn" onclick="cancelClientEditMode()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+            <div class="card">
+  <div class="cardHead"><div class="cardTitle">CONTACT</div></div>
+  <div class="cardBody">
+    ${kv('PRIMARY PHONE', profile.primaryPhone, true, 'PRIMARY PHONE')}
+    ${kv('SECONDARY PHONE', profile.secondaryPhone, true, 'SECONDARY PHONE')}
+    ${kv('BILLING PHONE', profile.billingPhone, true, 'BILLING PHONE')}
+    ${kv('OTHER KNOWN PHONES', profile.otherKnownPhones, true, 'OTHER KNOWN PHONES')}
+  </div>
+</div>
+
+            <div class="card">
+              <div class="cardHead"><div class="cardTitle">PREFERENCES</div></div>
+              <div class="cardBody">
+                ${kv('BEVERAGE', profile.beverage)}
+                ${kv('SUGAR', profile.sugar)}
+                ${kv('SNACK', profile.snack)}
+                ${kv('GIFT HISTORY', profile.giftHistory)}
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="cardHead"><div class="cardTitle">CRM ACTIONS</div></div>
+              <div class="cardBody">
+                ${kv('INSTAGRAM STATUS', profile.instagramStatus)}
+                ${kv('GOOGLE REVIEW STATUS', profile.googleReviewStatus)}
+                ${kv('TESTIMONIAL STATUS', profile.testimonialStatus)}
+                ${kv('REFERRAL STATUS', profile.referralStatus)}
+                ${kv('NEXT VISIT DATE', formatDateOnlyDisplay(profile.nextVisitDate))}
+              </div>
+            </div>
+          </div>
+
+          <div class="profileMain">
+            <div class="sectionGrid2">
+              <div class="card">
+  <div class="cardHead"><div class="cardTitle">PERSONAL DETAILS</div></div>
+  <div class="cardBody">
+    ${kv('PRIMARY NAME', profile.primaryName, true, 'PRIMARY NAME')}
+    ${kv('OTHER NAMES', profile.otherNames, true, 'OTHER NAMES')}
+    ${kv('GENDER', profile.gender, true, 'GENDER')}
+    ${kv('DOB', profile.dob, true, 'DOB')}
+    ${kv('ANNIVERSARY', profile.anniversary, true, 'ANNIVERSARY')}
+    ${kv('COMMUNITY', profile.community, true, 'COMMUNITY')}
+    ${kv('COMMUNITY OTHER', profile.communityOther, true, 'COMMUNITY OTHER')}
+  </div>
+</div>
+
+              <div class="card">
+  <div class="cardHead"><div class="cardTitle">ADDRESS</div></div>
+  <div class="cardBody">
+    ${kv('COUNTRY', profile.country, true, 'COUNTRY')}
+    ${kv('STATE', profile.state, true, 'STATE')}
+    ${kv('CITY', profile.city, true, 'CITY')}
+    ${kv('CITY OTHER', profile.cityOther, true, 'CITY OTHER')}
+    ${kv('PINCODE', profile.pincode, true, 'PINCODE')}
+    ${kv('ADDRESS', profile.address, true, 'ADDRESS')}
+  </div>
+</div>
+
+
+            </div>
+
+            <div class="sectionGrid2">
+              <div class="card">
+                <div class="cardHead"><div class="cardTitle">VISIT STATISTICS</div></div>
+                <div class="cardBody">
+                  ${kv('FIRST VISIT DATE', formatDateOnlyDisplay(profile.firstVisitDate))}
+                  ${kv('LAST VISIT DATE', formatDateOnlyDisplay(profile.lastVisitDate))}
+                  ${kv('TOTAL VISITS', profile.totalVisits)}
+                  ${kv('TOTAL PURCHASE VISITS', profile.totalPurchaseVisits)}
+                  ${kv('TOTAL NON PURCHASE VISITS', profile.totalNonPurchaseVisits)}
+                  ${kv('TOTAL REPAIR VISITS', profile.totalRepairVisits)}
+                  ${kv('TOTAL ORDER VISITS', profile.totalOrderVisits)}
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="cardHead"><div class="cardTitle">LAST VISIT INFORMATION</div></div>
+                <div class="cardBody">
+                  ${kv('LAST BUY STATUS', profile.lastBuyStatus)}
+                  ${kv('LAST BRANCH', profile.lastBranch)}
+                  ${kv('LAST CRM', profile.lastCrm)}
+                  ${kv('LAST SALESPERSON', profile.lastSalesperson)}
+                  ${kv('LAST REMARK', profile.lastRemark)}
+                  ${kv('LAST PRODUCT REQUIREMENT', profile.lastProductRequirement)}
+                </div>
+              </div>
+            </div>
+
+            <div class="sectionGrid2">
+              <div class="card">
+                <div class="cardHead"><div class="cardTitle">PRODUCT INTERESTS</div></div>
+                <div class="cardBody">
+                  ${kv('LAST SEEN CATEGORIES', profile.lastSeenCategories)}
+                  ${kv('LAST BOUGHT CATEGORIES', profile.lastBoughtCategories)}
+                  ${kv('LAST ORDER CATEGORIES', profile.lastOrderCategories)}
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="cardHead"><div class="cardTitle">POTENTIAL</div></div>
+                <div class="cardBody">
+                  ${kv('CLIENT POTENTIAL CATEGORY', profile.clientPotentialCategory)}
+                  ${kv('HIGH POTENTIAL REASON', profile.highPotentialReason)}
+                  ${kv('PROFILE LAST UPDATED ON', formatDateDisplay(profile.profileLastUpdatedOn))}
+                  ${kv('PROFILE UPDATED BY', profile.profileUpdatedBy)}
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="cardHead">
+                <div class="cardTitle">FULL TIMELINE HISTORY</div>
+              </div>
+              <div class="cardBody">
+                <div class="tableWrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>TIMESTAMP</th>
+                        <th>CLIENT VISIT DATE</th>
+                        <th>EVENT TYPE</th>
+                        <th>BUY STATUS</th>
+                        <th>BRANCH</th>
+                        <th>CRM</th>
+                        <th>SALESPERSON</th>
+                        <th>SEEN</th>
+                        <th>BOUGHT</th>
+                        <th>ORDER</th>
+                        <th>PRODUCT REQUIREMENT</th>
+                        <th>REMARK</th>
+                        <th>REFERENCE NUMBER</th>
+                        <th>ACTION</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${renderTimelineRows(timeline)}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      `;
+    }
+
+    
+    function enableClientEditMode(){
+  document.querySelectorAll('[data-editable="true"]').forEach(el => {
+    el.removeAttribute('readonly');
+    el.removeAttribute('disabled');
+    el.classList.add('editingField');
+  });
+
+  const saveBtn = $('saveClientProfileBtn');
+  const cancelBtn = $('cancelClientProfileBtn');
+  const editBtn = document.querySelector('button[onclick="enableClientEditMode()"]');
+
+  if (saveBtn) saveBtn.classList.remove('hidden');
+  if (cancelBtn) cancelBtn.classList.remove('hidden');
+  if (editBtn) editBtn.classList.add('hidden');
+}
+
+
+
+
+function cancelClientEditMode(){
+  if (!App.currentProfile || !App.currentProfile.profile) return;
+  renderClientProfile(App.currentProfile.profile || {}, App.currentProfile.timeline || []);
+}
+
+
+
+
+
+  function renderTimelineRows(rows){
+  if (!rows || !rows.length) {
+    return `<tr><td colspan="14" class="muted">NO TIMELINE FOUND.</td></tr>`;
+  }
+
+  return rows.map(r => {
+    const editUrl = String(r.editUrl || '').trim();
+    const ref = String(r.referenceNumber || '').trim();
+
+    const actionHtml = editUrl
+      ? `
+        <button
+          class="btn small accent"
+          type="button"
+          onclick="openTimelineEditEntry('${escapeJsString(editUrl)}')"
+        >
+          EDIT ENTRY
+        </button>
+      `
+      : `<span class="pill muted">NO REF</span>`;
+
+    return `
+      <tr>
+        <td>${formatDateDisplay(r.timestamp || '')}</td>
+        <td>${formatDateOnlyDisplay(r.eventDate || '')}</td>
+        <td>${eventPill(r.eventType || '')}</td>
+        <td>${statusPill(r.buyStatus || '')}</td>
+        <td>${escapeHtml(r.branch || '')}</td>
+        <td>${escapeHtml(r.crmName || '')}</td>
+        <td>${escapeHtml(r.salesperson || '')}</td>
+        <td>${escapeHtml(r.seenCategories || '')}</td>
+        <td>${escapeHtml(r.boughtCategories || '')}</td>
+        <td>${escapeHtml(r.orderCategories || '')}</td>
+        <td>${escapeHtml(r.productRequirement || '')}</td>
+        <td>${escapeHtml(r.remark || '')}</td>
+        <td>${escapeHtml(ref)}</td>
+        <td>${actionHtml}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+
+  function kv(key, value, editable = false, fieldName = ''){
+  const safeValue = value || '';
+
+  if (editable) {
+    const upperField = String(fieldName || key).toUpperCase();
+    const isDateField = ['DOB', 'ANNIVERSARY', 'NEXT VISIT DATE'].includes(upperField);
+    const inputType = isDateField ? 'date' : 'text';
+
+    return `
+      <div class="kv">
+        <div class="kvKey">${escapeHtml(key)}</div>
+        <div class="kvVal">
+          <input
+            type="${inputType}"
+            class="input"
+            data-editable="true"
+            data-field="${escapeHtml(fieldName || key)}"
+            value="${escapeHtml(safeValue)}"
+            readonly
+          />
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="kv">
+      <div class="kvKey">${escapeHtml(key)}</div>
+      <div class="kvVal">${escapeHtml(safeValue) || '<span class="muted">NA</span>'}</div>
+    </div>
+  `;
+}
+
+
+
+/* =========================
+   NOT BOUGHT FOLLOW UP JS ADD-ON
+   ========================= */
+const NbFollowUp = {
+  activeTab: 'TODAY',
+  bootstrapLoaded: false,
+  activeStatuses: [],
+  doneStatuses: [],
+  rows: []
+};
+
+function nbStatusPill(value){
+  const v = String(value || '').trim().toUpperCase();
+  const done = NbFollowUp.doneStatuses.includes(v);
+  let cls = done ? 'pill yes' : 'pill info';
+  if (!v || v === 'PENDING') cls = 'pill muted';
+  if (v.includes('ANOTHER')) cls = 'pill no';
+  return `<span class="${cls}">${escapeHtml(v || 'PENDING')}</span>`;
+}
+
+async function loadNotBoughtBootstrap(){
+  if (NbFollowUp.bootstrapLoaded) return;
+  const data = await callServer('getNotBoughtFollowupBootstrap');
+  NbFollowUp.bootstrapLoaded = true;
+  NbFollowUp.activeStatuses = data.activeStatuses || [];
+  NbFollowUp.doneStatuses = data.doneStatuses || [];
+
+  const sel = $('nbCrmFilter');
+  if (sel) {
+    sel.innerHTML = '<option value="ALL">ALL CRM</option>';
+    (data.crmNames || []).forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      sel.appendChild(opt);
+    });
+  }
+}
+
+function getNbFilterPayload(){
+  return {
+    tab: NbFollowUp.activeTab,
+    crmName: $('nbCrmFilter') ? $('nbCrmFilter').value : 'ALL',
+    query: $('nbSearchInput') ? $('nbSearchInput').value.trim() : ''
+  };
+}
+
+async function loadNotBoughtFollowups(){
+  const statusEl = $('nbStatusBar');
+  if (statusEl) statusEl.textContent = 'LOADING NOT BOUGHT FOLLOW UP DATA...';
+
+  try{
+    await loadNotBoughtBootstrap();
+    const data = await callServer('getNotBoughtFollowups', [getNbFilterPayload()]);
+    NbFollowUp.rows = data.rows || [];
+    renderNotBoughtFollowups(NbFollowUp.rows);
+    if (statusEl) statusEl.textContent = `LOADED ${(data.rows || []).length} CLIENT(S).`;
+  }catch(err){
+    console.error(err);
+    if (statusEl) statusEl.textContent = 'FAILED TO LOAD: ' + (err && err.message ? err.message : err);
+  }
+}
+
+async function syncNotBoughtFollowups(){
+  const statusEl = $('nbStatusBar');
+  if (statusEl) statusEl.textContent = 'SYNCING NOT BOUGHT DATA...';
+  try{
+    const res = await callServer('syncNotBoughtFollowupsFromWalkin');
+    NbFollowUp.bootstrapLoaded = false;
+    if (statusEl) statusEl.textContent = (res && res.message) ? res.message : 'SYNC COMPLETED.';
+    await loadNotBoughtFollowups();
+  }catch(err){
+    console.error(err);
+    if (statusEl) statusEl.textContent = 'SYNC FAILED: ' + (err && err.message ? err.message : err);
+  }
+}
+
+function setNbTab(tab){
+  NbFollowUp.activeTab = tab || 'TODAY';
+  document.querySelectorAll('.nbTabBtn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-nb-tab') === NbFollowUp.activeTab);
+  });
+  const titleMap = {
+    TODAY: 'TODAY FOLLOW UP',
+    PENDING: 'ALL PENDING FOLLOW UP',
+    INPROCESS: 'INPROCESS FOLLOW UP',
+    DONE: 'ALL DONE'
+  };
+  if ($('nbListTitle')) $('nbListTitle').textContent = titleMap[NbFollowUp.activeTab] || 'FOLLOW UP';
+  loadNotBoughtFollowups();
+}
+
+function getNbStatusOptions(currentStatus){
+  const all = [...(NbFollowUp.activeStatuses || []), ...(NbFollowUp.doneStatuses || [])];
+  const cur = String(currentStatus || 'PENDING').trim().toUpperCase();
+  if (cur && !all.includes(cur)) all.unshift(cur);
+  return all.map(s => `<option value="${escapeHtml(s)}" ${s === cur ? 'selected' : ''}>${escapeHtml(s)}</option>`).join('');
+}
+
+function isNbDoneStatusClient(status){
+  const s = String(status || '').trim().toUpperCase();
+  return (NbFollowUp.doneStatuses || []).map(v => String(v || '').trim().toUpperCase()).includes(s);
+}
+
+function toggleNbDoneFields(idx){
+  const statusEl = $('nbStatus-' + idx);
+  const nextWrap = $('nbNextWrap-' + idx);
+  const remarkWrap = $('nbRemarkWrap-' + idx);
+  const nextInput = $('nbNextDate-' + idx);
+  const remarkInput = $('nbRemark-' + idx);
+  const isDone = statusEl && isNbDoneStatusClient(statusEl.value);
+
+  if (nextWrap) nextWrap.classList.toggle('hidden', !!isDone);
+  if (remarkWrap) remarkWrap.classList.toggle('hidden', !!isDone);
+
+  if (isDone) {
+    if (nextInput) nextInput.value = '';
+    if (remarkInput) remarkInput.value = '';
+  }
+}
+
+function toDateInputValue(value){
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const m = raw.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (m) {
+    const dd = String(m[1]).padStart(2, '0');
+    const mm = String(m[2]).padStart(2, '0');
+    return `${m[3]}-${mm}-${dd}`;
+  }
+  const d = new Date(raw);
+  if (isNaN(d)) return '';
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function toggleNbFollowForm(idx){
+  const panel = $('nbFollowPanel-' + idx);
+  const row = $('nbExpandRow-' + idx);
+  if (!panel) return;
+  if (row) row.classList.remove('hidden');
+  panel.classList.toggle('hidden');
+  if (row && panel.classList.contains('hidden')) {
+    const hist = $('nbHistory-' + idx);
+    if (!hist || hist.classList.contains('hidden')) row.classList.add('hidden');
+  }
+  if (!panel.classList.contains('hidden')) {
+    setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 60);
+  }
+}
+
+function renderNotBoughtFollowups(rows){
+  const wrap = $('nbCardsWrap');
+  if (!wrap) return;
+
+  if (!rows || !rows.length) {
+    wrap.innerHTML = '<div class="emptyState">NO CLIENT FOUND FOR SELECTED FILTER.</div>';
+    return;
+  }
+
+  const bodyRows = rows.map((r, idx) => {
+    const phone = r.primaryPhone || r.billingPhone || '';
+    const openProfileBtn = r.clientId
+      ? `<button class="btn small" onclick="loadClientProfile('${escapeJsString(r.clientId)}'); setActivePage('client_database');">OPEN PROFILE</button>`
+      : '';
+
+    return `
+      <tr class="nbFollowListRow" id="nb-card-${idx}">
+        <td data-label="CRM NAME"><strong>${escapeHtml(r.crmName || 'NA')}</strong></td>
+        <td data-label="CLIENT NAME">
+          <strong>${escapeHtml(r.clientName || 'UNKNOWN CLIENT')}</strong>
+          <div style="margin-top:5px; display:flex; gap:5px; flex-wrap:wrap;">
+            ${nbStatusPill(r.followUpStatus || r.finalOutcome || 'PENDING')}
+            <span class="pill info">FU: ${escapeHtml(r.followUpCount || 0)}</span>
+            <span class="pill muted">HIST: ${escapeHtml(r.historyCount || 0)}</span>
+          </div>
+        </td>
+        <td data-label="NUMBER">${escapeHtml(phone || 'NA')}</td>
+        <td data-label="CLIENT VISIT DATE">${formatDateOnlyDisplay(r.eventDate || '') || 'NA'}</td>
+        <td data-label="NEXT FOLLOW UP">${formatDateOnlyDisplay(r.nextFollowUpDate || '') || 'NA'}</td>
+        <td data-label="REASON">${escapeHtml(r.notBoughtReason || 'NA')}</td>
+        <td data-label="SEEN CATEGORIES">${escapeHtml(r.seenCategories || 'NA')}</td>
+        <td data-label="PRODUCT REQUIREMENT">${escapeHtml(r.productRequirement || 'NA')}</td>
+        <td data-label="REMARK / PRODUCT SEEN"><div class="nbRemarkInline">${escapeHtml(r.lastWalkinRemark || 'NA')}</div></td>
+        <td data-label="FOLLOW UP REMARK"><div class="nbRemarkInline">${escapeHtml(r.lastFollowUpRemark || 'NA')}</div></td>
+        <td data-label="ACTION POINT"><div class="nbActionPointInline">${escapeHtml(r.actionPoint || 'NA')}</div></td>
+        <td data-label="ACTION">
+          <div class="nbTableActions">
+            ${openProfileBtn}
+            <button class="btn small accent" onclick="toggleNbFollowForm(${idx})">FOLLOW UP FORM</button>
+            <button class="btn small secondary" onclick="loadNbHistory(${idx})">VIEW HISTORY</button>
+          </div>
+        </td>
+      </tr>
+      <tr class="nbExpandRow hidden" id="nbExpandRow-${idx}">
+        <td colspan="12">
+          <div class="nbFollowPanel hidden" id="nbFollowPanel-${idx}">
+            <div class="nbFollowForm">
+              <div>
+                <div class="muted" style="margin-bottom:6px; font-size:12px; font-weight:700;">FOLLOW UP STATUS</div>
+                <select class="select" id="nbStatus-${idx}" onchange="toggleNbDoneFields(${idx})">${getNbStatusOptions(r.followUpStatus || 'PENDING')}</select>
+              </div>
+              <div id="nbNextWrap-${idx}" class="${isNbDoneStatusClient(r.followUpStatus || r.finalOutcome || '') ? 'hidden' : ''}">
+                <div class="muted" style="margin-bottom:6px; font-size:12px; font-weight:700;">NEXT FOLLOW UP DATE</div>
+                <input type="date" class="input" id="nbNextDate-${idx}" value="${escapeHtml(toDateInputValue(r.nextFollowUpDate || ''))}" />
+              </div>
+              <div>
+                <div class="muted" style="margin-bottom:6px; font-size:12px; font-weight:700;">CALL RESPONSE</div>
+                <select class="select" id="nbCallResponse-${idx}">
+                  <option value="CONNECTED">CONNECTED</option>
+                  <option value="NOT PICKED">NOT PICKED</option>
+                  <option value="SWITCHED OFF">SWITCHED OFF</option>
+                  <option value="WHATSAPP ONLY">WHATSAPP ONLY</option>
+                  <option value="WRONG NUMBER">WRONG NUMBER</option>
+                </select>
+              </div>
+              <div>
+                <div class="muted" style="margin-bottom:6px; font-size:12px; font-weight:700;">ENTERED BY</div>
+                <input type="text" class="input" id="nbEnteredBy-${idx}" value="${escapeHtml(r.crmName || 'CRM WEB APP')}" />
+              </div>
+              <div class="full ${isNbDoneStatusClient(r.followUpStatus || r.finalOutcome || '') ? 'hidden' : ''}" id="nbRemarkWrap-${idx}">
+                <div class="muted" style="margin-bottom:6px; font-size:12px; font-weight:700;">FOLLOW UP REMARK</div>
+                <textarea class="textarea" id="nbRemark-${idx}" placeholder="WRITE WHAT CLIENT SAID / NEXT ACTION"></textarea>
+              </div>
+              <div class="full" style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="btn accent" onclick="saveNbFollowup(${idx})">SAVE FOLLOW UP</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="nbHistoryBox hidden" id="nbHistory-${idx}"></div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div class="nbTopScroll" id="nbTopScroll"><div class="nbTopScrollInner" id="nbTopScrollInner"></div></div>
+    <div class="tableWrap nbFollowTableWrap" id="nbFollowTableWrap">
+      <table class="nbFollowTable" id="nbFollowTable">
+        <thead>
+          <tr>
+            <th>CRM NAME</th>
+            <th>CLIENT NAME</th>
+            <th>NUMBER</th>
+            <th>CLIENT VISIT DATE</th>
+            <th>NEXT FOLLOW UP</th>
+            <th>REASON</th>
+            <th>SEEN CATEGORIES</th>
+            <th>PRODUCT REQUIREMENT</th>
+            <th>REMARK / PRODUCT SEEN</th>
+            <th>FOLLOW UP REMARK</th>
+            <th>ACTION POINT</th>
+            <th>ACTION</th>
+          </tr>
+        </thead>
+        <tbody>${bodyRows}</tbody>
+      </table>
+    </div>
+  `;
+
+  setTimeout(syncNbHorizontalScroll, 50);
+}
+
+function syncNbHorizontalScroll(){
+  const topScroll = $('nbTopScroll');
+  const topInner = $('nbTopScrollInner');
+  const tableWrap = $('nbFollowTableWrap');
+  const table = $('nbFollowTable');
+
+  if (!topScroll || !topInner || !tableWrap || !table) return;
+
+  topInner.style.width = table.scrollWidth + 'px';
+
+  let syncing = false;
+  topScroll.onscroll = function(){
+    if (syncing) return;
+    syncing = true;
+    tableWrap.scrollLeft = topScroll.scrollLeft;
+    syncing = false;
+  };
+
+  tableWrap.onscroll = function(){
+    if (syncing) return;
+    syncing = true;
+    topScroll.scrollLeft = tableWrap.scrollLeft;
+    syncing = false;
+  };
+}
+
+function nbMiniBox(label, value){
+  return `
+    <div class="nbMiniBox">
+      <div class="nbMiniLabel">${escapeHtml(label)}</div>
+      <div class="nbMiniValue">${escapeHtml(value || 'NA')}</div>
+    </div>
+  `;
+}
+
+function nbInfoBox(label, value){
+  return `
+    <div class="nbInfoBox">
+      <div class="nbInfoLabel">${escapeHtml(label)}</div>
+      <div class="nbInfoValue">${escapeHtml(value || 'NA')}</div>
+    </div>
+  `;
+}
+
+async function saveNbFollowup(idx){
+  const row = NbFollowUp.rows[idx];
+  if (!row) return;
+  NbFollowUp.saving = NbFollowUp.saving || {};
+  if (NbFollowUp.saving[idx]) return;
+  NbFollowUp.saving[idx] = true;
+
+  const statusEl = $('nbStatusBar');
+  const selectedStatus = $('nbStatus-' + idx).value;
+  const selectedDone = isNbDoneStatusClient(selectedStatus);
+  const payload = {
+    clientId: row.clientId || '',
+    referenceNumber: row.referenceNumber || '',
+    crmName: row.crmName || '',
+    followUpStatus: selectedStatus,
+    nextFollowUpDate: selectedDone ? '' : ($('nbNextDate-' + idx)?.value || ''),
+    callResponse: $('nbCallResponse-' + idx).value,
+    remark: selectedDone ? '' : ($('nbRemark-' + idx)?.value || ''),
+    enteredBy: $('nbEnteredBy-' + idx).value,
+    actionPoint: row.actionPoint || ''
+  };
+
+  if (!selectedDone && !payload.remark.trim()) {
+    alert('PLEASE WRITE FOLLOW UP REMARK.');
+    NbFollowUp.saving[idx] = false;
+    return;
+  }
+
+  if (statusEl) statusEl.textContent = 'SAVING FOLLOW UP...';
+  try{
+    const res = await callServer('saveNotBoughtFollowup', [payload]);
+    if (statusEl) statusEl.textContent = (res && res.message) ? res.message : 'FOLLOW UP SAVED.';
+    await loadNotBoughtFollowups();
+  }catch(err){
+    console.error(err);
+    if (statusEl) statusEl.textContent = 'SAVE FAILED: ' + (err && err.message ? err.message : err);
+  } finally {
+    NbFollowUp.saving[idx] = false;
+  }
+}
+
+async function loadNbHistory(idx){
+  const row = NbFollowUp.rows[idx];
+  if (!row) return;
+  const box = $('nbHistory-' + idx);
+  const rowEl = $('nbExpandRow-' + idx);
+  if (!box) return;
+  if (rowEl) rowEl.classList.remove('hidden');
+
+  box.classList.remove('hidden');
+  box.innerHTML = '<span class="inlineLoader"></span> LOADING HISTORY...';
+
+  try{
+    const data = await callServer('getNotBoughtFollowupHistory', [row.clientId || '', row.referenceNumber || '']);
+    const hist = data.history || [];
+    if (!hist.length) {
+      box.innerHTML = '<div class="emptyState">NO FOLLOW UP HISTORY YET.</div>';
+      return;
+    }
+
+    box.innerHTML = hist.map(h => `
+      <div class="nbHistoryItem">
+        <div style="display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+          <strong>${formatDateDisplay(h.timestamp || '')}</strong>
+          ${nbStatusPill(h.newStatus || '')}
+        </div>
+        <div class="listSub">CALL RESPONSE: ${escapeHtml(h.callResponse || '')} | ENTERED BY: ${escapeHtml(h.enteredBy || '')}</div>
+        <div style="margin-top:6px; font-size:13px; font-weight:700;">${escapeHtml(h.remark || '')}</div>
+        <div class="listSub">NEXT FOLLOW UP: ${formatDateOnlyDisplay(h.nextFollowUpDate || '')}</div>
+      </div>
+    `).join('');
+  }catch(err){
+    console.error(err);
+    box.innerHTML = '<div class="emptyState">FAILED TO LOAD HISTORY.</div>';
+  }
+}
+
+function bindNotBoughtFollowupEvents(){
+  document.querySelectorAll('.nbTabBtn').forEach(btn => {
+    btn.addEventListener('click', function(){ setNbTab(this.getAttribute('data-nb-tab') || 'TODAY'); });
+  });
+
+  $('nbApplyFilterBtn')?.addEventListener('click', loadNotBoughtFollowups);
+  $('nbRefreshBtn')?.addEventListener('click', loadNotBoughtFollowups);
+  $('nbSyncBtn')?.addEventListener('click', syncNotBoughtFollowups);
+  $('nbClearFilterBtn')?.addEventListener('click', function(){
+    if ($('nbCrmFilter')) $('nbCrmFilter').value = 'ALL';
+    if ($('nbSearchInput')) $('nbSearchInput').value = '';
+    loadNotBoughtFollowups();
+  });
+  $('nbSearchInput')?.addEventListener('keydown', function(e){
+    if (e.key === 'Enter') loadNotBoughtFollowups();
+  });
+}
+
+    function clearClientSearch(){
+      $('clientSearchInput').value = '';
+      $('clientSearchStatus').textContent = '';
+      $('clientResultsTbody').innerHTML = `<tr><td colspan="9" class="muted">NO RESULTS YET.</td></tr>`;
+      $('clientProfileWrap').classList.add('hidden');
+      $('clientProfileWrap').innerHTML = '';
+    }
+
+
+/* =========================
+   REFERRALS CALLING JS ADD-ON
+   ========================= */
+const RefCalling = {
+  bootstrapLoaded: false,
+  activeTab: 'TODAY',
+  rows: [],
+  activeStatuses: [],
+  doneStatuses: []
+};
+
+async function loadReferralBootstrap(){
+  if (RefCalling.bootstrapLoaded) return;
+  const data = await callServer('getReferralCallingBootstrap');
+  RefCalling.activeStatuses = data.activeStatuses || [];
+  RefCalling.doneStatuses = data.doneStatuses || [];
+  RefCalling.bootstrapLoaded = true;
+  const sel = $('refCrmFilter');
+  if (sel) {
+    sel.innerHTML = '<option value="ALL">ALL CRM</option>';
+    (data.crmNames || []).forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      sel.appendChild(opt);
+    });
+  }
+}
+
+function getReferralFilterPayload(){
+  return {
+    tab: RefCalling.activeTab,
+    crmName: $('refCrmFilter') ? $('refCrmFilter').value : 'ALL',
+    query: $('refSearchInput') ? $('refSearchInput').value.trim() : ''
+  };
+}
+
+async function loadReferralCallingRows(){
+  const statusEl = $('refStatusBar');
+  if (statusEl) statusEl.textContent = 'LOADING REFERRALS CALLING DATA...';
+  try{
+    await loadReferralBootstrap();
+    const data = await callServer('getReferralCallingRows', [getReferralFilterPayload()]);
+    RefCalling.rows = data.rows || [];
+    renderReferralRows(RefCalling.rows);
+    if (statusEl) statusEl.textContent = `LOADED ${(data.rows || []).length} REFERRAL(S).`;
+  }catch(err){
+    console.error(err);
+    if (statusEl) statusEl.textContent = 'FAILED TO LOAD: ' + (err && err.message ? err.message : err);
+  }
+}
+
+async function syncReferralCallingRows(){
+  const statusEl = $('refStatusBar');
+  if (statusEl) statusEl.textContent = 'SYNCING REFERRALS DATA...';
+  try{
+    const res = await callServer('syncReferralCallingData');
+    RefCalling.bootstrapLoaded = false;
+    if (statusEl) statusEl.textContent = (res && res.message) ? res.message : 'SYNC COMPLETED.';
+    await loadReferralCallingRows();
+  }catch(err){
+    console.error(err);
+    if (statusEl) statusEl.textContent = 'SYNC FAILED: ' + (err && err.message ? err.message : err);
+  }
+}
+
+function setReferralTab(tab){
+  RefCalling.activeTab = tab || 'TODAY';
+  document.querySelectorAll('.nbTabBtn[data-ref-tab]').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-ref-tab') === RefCalling.activeTab);
+  });
+  const titleMap = {
+    TODAY: 'TODAY FOLLOW UP',
+    PENDING: 'ALL PENDING REFERRALS',
+    INPROCESS: 'INPROCESS REFERRALS',
+    DONE: 'ALL DONE REFERRALS',
+    CONVERTED: 'CONVERTED TO CLIENT'
+  };
+  if ($('refListTitle')) $('refListTitle').textContent = titleMap[RefCalling.activeTab] || 'REFERRALS';
+  loadReferralCallingRows();
+}
+
+function isReferralDoneStatusClient(status){
+  const s = String(status || '').trim().toUpperCase();
+  return (RefCalling.doneStatuses || []).map(v => String(v || '').trim().toUpperCase()).includes(s);
+}
+
+function getReferralStatusOptions(currentStatus){
+  const all = [...(RefCalling.activeStatuses || []), ...(RefCalling.doneStatuses || [])];
+  const cur = String(currentStatus || 'PENDING').trim().toUpperCase();
+  if (cur && !all.includes(cur)) all.unshift(cur);
+  return all.map(s => `<option value="${escapeHtml(s)}" ${s === cur ? 'selected' : ''}>${escapeHtml(s)}</option>`).join('');
+}
+
+function renderReferralRows(rows){
+  const tbody = $('refTbody');
+  if (!tbody) return;
+  if (!rows || !rows.length) {
+    tbody.innerHTML = '<tr><td colspan="10" class="muted">NO REFERRALS FOUND.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map((r, idx) => `
+    <tr class="nbFollowListRow refRow" data-ref-index="${idx}">
+      <td data-label="CRM / DOER"><strong>${escapeHtml(r.assignedCrm || r.crmName || '')}</strong></td>
+      <td data-label="GIVEN BY CLIENT"><strong>${escapeHtml(r.givenBy || '')}</strong><br><span class="pill muted">HIST: ${escapeHtml(r.historyCount || 0)}</span></td>
+      <td data-label="REFERRAL NAME"><strong>${escapeHtml(r.referralName || '')}</strong></td>
+      <td data-label="REFERRAL NUMBER">${escapeHtml(r.referralNumber || '')}</td>
+      <td data-label="SALESPERSON">${escapeHtml(r.salesperson || '')}</td>
+      <td data-label="STATUS">${statusPill(r.followUpStatus || 'PENDING')}</td>
+      <td data-label="NEXT FOLLOW UP">${escapeHtml(formatDateOnlyDisplay(r.nextFollowUpDate || '') || '')}</td>
+      <td data-label="LAST REMARK"><div class="nbRemarkInline">${escapeHtml(r.lastFollowUpRemark || '')}</div></td>
+      <td data-label="CONVERTED CLIENT">${r.convertedClientId ? `<span class="pill yes">${escapeHtml(r.convertedClientId)}</span>` : '<span class="pill muted">NO</span>'}</td>
+      <td data-label="ACTION">
+        <div class="nbTableActions">
+          <button class="btn small accent" onclick="toggleReferralForm(${idx})">FOLLOW UP FORM</button>
+          <button class="btn small secondary" onclick="toggleReferralHistory(${idx})">VIEW HISTORY</button>
+        </div>
+      </td>
+    </tr>
+    <tr class="nbExpandRow hidden" id="refFormRow-${idx}"><td colspan="10"><div class="nbFollowPanel">${renderReferralFollowForm(r, idx)}</div></td></tr>
+    <tr class="nbExpandRow hidden" id="refHistoryRow-${idx}"><td colspan="10"><div class="nbHistoryBox" id="refHistoryBox-${idx}">LOADING HISTORY...</div></td></tr>
+  `).join('');
+}
+
+function renderReferralFollowForm(r, idx){
+  const done = isReferralDoneStatusClient(r.followUpStatus);
+  return `
+    <div class="nbFollowForm">
+      <div>
+        <div class="muted" style="font-size:12px; font-weight:800; margin-bottom:6px;">FOLLOW UP STATUS</div>
+        <select class="select" id="refStatus-${idx}" onchange="onReferralStatusChange(${idx})">${getReferralStatusOptions(r.followUpStatus || 'PENDING')}</select>
+      </div>
+      <div>
+        <div class="muted" style="font-size:12px; font-weight:800; margin-bottom:6px;">CALL RESPONSE</div>
+        <select class="select" id="refCallResponse-${idx}">
+          <option value="CONNECTED">CONNECTED</option>
+          <option value="CALL NOT PICKED">CALL NOT PICKED</option>
+          <option value="NOT ANSWERED">NOT ANSWERED</option>
+          <option value="WRONG NUMBER">WRONG NUMBER</option>
+          <option value="WHATSAPP SENT">WHATSAPP SENT</option>
+        </select>
+      </div>
+      <div id="refNextWrap-${idx}" class="${done ? 'hidden' : ''}">
+        <div class="muted" style="font-size:12px; font-weight:800; margin-bottom:6px;">NEXT FOLLOW UP DATE</div>
+        <input type="date" class="input" id="refNextDate-${idx}" value="${escapeHtml(r.nextFollowUpDate || '')}" />
+      </div>
+      <div>
+        <div class="muted" style="font-size:12px; font-weight:800; margin-bottom:6px;">ENTERED BY</div>
+        <input class="input" id="refEnteredBy-${idx}" value="${escapeHtml(r.assignedCrm || r.crmName || '')}" />
+      </div>
+      <div class="full" id="refRemarkWrap-${idx}">
+        <div class="muted" style="font-size:12px; font-weight:800; margin-bottom:6px;">FOLLOW UP REMARK</div>
+        <textarea class="textarea" id="refRemark-${idx}" placeholder="WRITE WHAT REFERRAL SAID / REQUIREMENT / NEXT ACTION"></textarea>
+      </div>
+      <div class="full nbActionPointInline">ACTION POINT: ${escapeHtml(r.actionPoint || '')}</div>
+      <div class="full">
+        <button class="btn accent" onclick="saveReferralFollowupFromRow(${idx})">SAVE FOLLOW UP</button>
+      </div>
+    </div>
+  `;
+}
+
+function toggleReferralForm(idx){
+  const row = $('refFormRow-' + idx);
+  const hist = $('refHistoryRow-' + idx);
+  if (hist) hist.classList.add('hidden');
+  if (row) row.classList.toggle('hidden');
+}
+
+async function toggleReferralHistory(idx){
+  const row = $('refHistoryRow-' + idx);
+  const form = $('refFormRow-' + idx);
+  if (form) form.classList.add('hidden');
+  if (!row) return;
+  row.classList.toggle('hidden');
+  if (!row.classList.contains('hidden')) await loadReferralHistoryForRow(idx);
+}
+
+function onReferralStatusChange(idx){
+  const status = $('refStatus-' + idx)?.value || '';
+  const done = isReferralDoneStatusClient(status);
+  const nextWrap = $('refNextWrap-' + idx);
+  if (nextWrap) nextWrap.classList.toggle('hidden', done);
+}
+
+async function saveReferralFollowupFromRow(idx){
+  const r = RefCalling.rows[idx];
+  if (!r) return;
+  const payload = {
+    referralKey: r.referralKey,
+    followUpStatus: $('refStatus-' + idx)?.value || 'PENDING',
+    callResponse: $('refCallResponse-' + idx)?.value || 'CONNECTED',
+    nextFollowUpDate: $('refNextDate-' + idx)?.value || '',
+    remark: $('refRemark-' + idx)?.value || '',
+    enteredBy: $('refEnteredBy-' + idx)?.value || ''
+  };
+  const statusEl = $('refStatusBar');
+  if (statusEl) statusEl.textContent = 'SAVING REFERRAL FOLLOW UP...';
+  try{
+    const res = await callServer('saveReferralFollowup', [payload]);
+    if (statusEl) statusEl.textContent = (res && res.message) ? res.message : 'SAVED.';
+    await loadReferralCallingRows();
+  }catch(err){
+    console.error(err);
+    if (statusEl) statusEl.textContent = 'SAVE FAILED: ' + (err && err.message ? err.message : err);
+  }
+}
+
+async function loadReferralHistoryForRow(idx){
+  const r = RefCalling.rows[idx];
+  const box = $('refHistoryBox-' + idx);
+  if (!r || !box) return;
+  box.textContent = 'LOADING HISTORY...';
+  try{
+    const res = await callServer('getReferralHistory', [r.referralKey]);
+    const hist = res.history || [];
+    if (!hist.length) {
+      box.innerHTML = '<div class="muted">NO HISTORY YET.</div>';
+      return;
+    }
+    box.innerHTML = hist.map(h => `
+      <div class="nbHistoryItem">
+        <div><strong>${escapeHtml(h.timestamp || '')}</strong> | ${escapeHtml(h.oldStatus || '')} → <strong>${escapeHtml(h.newStatus || '')}</strong></div>
+        <div class="muted" style="margin-top:4px;">CALL: ${escapeHtml(h.callResponse || '')} | NEXT: ${escapeHtml(formatDateOnlyDisplay(h.nextFollowUpDate || '') || '')} | BY: ${escapeHtml(h.enteredBy || '')}</div>
+        <div style="margin-top:6px;">${escapeHtml(h.remark || '')}</div>
+        <div class="muted" style="margin-top:4px; font-size:11px;">SOURCE: ${escapeHtml(h.source || '')}</div>
+      </div>
+    `).join('');
+  }catch(err){
+    box.textContent = 'FAILED TO LOAD HISTORY: ' + (err && err.message ? err.message : err);
+  }
+}
+
+function bindReferralCallingEvents(){
+  document.querySelectorAll('.nbTabBtn[data-ref-tab]').forEach(btn => {
+    btn.addEventListener('click', () => setReferralTab(btn.getAttribute('data-ref-tab')));
+  });
+  if ($('refSyncBtn')) $('refSyncBtn').addEventListener('click', syncReferralCallingRows);
+  if ($('refRefreshBtn')) $('refRefreshBtn').addEventListener('click', loadReferralCallingRows);
+  if ($('refApplyBtn')) $('refApplyBtn').addEventListener('click', loadReferralCallingRows);
+  if ($('refClearBtn')) $('refClearBtn').addEventListener('click', () => {
+    if ($('refCrmFilter')) $('refCrmFilter').value = 'ALL';
+    if ($('refSearchInput')) $('refSearchInput').value = '';
+    loadReferralCallingRows();
+  });
+  if ($('refSearchInput')) $('refSearchInput').addEventListener('keydown', e => { if (e.key === 'Enter') loadReferralCallingRows(); });
+}
+
+
+    function bindEvents(){
+      $('menuBtn').addEventListener('click', toggleSidebar);
+      $('sidebarBackdrop').addEventListener('click', hideSidebar);
+
+      $('syncBtn').addEventListener('click', runIncrementalSync);
+      $('refreshDashboardBtn').addEventListener('click', refreshDashboardCacheAndReload);
+
+      $('clientSearchBtn').addEventListener('click', searchClients);
+$('clientSearchClearBtn').addEventListener('click', clearClientSearch);
+$('runClientDbSyncBtn').addEventListener('click', runIncrementalSync);
+
+$('addWalkinEntryBtn').addEventListener('click', () => {
+  const url = App.bootstrap?.walkinWebAppUrl || '';
+  if (url) window.top.location.href = url;
+});
+
+      $('clientSearchInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') searchClients();
+      });
+ 
+
+      $('dashboardFilterMode').addEventListener('change', toggleDashboardDateInputs);
+$('applyDashboardFilterBtn').addEventListener('click', loadDashboard);
+
+
+      window.addEventListener('resize', () => {
+        if (window.innerWidth > 1100) hideSidebar();
+      });
+
+
+      
+
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+  bindEvents();
+  bindNotBoughtFollowupEvents();
+  bindReferralCallingEvents();
+  toggleDashboardDateInputs();
+  initializeApp();
+});
+
+
+function showDashboardLoadingPopup(){
+  const el = $('dashboardLoadingPopup');
+  if (el) el.classList.remove('hidden');
+}
+
+function hideDashboardLoadingPopup(){
+  const el = $('dashboardLoadingPopup');
+  if (el) el.classList.add('hidden');
+}
+
+
+
+
+
+function renderRegisterResult(result){
+  const wrap = $('crmRegisterResultWrap');
+  if (!wrap) return;
+
+  if (!result || !result.ok) {
+    wrap.className = 'emptyState';
+    wrap.textContent = 'REGISTRATION FAILED.';
+    return;
+  }
+
+  wrap.className = '';
+  wrap.innerHTML = `
+    <div class="list">
+      <div class="listItem">
+        <div class="listLeft">
+          <div class="listTitle">${escapeHtml(result.clientName)}</div>
+          <div class="listSub">TOKEN: ${escapeHtml(result.token)}</div>
+        </div>
+        <div class="listValue">${escapeHtml(result.assignedCRM)}</div>
+      </div>
+      <div class="listItem">
+        <div class="listLeft">
+          <div class="listTitle">${escapeHtml(result.mobile)}</div>
+          <div class="listSub">${escapeHtml(result.branch)}</div>
+        </div>
+        <div class="pill info">${escapeHtml(result.status)}</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderCrmQueue(items){
+  const tbody = $('crmQueueTbody');
+  if (!tbody) return;
+
+  if (!items || !items.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="muted">NO PENDING CLIENTS FOUND.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = items.map(item => `
+    <tr>
+      <td>${escapeHtml(item.ts || '')}</td>
+      <td><strong>${escapeHtml(item.name || '')}</strong></td>
+      <td>${escapeHtml(formatQueueMobileDisplay(item.mobile || ''))}</td>
+      <td>${escapeHtml(item.branch || '')}</td>
+      <td>${escapeHtml(item.crm || '')}</td>
+      <td>${item.isExisting ? '<span class="pill info">EXISTING</span>' : '<span class="pill muted">NEW</span>'}</td>
+      <td>
+        <button class="btn small premiumBtn" onclick="window.top.location.href='${escapeHtml(item.actionUrl || '')}'">
+          ${escapeHtml(item.actionText || 'OPEN')}
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function registerClientFromCrm(){
+  const branch = $('crmRegisterBranch')?.value || '';
+  const clientName = $('crmRegisterClientName')?.value || '';
+  const mobile = $('crmRegisterMobile')?.value || '';
+  const countryCode = $('crmRegisterCountryCode')?.value || '91';
+  const statusEl = $('crmRegisterStatus');
+  const mobileDigits = cleanPhoneDigits(mobile);
+
+  if (!branch) {
+    statusEl.textContent = 'PLEASE SELECT BRANCH.';
+    return;
+  }
+  if (!clientName.trim()) {
+    statusEl.textContent = 'PLEASE ENTER CLIENT NAME.';
+    return;
+  }
+  if (!mobileDigits) {
+    statusEl.textContent = 'PLEASE ENTER MOBILE NUMBER.';
+    return;
+  }
+
+  statusEl.textContent = 'REGISTERING...';
+
+  google.script.run
+    .withSuccessHandler(function(res){
+  statusEl.textContent = 'CLIENT REGISTERED SUCCESSFULLY.';
+
+  $('crmRegisterClientName').value = '';
+  $('crmRegisterMobile').value = '';
+  $('crmQueueBranch').value = branch;
+  loadQueueCrmNamesByBranch(branch);
+})
+    .withFailureHandler(function(err){
+      console.error(err);
+      statusEl.textContent = 'ERROR: ' + (err && err.message ? err.message : err);
+    })
+    .apiRegisterClientEntry({
+      branch: branch,
+      clientName: clientName,
+      countryCode: countryCode,
+      mobile: mobileDigits
+    });
+}
+
+
+  </script>
+
+
+
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+<div id="dashboardLoadingPopup" class="dashboardLoadingPopup hidden">
+  <div class="dashboardLoadingCard">
+    <div class="dashboardLoadingSpinner"></div>
+    <div class="dashboardLoadingText">DATA IS BEING LOADED...</div>
+  </div>
+</div>
+
+
+</body>
+</html>
+
+
+

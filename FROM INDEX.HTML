@@ -1,0 +1,3525 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MK JEWELS — CLIENT WALK-IN FORM</title>
+
+  <style>
+    :root{
+      --bg:#f1f3f4;
+      --card:#ffffff;
+      --border:#dadce0;
+      --text:#202124;
+      --muted:#5f6368;
+      --accent:#c9a24a;
+      --radius:10px;
+      --max:760px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: Calibri, Arial, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      text-transform: uppercase;
+      letter-spacing: .02em;
+    }
+    input[type="tel"]{ letter-spacing: normal; }
+
+    .wrap{ max-width: var(--max); margin: 16px auto; padding: 0 12px 90px; }
+    .banner{ border:1px solid var(--border); border-radius: var(--radius); overflow:hidden; background:var(--card); }
+    .bannerTop{
+      height: 110px;
+      background: linear-gradient(90deg,#0b0b0b,#121212 55%,#0b0b0b);
+      position:relative;
+    }
+    .bannerTop:after{ content:""; position:absolute; left:0; right:0; bottom:0; height:6px; background: var(--accent); }
+    .bannerBody{ padding: 14px 16px; text-align: center; }
+    .formTitle{ margin: 6px 0 0; font-size: 16px; font-weight: 800; letter-spacing:.08em; }
+    .desc{ margin: 8px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+
+    .card{ margin-top: 12px; background:var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow:hidden; }
+    .card.hidden{ display:none !important; }
+    .hidden{ display:none !important; }
+
+    .cardHeader{
+  padding: 12px 16px;
+  border-left: 6px solid var(--accent);
+  display:flex; 
+  align-items:center; 
+  justify-content:space-between; 
+  gap:12px;
+  cursor:pointer; 
+  user-select:none;
+
+  transition: transform .08s ease;
+  will-change: transform;
+
+  -webkit-tap-highlight-color: transparent; /* ✅ add here */
+}
+.prefilled-note{
+  margin-top:12px;
+  padding:10px 12px;
+  background:#eef6ff;
+  border:1px solid #bcd3f6;
+  border-radius:8px;
+  font-size:12px;
+  font-weight:700;
+} 
+
+.cardHeader:active{ 
+  transform: scale(0.99); 
+}
+
+
+    .titles{ display:flex; flex-direction:column; gap:2px; }
+    .h{ font-size: 14px; font-weight: 800; letter-spacing:.06em; }
+    .s{ font-size: 12px; color: var(--muted); }
+
+    .chev{
+      width: 34px; height: 34px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display:flex; align-items:center; justify-content:center;
+      background:#f8f9fa;
+      flex:0 0 auto;
+    }
+    .chev svg{ transition: transform .18s ease; }
+    .card[aria-expanded="true"] .chev svg{ transform: rotate(180deg); }
+
+    .cardBody{ padding: 12px 16px 16px; border-top: 1px solid var(--border); }
+    .collapsed{ display:none !important; }
+
+    .grid{ display:flex; flex-direction:column; gap: 16px; }
+    .field{ display:flex; flex-direction:column; gap: 6px; }
+
+    label{ display:block; font-size: 13px; color: var(--text); font-weight: 700; letter-spacing:.04em; }
+    .req{ color:#d93025; margin-left:4px; }
+
+    input[type="text"], input[type="tel"], input[type="date"], input[type="datetime-local"], select, textarea, input[type="file"]{
+      width:100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 15px;
+      background:#fff;
+      outline:none;
+      text-transform: uppercase;
+      font-family: Calibri, Arial, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+    select:disabled{ background:#f5f5f5; cursor:not-allowed; opacity:0.6; }
+    textarea{ min-height: 120px; resize: vertical; }
+    input::placeholder, textarea::placeholder{ text-transform: uppercase; }
+    input:focus, select:focus, textarea:focus{ border-color:#8ab4f8; box-shadow: 0 0 0 2px rgba(138,180,248,.25); }
+
+    .row{ display:flex; flex-wrap:wrap; gap: 12px; padding-top: 2px; }
+    .opt{
+      display:flex; align-items:center; gap: 10px;
+      font-size: 14px; color: var(--text);
+      min-height: 44px; font-weight: 700;
+    }
+    .opt input{ transform: scale(1.3); min-width: 20px; min-height: 20px; }
+
+    .divider{ height:1px; background: var(--border); margin: 16px 0; }
+    .subcard{ border: 1px solid var(--border); border-radius: 10px; padding: 14px; background:#fff; }
+
+    .tagBox{ border: 1px dashed var(--border); border-radius: 10px; padding: 14px; background:#fafafa; }
+    .tagTitle{ font-weight:800; margin:0 0 12px; font-size: 14px; letter-spacing:.06em; }
+
+    .tripleRow{ display:flex; gap:10px; flex-wrap:wrap; }
+    .tripleRow > *{ flex: 1 1 160px; min-width: 160px; }
+
+    .doubleRow{ display:flex; gap:10px; flex-wrap:wrap; }
+    .doubleRow > *{ flex: 1 1 260px; min-width: 220px; }
+
+    .phoneWithCode{ display:flex; gap:8px; width:100%; }
+    .phoneWithCode select{ flex:0 0 150px; min-width:130px; }
+    .phoneWithCode input{ flex:1 1 auto; min-width:0; }
+
+    @media (max-width:480px){
+      .phoneWithCode{ gap:6px; }
+      .phoneWithCode select{ flex:0 0 118px; min-width:118px; padding-left:8px !important; padding-right:8px !important; }
+    }
+
+    .actions{
+      position: sticky; bottom: 0;
+      background: rgba(241,243,244,.98);
+      backdrop-filter: blur(8px);
+      padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+      margin-top: 16px;
+      border-top: 1px solid rgba(0,0,0,.08);
+      display:flex; gap:12px; align-items:center; flex-wrap: wrap;
+    }
+    button{
+      border-radius: 8px;
+      border: 1px solid #1f1f1f;
+      background:#1f1f1f;
+      color:#fff;
+      padding: 12px 20px;
+      font-size: 15px;
+      cursor:pointer;
+      min-height: 48px;
+      flex: 1;
+      min-width: 120px;
+      text-transform: uppercase;
+      font-family: Calibri, Arial, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      letter-spacing:.06em;
+      font-weight:800;
+    }
+    button.secondary{ background:#fff; color:#1f1f1f; border-color: var(--border); }
+    button.tiny{
+      min-height: 40px;
+      padding: 10px 14px;
+      font-size: 13px;
+      flex: 0 0 auto;
+    }
+    button[disabled]{ opacity:.65; cursor:not-allowed; }
+    .status{ font-size: 13px; color: var(--text); width: 100%; text-align: center; font-weight: 700; }
+    .nested-field{ margin-top: 12px; }
+
+    .photoHint{
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+      letter-spacing: .03em;
+    }
+    .photoItem{
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:12px;
+      background:#fff;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .photoMeta{
+      font-size:12px;
+      color:var(--muted);
+      text-transform:none;
+      letter-spacing:normal;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    @media (max-width: 720px){
+      .wrap{ padding: 0 10px 100px; }
+      .bannerTop{ height: 95px; }
+      .tripleRow{ flex-direction:column; }
+      .tripleRow > *{ min-width: 100%; }
+      .doubleRow{ flex-direction:column; }
+      .doubleRow > *{ min-width: 100%; }
+    }
+
+
+  /* =========================
+   MOBILE READABILITY FIX
+   (SAFE — NO DESIGN CHANGE)
+   ========================= */
+
+/* 1. Improve base readability */
+body{
+  line-height:1.5;
+}
+
+/* 2. Make headings readable */
+.formTitle{
+  font-size:20px !important;
+}
+
+.desc{
+  font-size:14px !important;
+}
+
+/* 3. Labels */
+label{
+  font-size:14px !important;
+}
+
+/* 4. Inputs (MOST IMPORTANT) */
+input, select, textarea{
+  font-size:16px !important;   /* prevents zoom on mobile */
+  padding:14px !important;
+}
+
+/* 5. Buttons */
+button{
+  min-height:48px !important;
+  font-size:15px !important;
+}
+
+/* 6. Radio / checkbox click area */
+.opt{
+  min-height:44px;
+}
+
+/* 7. Card spacing */
+.cardBody{
+  padding:16px !important;
+}
+
+/* 8. Section spacing */
+.grid{
+  gap:18px !important;
+}
+
+/* 9. Fix small text */
+.h{
+  font-size:15px !important;
+}
+
+.s{
+  font-size:13px !important;
+}
+
+/* =========================
+   MOBILE FIXES ONLY
+   ========================= */
+@media (max-width:768px){
+
+  /* Full width usage */
+  .wrap{
+    padding:10px !important;
+  }
+
+  /* Improve header spacing */
+  .cardHeader{
+    padding:14px !important;
+  }
+
+  /* Stack properly */
+  .doubleRow,
+  .tripleRow{
+    flex-direction:column !important;
+  }
+
+  /* Ensure inputs are not cramped */
+  input, select, textarea{
+    font-size:16px !important;
+  }
+
+  /* Fix sticky button area */
+  .actions{
+    padding:12px !important;
+  }
+
+}
+
+
+
+/* stop mobile browser font inflation */
+html{
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* keep normal field labels same */
+label{
+  line-height: 1.35;
+}
+
+/* CRM APPROACH big question labels only */
+#crmApproachSection .subcard > label{
+  display:block;
+  font-size:14px !important;
+  font-weight:700 !important;
+  line-height:1.4 !important;
+  letter-spacing:.03em !important;
+  margin-bottom:10px;
+}
+
+/* options under those questions */
+#crmApproachSection .opt{
+  font-size:13px !important;
+  font-weight:700;
+  min-height:36px;
+}
+
+/* mobile-only fine tuning */
+@media (max-width:720px){
+  #crmApproachSection .subcard > label{
+    font-size:14px !important;
+    line-height:1.4 !important;
+  }
+
+  #crmApproachSection .row{
+    gap:8px;
+  }
+}
+
+
+
+
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="banner">
+      <div class="bannerTop">
+        <img
+          src="https://drive.google.com/uc?export=view&id=1k1RszZSt2vXEtu3sc7rUGcLqi5buT9bY"
+          alt="MK JEWELS LOGO"
+          style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-height:70%;max-width:70%;object-fit:contain;"
+        />
+      </div>
+      <div class="bannerBody">
+        <h1 class="formTitle" style="font-size:20px; margin-top:0;">CLIENT WALK-IN FORM</h1>
+        <p class="desc">FILL CUSTOMER DETAILS, VISIT INFO, CRM APPROACH, AND PREFERENCES. UPLOAD PROOFS WHERE REQUIRED.</p>
+      </div>
+    </div>
+
+    
+
+  <form id="mkForm" enctype="multipart/form-data">
+
+
+
+
+
+  <!-- CLIENT DETAILS -->
+  <input type="hidden" name="client_id" id="clientIdField" />
+<input type="hidden" name="entry_token" id="entryTokenField" />
+
+<!-- Used when editing old walk-in entry from CRM timeline -->
+<input type="hidden" name="form_mode" id="formModeField" />
+<input type="hidden" name="edit_reference_number" id="editReferenceNumberField" />
+<input type="hidden" name="reference_number" id="referenceNumberField" />
+
+
+<div id="clientIdPreviewWrap" style="display:none; margin-bottom:12px;">
+  <div style="padding:10px 12px; background:#fff8e1; border:1px solid #e0c97f; border-radius:8px; font-weight:700;">
+    CRM CLIENT ID: <span id="clientIdPreviewText"></span>
+  </div>
+</div>
+
+<div id="editReferencePreviewWrap" style="display:none; margin-bottom:12px;">
+  <div style="padding:10px 12px; background:#fff3cd; border:1px solid #d6b25e; border-radius:8px; font-weight:700;">
+    EDITING WALK-IN ENTRY: <span id="editReferencePreviewText"></span>
+  </div>
+</div>
+
+
+
+  <section class="card" id="secClient" aria-expanded="true">
+        <div class="cardHeader">
+          <div class="titles">
+            <div class="h">CLIENT DETAILS</div>
+            <div class="s">BRANCH, CRM, CUSTOMER CONTACT & ADDRESS</div>
+          </div>
+          <div class="chev">
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="cardBody" id="secClientBody">
+          <div class="grid">
+            <div class="field">
+              <label>CLIENT VISIT DATE <span class="req">*</span></label>
+              <input type="date" name="visit_date" id="visitDate" required />
+            </div>
+
+            <div class="field">
+  <label>CLIENT TYPE <span class="req">*</span></label>
+  <select name="client_type" id="clientTypeSelect" required>
+    <option value="">SELECT</option>
+    <option value="OLD CLIENT">OLD CLIENT</option>
+    <option value="NEW CLIENT">NEW CLIENT</option>
+  </select>
+</div>
+
+            <div class="field">
+              <label>SOURCE OF THE LEAD <span class="req">*</span></label>
+              <select name="source" id="sourceSelect" required>
+                <option value="">SELECT</option>
+              </select>
+
+              <div id="referenceWrap" class="collapsed nested-field">
+                <div class="divider" style="margin:12px 0;"></div>
+
+                <div class="doubleRow">
+                  <div class="field">
+                    <label>NAME OF THE PERSON WHO REFERED BY <span class="req">*</span></label>
+                    <input type="text" name="reference_name" id="referenceName" />
+                  </div>
+
+                  <div class="field">
+                    <label>PHONE NUMBER OF THAT PERSON</label>
+                    <input type="tel" name="reference_phone" id="referencePhone" placeholder="OPTIONAL" />
+                  </div>
+                </div>
+              </div>
+
+              <div id="sourceOtherWrap" class="collapsed nested-field">
+                <label>OTHER SOURCE</label>
+                <input type="text" name="source_other" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label>BRANCH <span class="req">*</span></label>
+              <select name="branch" id="branchSelect" required>
+                <option value="">SELECT</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>NAME OF THE CRM <span class="req">*</span></label>
+              <select name="crm_name" id="crmSelect" required>
+                <option value="">SELECT</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>NAME OF THE CLIENT <span class="req">*</span></label>
+              <input type="text" name="client_name" required />
+            </div>
+
+            <div class="field">
+              <label>GENDER <span class="req">*</span></label>
+              <div class="row">
+                <label class="opt"><input type="radio" name="gender" value="FEMALE" required /> FEMALE</label>
+                <label class="opt"><input type="radio" name="gender" value="MALE" required /> MALE</label>
+              </div>
+            </div>
+
+
+
+            <div class="field">
+              <label>OCCUPATION <span class="req">*</span></label>
+              <select name="occupation" id="occupation" required>
+                <option value="">SELECT</option>
+                <option value="BUSINESS OWNER">BUSINESS OWNER</option>
+                <option value="SELF EMPLOYED">SELF EMPLOYED</option>
+                <option value="SERVICE / SALARIED">SERVICE / SALARIED</option>
+                <option value="HOUSEWIFE / HOMEMAKER">HOUSEWIFE / HOMEMAKER</option>
+                <option value="STUDENT">STUDENT</option>
+                <option value="DOCTOR">DOCTOR</option>
+                <option value="LAWYER">LAWYER</option>
+                <option value="CHARTERED ACCOUNTANT / CA">CHARTERED ACCOUNTANT / CA</option>
+                <option value="ENGINEER">ENGINEER</option>
+                <option value="TEACHER / PROFESSOR">TEACHER / PROFESSOR</option>
+                <option value="BANKER / FINANCE">BANKER / FINANCE</option>
+                <option value="GOVERNMENT EMPLOYEE">GOVERNMENT EMPLOYEE</option>
+                <option value="REAL ESTATE">REAL ESTATE</option>
+                <option value="FASHION / DESIGNER">FASHION / DESIGNER</option>
+                <option value="RETIRED">RETIRED</option>
+                <option value="OTHER">OTHER</option>
+              </select>
+              <div id="occupationOtherWrap" class="collapsed nested-field">
+                <label>OTHER OCCUPATION <span class="req">*</span></label>
+                <input type="text" name="occupation_other" id="occupationOther" placeholder="ENTER OCCUPATION" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label>BRIDAL / NON BRIDAL <span class="req">*</span></label>
+              <select name="bridal_status" id="bridalStatus" required>
+                <option value="">SELECT</option>
+                <option value="BRIDAL">BRIDAL</option>
+                <option value="NON BRIDAL">NON BRIDAL</option>
+              </select>
+
+              <div id="weddingMonthWrap" class="collapsed nested-field">
+                <div class="doubleRow">
+                  <div class="field">
+                    <label>MONTH OF WEDDING <span class="req">*</span></label>
+                    <select name="wedding_month" id="weddingMonth">
+                      <option value="">SELECT MONTH</option>
+                      <option value="JANUARY">JANUARY</option>
+                      <option value="FEBRUARY">FEBRUARY</option>
+                      <option value="MARCH">MARCH</option>
+                      <option value="APRIL">APRIL</option>
+                      <option value="MAY">MAY</option>
+                      <option value="JUNE">JUNE</option>
+                      <option value="JULY">JULY</option>
+                      <option value="AUGUST">AUGUST</option>
+                      <option value="SEPTEMBER">SEPTEMBER</option>
+                      <option value="OCTOBER">OCTOBER</option>
+                      <option value="NOVEMBER">NOVEMBER</option>
+                      <option value="DECEMBER">DECEMBER</option>
+                    </select>
+                  </div>
+
+                  <div class="field">
+                    <label>YEAR OF WEDDING <span class="req">*</span></label>
+                    <select name="wedding_year" id="weddingYear">
+                      <option value="">SELECT YEAR</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>COMMUNICATION PREFERENCE <span class="req">*</span></label>
+              <select name="communication_preference" id="communicationPreference" required>
+                <option value="">SELECT</option>
+                <option value="CALL">CALL</option>
+                <option value="WHATSAPP CALLS">WHATSAPP CALLS</option>
+                <option value="WHATSAPP MESSAGE">WHATSAPP MESSAGE</option>
+                <option value="DON'T CONTACT">DON'T CONTACT</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>PHONE NUMBER OF THE CLIENT</label>
+              <div class="phoneWithCode">
+                <select id="clientCountryCode" aria-label="CLIENT PHONE COUNTRY CODE">
+                  <option value="+91">+91 INDIA</option>
+                </select>
+                <input type="tel" name="client_phone" id="clientPhone" placeholder="E.G., 98XXXXXXXX" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label>BILLING PHONE NUMBER <span class="req">*</span></label>
+              <div class="phoneWithCode">
+                <select id="billingCountryCode" required aria-label="BILLING PHONE COUNTRY CODE">
+                  <option value="+91">+91 INDIA</option>
+                </select>
+                <input type="tel" name="billing_phone" id="billingPhone" required placeholder="E.G., 98XXXXXXXX" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label>COUNTRY <span class="req">*</span></label>
+              <select name="country" id="countrySelect" required>
+                <option value="">SELECT COUNTRY</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>STATE <span class="req">*</span></label>
+              <select name="state" id="stateSelect" required disabled>
+                <option value="">SELECT COUNTRY FIRST</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>CITY <span class="req">*</span></label>
+              <select name="city" id="citySelect" required disabled>
+                <option value="">SELECT STATE FIRST</option>
+              </select>
+              <div id="cityOtherWrap" class="collapsed nested-field">
+                <label>OTHER CITY</label>
+                <input type="text" name="city_other" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label>PINCODE <span class="req">*</span></label>
+              <input type="text" name="pincode" required />
+            </div>
+
+            <div class="field">
+              <label>ADDRESS OF THE CLIENT <span class="req">*</span></label>
+              <textarea name="address"
+          rows="2"
+          style="min-height:70px"
+          required
+          placeholder="ENTER FULL ADDRESS..."></textarea>
+
+            </div>
+
+            <div class="field">
+              <label>COMMUNITY <span class="req">*</span></label>
+              <select name="caste" id="casteSelect" required>
+                <option value="">SELECT</option>
+              </select>
+              <div id="casteOtherWrap" class="collapsed nested-field">
+                <label>OTHER CASTE</label>
+                <input type="text" name="caste_other" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label>DATE OF BIRTH</label>
+              <input type="date" name="dob" />
+            </div>
+
+            <div class="field">
+              <label>DATE OF ANNIVERSARY</label>
+              <input type="date" name="anniversary" />
+            </div>
+
+            <div class="field">
+              <label>SALESPERSON ATTENDING THE CLIENT <span class="req">*</span></label>
+              <select name="salesperson" id="salespersonSelect" required>
+                <option value="">SELECT</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAMILY / FRIENDS -->
+      <section class="card" id="familySection" aria-expanded="true">
+        <div class="cardHeader">
+          <div class="titles">
+            <div class="h">FAMILY / FRIENDS WITH CLIENT</div>
+            <div class="s">COUNT + NAMES, MOBILES, RELATION WITH CLIENT (OPTIONAL)</div>
+          </div>
+          <div class="chev">
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="cardBody" id="familyBody">
+          <div class="grid">
+            <div class="field">
+              <label>HOW MANY FAMILY MEMBER / FRIENDS ARE WITH THEM?</label>
+              <select name="companions_count" id="companionsCount">
+                <option value="">SELECT</option>
+                <option value="0">0</option>
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                <option value="10">10</option>
+              </select>
+            </div>
+            <div class="hidden" id="companionsTagsContainer"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VISIT DETAILS -->
+      <section class="card" id="buyerSection" aria-expanded="true">
+        <div class="cardHeader">
+          <div class="titles"><div class="h">VISIT DETAILS</div></div>
+          <div class="chev">
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="cardBody" id="buyerBody">
+          <div class="grid">
+            <div class="field">
+              <label>CLIENT BOUGHT ANY PRODUCT? <span class="req">*</span></label>
+              <select name="buy_status" id="buyStatus" required>
+  <option value="">SELECT</option>
+  <option value="YES">YES</option>
+  <option value="NO">NO</option>
+  <option value="REPAIR_PLACED">REPAIR PLACED</option>
+  <option value="REPAIR_PICKUP">REPAIR PICKUP</option>
+  <option value="ORDER_PLACED">ORDER PLACED</option>
+  <option value="ORDER_PICKUP">ORDER PICKUP</option>
+  <option value="PRODUCT_EXCHANGE">PRODUCT EXCHANGE</option>
+  <option value="PRODUCT_RETURN">PRODUCT RETURN</option>
+  <option value="STORE_VISIT">STORE VISIT</option>
+  <option value="PRICE_CALCULATION">STORE VISIT FOR PRICE CALCULATION</option>
+</select>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====== FOR REPAIR/ORDER/PICKUP: DETAILS OF PRODUCT CLIENT CAME FOR ====== -->
+      <section class="card hidden" id="cameForSection" aria-expanded="true">
+        <div class="cardHeader">
+          <div class="titles">
+            <div class="h">DETAILS OF PRODUCT CLIENT CAME FOR</div>
+            <div class="s">CATEGORY, COUNT & TAG NUMBERS</div>
+          </div>
+          <div class="chev">
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="cardBody" id="cameForBody">
+          <div class="grid">
+            <div class="field">
+              <label>PRODUCT CATEGORIES <span class="req">*</span></label>
+              <div class="row" id="cameForCategoriesContainer"></div>
+              <div id="cameForOtherWrap" class="collapsed nested-field">
+                <label>OTHER (CAME FOR CATEGORY)</label>
+                <input type="text" name="camefor_other_text" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label>NUMBER OF PRODUCTS <span class="req">*</span></label>
+              <select name="camefor_count" id="cameForCount">
+                <option value="">SELECT</option>
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                <option value="10">10</option>
+                <option value="NA">NA</option>
+              </select>
+            </div>
+
+            <div class="hidden" id="cameForTagsContainer"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- NOT BOUGHT -->
+      <section class="card hidden" id="notBoughtSection" aria-expanded="true">
+        <div class="cardHeader">
+          <div class="titles">
+            <div class="h">REASONS FOR NOT BUYING</div>
+            <div class="s">WHY CLIENT DID NOT PURCHASE</div>
+          </div>
+          <div class="chev">
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="cardBody" id="notBoughtBody">
+          <div class="grid">
+            <div class="field">
+              <label>REASON FOR NOT BUYING (SELECT ALL THAT APPLY) <span class="req">*</span></label>
+              <div class="row" id="notBoughtReasonsContainer" data-required="0"></div>
+
+<div id="notBoughtOtherWrap" class="collapsed nested-field">
+  <label>OTHER REASON</label>
+  <input type="text" name="not_bought_other_text" />
+</div>
+
+<div id="moreDesignCategoriesWrap" class="collapsed nested-field">
+  <label>WHICH CATEGORIES CLIENT WANT TO SEE MORE <span class="req">*</span></label>
+  <div class="row" id="moreDesignCategoriesContainer" data-required="0"></div>
+  <div id="moreDesignOtherWrap" class="collapsed nested-field">
+    <label>OTHER (MORE DESIGN CATEGORY)</label>
+    <input type="text" name="more_design_other_text" />
+  </div>
+</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- REPAIR/ORDER APPROACH -->
+      <section class="card hidden" id="repairApproachSection" aria-expanded="true">
+        <div class="cardHeader">
+          <div class="titles">
+            <div class="h">CRM APPROACH FOR REPAIR / ORDER</div>
+            <div class="s">DID CRM SHOW NEW PRODUCTS?</div>
+          </div>
+          <div class="chev">
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="cardBody" id="repairApproachBody">
+          <div class="grid">
+            <div class="field">
+              <label>IF REPAIR/ORDER/PICK UP: DID CRM APPROACH TO SHOW NEW PRODUCTS? <span class="req">*</span></label>
+              <div class="row">
+                <label class="opt"><input type="radio" name="repair_approach" value="YES" /> YES</label>
+                <label class="opt"><input type="radio" name="repair_approach" value="NO" /> NO</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SEEN -->
+      <section class="card hidden" id="seenSection" aria-expanded="true">
+        <div class="cardHeader">
+          <div class="titles"><div class="h">ITEMS SEEN BY CLIENT</div></div>
+          <div class="chev">
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="cardBody" id="seenBody">
+          <div class="grid">
+            <div class="field">
+              <label>PRODUCT CATEGORIES SEEN BY THE CLIENT <span class="req">*</span></label>
+              <div class="row" id="seenCategoriesContainer"></div>
+              <div id="seenOtherWrap" class="collapsed nested-field">
+                <label>OTHER (SEEN CATEGORY)</label>
+                <input type="text" name="seen_other_text" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label>NUMBER OF PRODUCTS CLIENT HAVE SEEN <span class="req">*</span></label>
+              <select name="seen_count" id="seenCount">
+                <option value="">SELECT</option>
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                <option value="10">10</option>
+                <option value="NA">NA</option>
+              </select>
+            </div>
+
+            <div class="hidden" id="tagsContainer"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BOUGHT DETAILS -->
+      <section class="card hidden" id="boughtDetails" aria-expanded="true">
+        <div class="cardHeader">
+          <div class="titles"><div class="h">BOUGHT PRODUCTS BY CLIENT</div></div>
+          <div class="chev">
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="cardBody" id="boughtBody">
+          <div class="grid">
+            <div class="field">
+              <label>HOW MANY PRODUCTS DID THE CLIENT BUY? <span class="req">*</span></label>
+              <select name="bought_count" id="boughtCount">
+                <option value="">SELECT</option>
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                <option value="10">10</option>
+              </select>
+            </div>
+
+            <div class="hidden" id="boughtTagsContainer"></div>
+
+            <div class="field">
+              <label>PRODUCT CATEGORIES <span class="req">*</span></label>
+              <div class="row" id="boughtCategoriesContainer"></div>
+              <div id="boughtOtherWrap" class="collapsed nested-field">
+                <label>OTHER (BOUGHT CATEGORY)</label>
+                <input type="text" name="bought_other_text" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- YES FLOW: OTHER/NEW ORDER QUESTION -->
+      <section class="card hidden" id="otherOrderSection" aria-expanded="true">
+        <div class="cardHeader">
+          <div class="titles">
+            <div class="h">OTHER / NEW ORDER</div>
+            <div class="s">DID CLIENT MAKE ANY OTHER / NEW ORDER?</div>
+          </div>
+          <div class="chev">
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="cardBody" id="otherOrderBody">
+          <div class="grid">
+            <div class="field">
+              <label>DID THE CLIENT MAKE ANY OTHER / NEW ORDER? <span class="req">*</span></label>
+              <select name="other_order" id="otherOrderSelect">
+                <option value="">SELECT</option>
+                <option value="YES">YES</option>
+                <option value="NO">NO</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- YES FLOW: NEW ORDER DETAILS -->
+      <section class="card hidden" id="orderDetailsSection" aria-expanded="true">
+        <div class="cardHeader">
+          <div class="titles"><div class="h">NEW ORDER DETAILS</div></div>
+          <div class="chev">
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="cardBody" id="orderDetailsBody">
+          <div class="grid">
+            <div class="field">
+              <label>HOW MANY PRODUCTS IN THE ORDER? <span class="req">*</span></label>
+              <select name="order_count" id="orderCount">
+                <option value="">SELECT</option>
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                <option value="10">10</option>
+              </select>
+            </div>
+
+            <div class="hidden" id="orderTagsContainer"></div>
+
+            <div class="field">
+              <label>ORDER CATEGORIES <span class="req">*</span></label>
+              <div class="row" id="orderCategoriesContainer"></div>
+              <div id="orderOtherWrap" class="collapsed nested-field">
+                <label>OTHER (ORDER CATEGORY)</label>
+                <input type="text" name="order_other_text" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- REPAIR/ORDER/PICKUP FLOW: NEW THINGS QUESTION -->
+      <section class="card hidden" id="newThingsQuestionSection" aria-expanded="true">
+        <div class="cardHeader">
+          <div class="titles">
+            <div class="h">NEW BUY / NEW ORDER</div>
+            <div class="s">IS CLIENT BUYING / MAKING ORDER FOR NEW THINGS?</div>
+          </div>
+          <div class="chev">
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="cardBody" id="newThingsQuestionBody">
+          <div class="grid">
+            <div class="field">
+              <label>IS CLIENT BUYING / MAKING ORDER FOR NEW THINGS? <span class="req">*</span></label>
+              <select name="new_things_choice" id="newThingsChoice">
+                <option value="">SELECT</option>
+                <option value="BUYING_NEW_PRODUCT">BUYING NEW PRODUCT</option>
+                <option value="MAKING_NEW_ORDER">MAKING NEW ORDER</option>
+                <option value="NO">NO</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- REPAIR/ORDER/PICKUP FLOW: NEW BUY/ORDER DETAILS -->
+      <section class="card hidden" id="newThingsDetailsSection" aria-expanded="true">
+  <div class="cardHeader">
+    <div class="titles"><div class="h">NEW BUY / ORDER DETAILS</div></div>
+    <div class="chev">
+      <svg width="18" height="18" viewBox="0 0 24 24">
+        <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="cardBody" id="newThingsDetailsBody">
+    <div class="grid">
+
+      <!-- ✅ NEW: SECOND SALESPERSON FIELD -->
+      <div class="field">
+        <label>SALESPERSON ATTENDING THE CLIENT (NEW BUY / ORDER) <span class="req">*</span></label>
+        <select name="new_things_salesperson" id="newThingsSalespersonSelect">
+          <option value="">SELECT</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>PRODUCT CATEGORIES <span class="req">*</span></label>
+        <div class="row" id="newThingsCategoriesContainer"></div>
+        <div id="newThingsOtherWrap" class="collapsed nested-field">
+          <label>OTHER (NEW BUY/ORDER CATEGORY)</label>
+          <input type="text" name="new_things_other_text" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>NUMBER OF PRODUCTS <span class="req">*</span></label>
+        <select name="new_things_count" id="newThingsCount">
+          <option value="">SELECT</option>
+          <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+          <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+          <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+          <option value="10">10</option>
+        </select>
+      </div>
+
+      <div class="hidden" id="newThingsTagsContainer"></div>
+    </div>
+  </div>
+</section>
+
+
+      <!-- CRM APPROACH (ALWAYS HERE, ALWAYS REQUIRED) -->
+      <section class="card" id="crmApproachSection" aria-expanded="true">
+  <div class="cardHeader">
+    <div class="titles">
+      <div class="h">CRM APPROACH</div>
+      <div class="s">GOOGLE REVIEW, TESTIMONIAL, FEEDBACK, THANK-YOU NOTE, REFERRALS</div>
+    </div>
+    <div class="chev">
+      <svg width="18" height="18" viewBox="0 0 24 24">
+        <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="cardBody" id="crmBody">
+    <div class="grid">
+      <div class="field">
+        <label>MARKETING MESSAGE</label>
+        <div class="row">
+          <label class="opt"><input type="radio" name="marketing_message" value="YES" /> YES</label>
+          <label class="opt"><input type="radio" name="marketing_message" value="NO" /> NO</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ✅ NEW QUESTION ADDED -->
+    <div class="divider"></div>
+
+  <div class="subcard">
+    <label>HAVE YOU ASKED THE CLIENT TO FOLLOW OUR INSTAGRAM ACCOUNT? <span class="req">*</span></label>
+    <div class="row">
+    <label class="opt"><input type="radio" name="instagram_follow_asked" value="YES" required /> YES</label>
+    <label class="opt"><input type="radio" name="instagram_follow_asked" value="NO" required /> NO</label>
+    <label class="opt"><input type="radio" name="instagram_follow_asked" value="CLIENT_NOT_INTERESTED" required /> CLIENT NOT INTERESTED</label>
+    <label class="opt"><input type="radio" name="instagram_follow_asked" value="CLIENT_ALREADY_FOLLOWING_US" required /> CLIENT ALREADY FOLLOWING US</label>
+  </div>
+
+  <!-- ✅ NEW: Instagram Proof / Reason like Google Review -->
+  <div class="hidden" id="instaUploadWrap" style="margin-top:12px;">
+    <label>IF YES / ALREADY FOLLOWING THEN UPLOAD PROOF (SCREENSHOT)</label>
+    <input type="file" name="instagram_follow_proof" accept="image/*" />
+  </div>
+
+  <div class="hidden" id="instaReasonWrap" style="margin-top:12px;">
+    <label>IF NO / NOT INTERESTED THEN MENTION REASON</label>
+    <input type="text" name="instagram_follow_no_reason" />
+  </div>
+</div>
+
+    <!-- ✅ NEW QUESTION ENDS -->
+
+    <div class="divider"></div>
+
+    <div class="subcard">
+      <label>HAVE YOU ASKED THE CLIENT FOR A GOOGLE REVIEW? <span class="req">*</span></label>
+      <div class="row">
+        <label class="opt"><input type="radio" name="google_review_asked" value="YES" required /> YES</label>
+        <label class="opt"><input type="radio" name="google_review_asked" value="NO" required /> NO</label>
+        <label class="opt"><input type="radio" name="google_review_asked" value="ALREADY_DONE" required /> ALREADY DONE BY CLIENT IN PAST</label>
+        <label class="opt"><input type="radio" name="google_review_asked" value="NOT_INTERESTED" required /> CLIENT NOT INTERESTED</label>
+      </div>
+      <div class="hidden" id="googleUploadWrap" style="margin-top:12px;">
+        <label>IF YES THEN UPLOAD SCREENSHOT OF THE REVIEW</label>
+        <input type="file" name="google_review_screenshot" accept="image/*" />
+      </div>
+      <div class="hidden" id="googleReasonWrap" style="margin-top:12px;">
+        <label>IF NO THEN MENTION REASON</label>
+        <input type="text" name="google_review_no_reason" />
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="subcard">
+      <label>HAVE YOU ASKED THE CLIENT FOR TESTIMONIAL? <span class="req">*</span></label>
+      <div class="row">
+        <label class="opt"><input type="radio" name="testimonial_asked" value="YES" required /> YES</label>
+        <label class="opt"><input type="radio" name="testimonial_asked" value="NO" required /> NO</label>
+        <label class="opt"><input type="radio" name="testimonial_asked" value="NOT_INTERESTED" required /> CLIENT NOT INTERESTED</label>
+      </div>
+      <div class="hidden" id="testiUploadWrap" style="margin-top:12px;">
+        <label>IF YES THEN UPLOAD A VIDEO/IMAGE</label>
+        <input type="file" name="testimonial_media" accept="image/*,video/*" />
+      </div>
+      <div class="hidden" id="testiReasonWrap" style="margin-top:12px;">
+        <label>IF NO THEN MENTION REASON</label>
+        <input type="text" name="testimonial_no_reason" />
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="subcard">
+      <label>HAVE YOU ASKED THE CLIENT TO FILL THE FEEDBACK FORM? <span class="req">*</span></label>
+      <div class="row">
+        <label class="opt"><input type="radio" name="feedback_asked" value="YES" required /> YES</label>
+        <label class="opt"><input type="radio" name="feedback_asked" value="NO" required /> NO</label>
+        <label class="opt"><input type="radio" name="feedback_asked" value="NOT_INTERESTED" required /> CLIENT NOT INTERESTED</label>
+      </div>
+      <div class="hidden" id="feedbackUploadWrap" style="margin-top:12px;">
+        <label>IF YES THEN UPLOAD SCREENSHOT OF THE MESSAGE</label>
+        <input type="file" name="feedback_screenshot" accept="image/*" />
+      </div>
+      <div class="hidden" id="feedbackReasonWrap" style="margin-top:12px;">
+        <label>IF NO THEN MENTION REASON</label>
+        <input type="text" name="feedback_no_reason" />
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="subcard">
+      <label>HAVE YOU GIVEN THEM A HANDWRITTEN THANK-YOU NOTE? <span class="req">*</span></label>
+      <div class="row">
+        <label class="opt"><input type="radio" name="thankyou_note" value="YES" required /> YES</label>
+        <label class="opt"><input type="radio" name="thankyou_note" value="NO" required /> NO</label>
+      </div>
+      <div class="hidden" id="noteUploadWrap" style="margin-top:12px;">
+        <label>IF YES THEN UPLOAD PICTURE OF THE NOTE</label>
+        <input type="file" name="thankyou_note_photo" accept="image/*" />
+      </div>
+      <div class="hidden" id="noteReasonWrap" style="margin-top:12px;">
+        <label>IF NO THEN MENTION REASON</label>
+        <input type="text" name="thankyou_note_no_reason" />
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="subcard">
+      <label>HAVE YOU ASKED CLIENT FOR REFERRALS? <span class="req">*</span></label>
+      <div class="row">
+        <label class="opt"><input type="radio" name="referrals_asked" value="YES" required /> YES</label>
+        <label class="opt"><input type="radio" name="referrals_asked" value="NO" required /> NO</label>
+        <label class="opt"><input type="radio" name="referrals_asked" value="NOT_INTERESTED" required /> CLIENT NOT INTERESTED</label>
+      </div>
+      <div class="hidden" id="refDetailsWrap" style="margin-top:12px;">
+        <div class="field">
+          <label>IF YES THEN HOW MANY REFERRAL <span class="req">*</span></label>
+          <select name="referrals_count" id="referralsCount">
+            <option value="">SELECT</option>
+            <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+            <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+            <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+
+        <div id="referralsFieldsContainer" class="grid" style="margin-top:12px;"></div>
+      </div>
+      <div class="hidden" id="refReasonWrap" style="margin-top:12px;">
+        <label>IF NO THEN MENTION REASON <span class="req">*</span></label>
+        <input type="text" name="referrals_no_reason" />
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+      <!-- PREFERENCES (ALWAYS HERE) -->
+      <section class="card" id="preferencesSection" aria-expanded="true">
+        <div class="cardHeader">
+          <div class="titles">
+            <div class="h">PREFERENCES</div>
+            <div class="s">BEVERAGE → SUGAR → SNACK → GIFT</div>
+          </div>
+          <div class="chev">
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="cardBody" id="prefBody">
+          <div class="grid">
+            <div class="field">
+              <label>BEVERAGE</label>
+              <div class="row" id="beverageContainer"></div>
+              <div id="bevOtherWrap" class="collapsed nested-field">
+                <label>OTHER BEVERAGE</label>
+                <input type="text" name="beverage_other" />
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="field">
+              <label>SUGAR</label>
+              <div class="row" id="sugarContainer"></div>
+              <div id="sugarOtherWrap" class="collapsed nested-field">
+                <label>OTHER SUGAR PREFERENCE</label>
+                <input type="text" name="sugar_other" />
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="field">
+              <label>SNACK</label>
+              <div class="row" id="snackContainer"></div>
+              <div id="snackOtherWrap" class="collapsed nested-field">
+                <label>OTHER SNACK</label>
+                <input type="text" name="snack_other" />
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="field">
+              <label>GIFT GIVEN</label>
+              <div class="row" id="giftContainer"></div>
+              <div id="giftOtherWrap" class="collapsed nested-field">
+                <label>OTHER GIFT</label>
+                <input type="text" name="gift_other" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- REMARK (ALWAYS LAST) -->
+      <section class="card" id="remarkSection" aria-expanded="true">
+        <div class="cardHeader">
+          <div class="titles">
+            <div class="h">REMARK</div>
+            <div class="s">FOLLOWUP, CLIENT POTENTIAL, FINAL NOTES</div>
+          </div>
+          <div class="chev">
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="cardBody" id="remarkBody">
+          <div class="grid">
+            <div class="field">
+              <label>DATE OF NEXT VISIT / FOLLOWUP NEEDED <span id="nextVisitReq" class="req" style="display:none">*</span></label>
+              <input type="date" name="next_visit_date" id="nextVisitDate" />
+            </div>
+
+            <div class="field">
+              <label>CLIENT POTENTIAL CATEGORY</label>
+              <select name="client_potential_category" id="clientPotentialSelect">
+                <option value="">SELECT</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>WHY IS THIS CLIENT A HIGH-POTENTIAL BUYER?</label>
+              <select name="high_potential_reason" id="highPotentialReasonSelect">
+                <option value="">SELECT</option>
+              </select>
+            </div>
+            
+             <!-- ✅ NEW 1: PRODUCT REQUIREMENT (TEXTAREA) -->
+<div class="field">
+  <label>PRODUCT REQUIREMENT FROM CLIENT</label>
+  <textarea name="product_requirement"
+          id="productRequirement"
+          rows="2"
+          style="min-height:70px"
+          placeholder="ENTER CLIENT REQUIREMENT..."></textarea>
+
+</div>
+
+<!-- ✅ NEW 2: OTHER STORE CLIENT WANTS TO VISIT (DROPDOWN) -->
+<div class="field">
+  <label>IF CLIENT WANTS TO VISIT OTHER STORE, WHICH STORE?</label>
+  <select name="other_store_visit" id="otherStoreVisitSelect">
+    <option value="">SELECT</option>
+  </select>
+</div>
+
+
+
+            <div class="field">
+              <label>REMARK</label>
+              <textarea name="remark"
+          rows="2"
+          style="min-height:70px"
+          placeholder="ENTER REMARKS..."></textarea>
+
+            </div>
+
+            <div class="field">
+              <label>UPLOAD PHOTO (OPTIONAL) — UPTO 10</label>
+              <div id="remarkPhotosWrap" class="grid" style="gap:10px;"></div>
+              <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px;">
+                <button type="button" class="secondary tiny" id="addRemarkPhotoBtn">ADD MORE PHOTO</button>
+                <div class="photoHint" id="remarkPhotoHint">YOU CAN UPLOAD MAX 10 PHOTOS.</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <div class="actions">
+        <button type="button" class="secondary" id="resetBtn">RESET</button>
+        <button type="submit" id="submitBtn">SUBMIT</button>
+        <span class="status" id="status"></span>
+      </div>
+
+      <p style="margin:10px 0 0; text-align: center; font-size:12px; color:#5f6368;">
+        TAP A SECTION TITLE TO COLLAPSE/EXPAND.
+      </p>
+    </form>
+  </div>
+
+ <script>
+  const SERVER_MODE = <?!= JSON.stringify(SERVER_MODE || "") ?>;
+const SERVER_CLIENT_ID = <?!= JSON.stringify(SERVER_CLIENT_ID || "") ?>;
+const SERVER_TOKEN = <?!= JSON.stringify(SERVER_TOKEN || "") ?>;
+const SERVER_REFERENCE_NUMBER = <?!= JSON.stringify(SERVER_REFERENCE_NUMBER || "") ?>;
+
+  const $ = (id) => document.getElementById(id);
+
+  function isExistingClientMode(){
+    return String(SERVER_MODE || "").trim().toUpperCase() === "EXISTING_CLIENT" &&
+           !!String(SERVER_CLIENT_ID || "").trim();
+  }
+
+
+  function isEditWalkinMode(){
+  return String(SERVER_MODE || "").trim().toUpperCase() === "EDIT_WALKIN_ENTRY" &&
+         !!String(SERVER_REFERENCE_NUMBER || "").trim();
+}
+
+
+  function setFormTitleByMode(){
+  const titleEl = document.querySelector(".formTitle");
+  if (!titleEl) return;
+
+  if (isEditWalkinMode()) {
+    titleEl.textContent = "EDIT WALK-IN ENTRY";
+  } else if (isExistingClientMode()) {
+    titleEl.textContent = "MAKE WALK-IN ENTRY";
+  } else {
+    titleEl.textContent = "CLIENT WALK-IN FORM";
+  }
+}
+
+
+
+function applyUrlParamsToForm(){
+  setFormTitleByMode();
+
+  const hiddenEl = $("clientIdField");
+  const tokenEl = $("entryTokenField");
+
+  const formModeEl = $("formModeField");
+  const editRefEl = $("editReferenceNumberField");
+  const refEl = $("referenceNumberField");
+
+  const previewWrap = $("clientIdPreviewWrap");
+  const previewText = $("clientIdPreviewText");
+
+  const editPreviewWrap = $("editReferencePreviewWrap");
+  const editPreviewText = $("editReferencePreviewText");
+
+  const clientId = String(SERVER_CLIENT_ID || "").trim();
+  const token = String(SERVER_TOKEN || "").trim();
+  const ref = String(SERVER_REFERENCE_NUMBER || "").trim();
+
+  if (isEditWalkinMode()) {
+    if (formModeEl) formModeEl.value = "EDIT_WALKIN_ENTRY";
+    if (editRefEl) editRefEl.value = ref;
+    if (refEl) refEl.value = ref;
+
+    if (editPreviewWrap) editPreviewWrap.style.display = "block";
+    if (editPreviewText) editPreviewText.textContent = ref;
+
+    if (previewWrap) previewWrap.style.display = "none";
+
+    const submitBtn = $("submitBtn");
+    if (submitBtn) submitBtn.textContent = "UPDATE ENTRY";
+
+  } else {
+    if (formModeEl) formModeEl.value = "";
+    if (editRefEl) editRefEl.value = "";
+    if (refEl) refEl.value = "";
+
+    if (editPreviewWrap) editPreviewWrap.style.display = "none";
+    if (editPreviewText) editPreviewText.textContent = "";
+
+    const submitBtn = $("submitBtn");
+    if (submitBtn) submitBtn.textContent = "SUBMIT";
+  }
+
+  if (isExistingClientMode()) {
+    if (hiddenEl) hiddenEl.value = clientId;
+    if (previewWrap) previewWrap.style.display = "block";
+    if (previewText) previewText.textContent = clientId;
+  } else if (!isEditWalkinMode()) {
+    if (hiddenEl) hiddenEl.value = "";
+    if (previewWrap) previewWrap.style.display = "none";
+    if (previewText) previewText.textContent = "";
+  }
+
+  if (tokenEl) tokenEl.value = token;
+}
+
+
+
+  function setSelectValue(selectEl, value){
+    if (!selectEl) return;
+    const target = String(value || "").trim().toUpperCase();
+    if (!target) return;
+
+    const option = Array.from(selectEl.options).find(
+      opt => String(opt.value || "").trim().toUpperCase() === target
+    );
+
+    if (option) {
+      selectEl.value = option.value;
+      selectEl.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  }
+
+  function setInputValueByName(name, value){
+    const el = document.querySelector(`[name="${name}"]`);
+    if (!el) return;
+    el.value = value || "";
+  }
+
+  function setTextareaValueByName(name, value){
+    const el = document.querySelector(`textarea[name="${name}"]`);
+    if (!el) return;
+    el.value = value || "";
+  }
+
+  function setRadioValue(name, value){
+    const target = String(value || "").trim().toUpperCase();
+    if (!target) return;
+
+    const radio = Array.from(document.querySelectorAll(`input[type="radio"][name="${name}"]`))
+      .find(r => String(r.value || "").trim().toUpperCase() === target);
+
+    if (radio) {
+      radio.checked = true;
+      radio.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  }
+
+function setCheckboxValues(name, values){
+  const selected = Array.isArray(values)
+    ? values.map(v => String(v || "").trim().toUpperCase())
+    : String(values || "").split(",").map(v => String(v || "").trim().toUpperCase()).filter(Boolean);
+
+  document.querySelectorAll(`input[type="checkbox"][name="${name}"]`).forEach(cb => {
+    const cbVal = String(cb.value || "").trim().toUpperCase();
+    cb.checked = selected.includes(cbVal);
+    cb.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+}
+
+
+
+  function prefillExistingClientData(prefill){
+    if (!prefill) return;
+
+    if ($("clientIdField")) $("clientIdField").value = prefill.client_id || SERVER_CLIENT_ID || "";
+
+    setInputValueByName("client_name", prefill.client_name || "");
+    setInputValueByName("client_phone", prefill.client_phone || "");
+    setInputValueByName("billing_phone", prefill.billing_phone || "");
+    hydrateAllPhoneFieldsFromSaved();
+    setInputValueByName("pincode", prefill.pincode || "");
+    setInputValueByName("dob", prefill.dob || "");
+    setInputValueByName("anniversary", prefill.anniversary || "");
+    setTextareaValueByName("address", prefill.address || "");
+
+    setRadioValue("gender", prefill.gender || "");
+    setSelectValue($("clientTypeSelect"), "OLD CLIENT");
+    setSelectValue($("occupation"), prefill.occupation || "");
+    setInputValueByName("occupation_other", prefill.occupation_other || "");
+    syncOccupationOtherVisibility();
+    setSelectValue($("bridalStatus"), prefill.bridal_status || "");
+    setSelectValue($("weddingMonth"), prefill.wedding_month || "");
+    setSelectValue($("weddingYear"), prefill.wedding_year || "");
+    setSelectValue($("communicationPreference"), prefill.communication_preference || "");
+    hookBridalStatus();
+
+    if (prefill.country) {
+      setSelectValue($("countrySelect"), prefill.country);
+    }
+
+    setTimeout(() => {
+      if (prefill.state) {
+        setSelectValue($("stateSelect"), prefill.state);
+      }
+
+      setTimeout(() => {
+        if (prefill.city) {
+          setSelectValue($("citySelect"), prefill.city);
+        }
+
+        if (String(prefill.city || "").trim().toUpperCase() === "OTHER" && prefill.city_other) {
+          setInputValueByName("city_other", prefill.city_other);
+          setCollapsedBlock($("cityOtherWrap"), false);
+        } else {
+          setInputValueByName("city_other", prefill.city_other || "");
+        }
+      }, 150);
+    }, 150);
+
+    if (prefill.caste) {
+      setSelectValue($("casteSelect"), prefill.caste);
+    }
+
+    if (String(prefill.caste || "").trim().toUpperCase() === "OTHER" && prefill.caste_other) {
+      setInputValueByName("caste_other", prefill.caste_other);
+      setCollapsedBlock($("casteOtherWrap"), false);
+    } else {
+      setInputValueByName("caste_other", prefill.caste_other || "");
+    }
+
+    setRadioValue("beverage", prefill.beverage || "");
+    setRadioValue("sugar", prefill.sugar || "");
+    setRadioValue("snack", prefill.snack || "");
+
+    if (prefill.client_potential_category) {
+      setSelectValue($("clientPotentialSelect"), prefill.client_potential_category);
+    }
+
+    if (prefill.high_potential_reason) {
+      setSelectValue($("highPotentialReasonSelect"), prefill.high_potential_reason);
+    }
+  }
+
+
+function prefillWalkinEntryForEdit(data){
+  if (!data) return;
+
+  if ($("formModeField")) $("formModeField").value = "EDIT_WALKIN_ENTRY";
+  if ($("editReferenceNumberField")) $("editReferenceNumberField").value = data.edit_reference_number || data.reference_number || "";
+  if ($("referenceNumberField")) $("referenceNumberField").value = data.reference_number || "";
+
+  setInputValueByName("client_id", data.client_id || "");
+  setInputValueByName("visit_date", data.visit_date || "");
+  setSelectValue($("clientTypeSelect"), data.client_type || "");
+  setSelectValue($("sourceSelect"), data.source || "");
+  setInputValueByName("source_other", data.source_other || "");
+  setInputValueByName("reference_name", data.reference_name || "");
+  setInputValueByName("reference_phone", data.reference_phone || "");
+
+  setSelectValue($("branchSelect"), data.branch || "");
+  setSelectValue($("crmSelect"), data.crm_name || "");
+  setInputValueByName("client_name", data.client_name || "");
+  setRadioValue("gender", data.gender || "");
+  setSelectValue($("occupation"), data.occupation || "");
+  setInputValueByName("occupation_other", data.occupation_other || "");
+  syncOccupationOtherVisibility();
+  setSelectValue($("bridalStatus"), data.bridal_status || "");
+  setSelectValue($("weddingMonth"), data.wedding_month || "");
+  setSelectValue($("weddingYear"), data.wedding_year || "");
+  setSelectValue($("communicationPreference"), data.communication_preference || "");
+  hookBridalStatus();
+  setInputValueByName("client_phone", data.client_phone || "");
+  setInputValueByName("billing_phone", data.billing_phone || "");
+  hydrateAllPhoneFieldsFromSaved();
+
+  if (data.country) {
+    setSelectValue($("countrySelect"), data.country);
+  }
+
+  setTimeout(() => {
+    if (data.state) setSelectValue($("stateSelect"), data.state);
+
+    setTimeout(() => {
+      if (data.city) setSelectValue($("citySelect"), data.city);
+      setInputValueByName("city_other", data.city_other || "");
+      if (String(data.city || "").trim().toUpperCase() === "OTHER") {
+        setCollapsedBlock($("cityOtherWrap"), false);
+      }
+    }, 200);
+  }, 200);
+
+  setInputValueByName("pincode", data.pincode || "");
+  setTextareaValueByName("address", data.address || "");
+
+  setSelectValue($("casteSelect"), data.caste || "");
+  setInputValueByName("caste_other", data.caste_other || "");
+  if (String(data.caste || "").trim().toUpperCase().startsWith("OTHER")) {
+    setCollapsedBlock($("casteOtherWrap"), false);
+  }
+
+  setInputValueByName("dob", data.dob || "");
+  setInputValueByName("anniversary", data.anniversary || "");
+  setSelectValue($("salespersonSelect"), data.salesperson || "");
+
+  setSelectValue($("companionsCount"), data.companions_count || "");
+  $("companionsCount")?.dispatchEvent(new Event("change", { bubbles: true }));
+
+  setTimeout(() => {
+    for (let i = 1; i <= 10; i++) {
+      setInputValueByName(`companion_name_${i}`, data[`companion_name_${i}`] || "");
+      setInputValueByName(`companion_phone_${i}`, data[`companion_phone_${i}`] || "");
+
+      const rel = document.querySelector(`[name="companion_relation_${i}"]`);
+      if (rel) setSelectValue(rel, data[`companion_relation_${i}`] || "");
+    }
+  }, 250);
+
+  setSelectValue($("buyStatus"), data.buy_status || "");
+  applyRules();
+
+  setTimeout(() => {
+    setCheckboxValues("not_bought_reason", data.not_bought_reason || []);
+    setInputValueByName("not_bought_other_text", data.not_bought_other_text || "");
+
+    setCheckboxValues("more_design_categories", data.more_design_categories || []);
+    syncMoreDesignCategoriesVisibility();
+
+    setCheckboxValues("seen_categories", data.seen_categories || []);
+    setSelectValue($("seenCount"), data.seen_count || "");
+    $("seenCount")?.dispatchEvent(new Event("change", { bubbles: true }));
+    setInputValueByName("seen_other_text", data.seen_other_text || "");
+
+    setCheckboxValues("bought_categories", data.bought_categories || []);
+    setSelectValue($("boughtCount"), data.bought_count || "");
+    $("boughtCount")?.dispatchEvent(new Event("change", { bubbles: true }));
+    setInputValueByName("bought_other_text", data.bought_other_text || "");
+
+    setCheckboxValues("order_categories", data.order_categories || []);
+    setSelectValue($("orderCount"), data.order_count || "");
+    $("orderCount")?.dispatchEvent(new Event("change", { bubbles: true }));
+    setInputValueByName("order_other_text", data.order_other_text || "");
+
+    setCheckboxValues("camefor_categories", data.camefor_categories || []);
+    setSelectValue($("cameForCount"), data.camefor_count || "");
+    $("cameForCount")?.dispatchEvent(new Event("change", { bubbles: true }));
+    setInputValueByName("camefor_other_text", data.camefor_other_text || "");
+
+    setCheckboxValues("new_things_categories", data.new_things_categories || []);
+    setSelectValue($("newThingsCount"), data.new_things_count || "");
+    $("newThingsCount")?.dispatchEvent(new Event("change", { bubbles: true }));
+    setInputValueByName("new_things_other_text", data.new_things_other_text || "");
+
+    setTimeout(() => {
+      for (let i = 1; i <= 10; i++) {
+        setInputValueByName(`seen_product_tag_${i}`, data[`seen_product_tag_${i}`] || "");
+        setInputValueByName(`bought_product_tag_${i}`, data[`bought_product_tag_${i}`] || "");
+        setInputValueByName(`order_tag_${i}`, data[`order_tag_${i}`] || "");
+        setInputValueByName(`camefor_tag_${i}`, data[`camefor_tag_${i}`] || "");
+        setInputValueByName(`new_things_tag_${i}`, data[`new_things_tag_${i}`] || "");
+      }
+    }, 250);
+
+    setRadioValue("repair_approach", data.repair_approach || "");
+    setSelectValue($("newThingsChoice"), data.new_things_choice || "");
+    setSelectValue($("newThingsSalespersonSelect"), data.new_things_salesperson || "");
+    setSelectValue($("otherOrderSelect"), data.other_order || "");
+
+    setRadioValue("marketing_message", data.marketing_message || "");
+    setRadioValue("instagram_follow_asked", data.instagram_follow_asked || "");
+    setInputValueByName("instagram_follow_no_reason", data.instagram_follow_no_reason || "");
+
+    setRadioValue("google_review_asked", data.google_review_asked || "");
+    setInputValueByName("google_review_no_reason", data.google_review_no_reason || "");
+
+    setRadioValue("testimonial_asked", data.testimonial_asked || "");
+    setInputValueByName("testimonial_no_reason", data.testimonial_no_reason || "");
+
+    setRadioValue("feedback_asked", data.feedback_asked || "");
+    setInputValueByName("feedback_no_reason", data.feedback_no_reason || "");
+
+    setRadioValue("thankyou_note", data.thankyou_note || "");
+    setInputValueByName("thankyou_note_no_reason", data.thankyou_note_no_reason || "");
+
+    setRadioValue("referrals_asked", data.referrals_asked || "");
+    setInputValueByName("referrals_no_reason", data.referrals_no_reason || "");
+
+    setRadioValue("beverage", data.beverage || "");
+    setRadioValue("sugar", data.sugar || "");
+    setRadioValue("snack", data.snack || "");
+    setCheckboxValues("gift", data.gift || []);
+
+    setInputValueByName("next_visit_date", data.next_visit_date || "");
+    setSelectValue($("clientPotentialSelect"), data.client_potential_category || "");
+    setSelectValue($("highPotentialReasonSelect"), data.high_potential_reason || "");
+    setTextareaValueByName("product_requirement", data.product_requirement || "");
+    setSelectValue($("otherStoreVisitSelect"), data.other_store_visit || "");
+    setTextareaValueByName("remark", data.remark || "");
+
+    applyRules();
+    hookCrmConditional();
+  }, 500);
+}
+
+
+
+function prefillQueueEntryData(entry){
+  if (!entry) return;
+
+  if ($("entryTokenField")) $("entryTokenField").value = entry.token || "";
+
+  setInputValueByName("client_name", entry.name || "");
+  setInputValueByName("client_phone", entry.mobile || "");
+  setInputValueByName("billing_phone", entry.mobile || "");
+  hydrateAllPhoneFieldsFromSaved();
+  setTimeout(autoSetClientTypeByPhones, 300);
+
+  if (entry.branch) {
+    setSelectValue($("branchSelect"), entry.branch);
+  }
+
+  if (entry.crm) {
+    setSelectValue($("crmSelect"), entry.crm);
+  }
+
+  const visitDateEl = $("visitDate");
+  if (visitDateEl && !visitDateEl.value) {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    visitDateEl.value =
+  `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  }
+}
+
+function loadTokenPrefillIfNeeded(callback){
+  if (!String(SERVER_TOKEN || "").trim()) {
+    if (typeof callback === "function") callback();
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function(entry){
+      if (entry) {
+        prefillQueueEntryData(entry);
+      }
+      if (typeof callback === "function") callback();
+    })
+    .withFailureHandler(function(err){
+      console.error(err);
+      if (typeof callback === "function") callback();
+    })
+    .getEntryByToken(SERVER_TOKEN);
+}
+
+
+function loadWalkinEditPrefillIfNeeded(callback){
+  if (!isEditWalkinMode()) {
+    if (typeof callback === "function") callback();
+    return;
+  }
+
+  const statusEl = $("status");
+  if (statusEl) statusEl.textContent = "LOADING WALK-IN ENTRY FOR EDIT...";
+
+  google.script.run
+    .withSuccessHandler(function(res){
+      if (res && res.ok && res.data) {
+        prefillWalkinEntryForEdit(res.data);
+        if (statusEl) statusEl.textContent = "EDIT MODE: OLD WALK-IN ENTRY LOADED.";
+      } else {
+        alert((res && res.message) ? res.message : "WALK-IN ENTRY NOT FOUND.");
+        if (statusEl) statusEl.textContent = "ERROR LOADING WALK-IN ENTRY.";
+      }
+
+      if (typeof callback === "function") {
+        setTimeout(callback, 300);
+      }
+    })
+    .withFailureHandler(function(err){
+      console.error(err);
+      alert("ERROR LOADING WALK-IN ENTRY FOR EDIT.");
+      if (statusEl) statusEl.textContent = "ERROR LOADING WALK-IN ENTRY.";
+
+      if (typeof callback === "function") {
+        setTimeout(callback, 300);
+      }
+    })
+    .getWalkinEntryForEdit(SERVER_REFERENCE_NUMBER);
+}
+
+
+function loadExistingClientPrefillIfNeeded(callback){
+  if (!isExistingClientMode()) {
+    if (typeof callback === "function") callback();
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function(res){
+      if (res && res.ok && res.data) {
+        prefillExistingClientData(res.data);
+      } else {
+        alert((res && res.message) ? res.message : "CLIENT NOT FOUND.");
+      }
+
+      if (typeof callback === "function") {
+        setTimeout(callback, 250);
+      }
+    })
+    .withFailureHandler(function(err){
+      console.error(err);
+      alert("ERROR LOADING EXISTING CLIENT PREFILL.");
+
+      if (typeof callback === "function") {
+        setTimeout(callback, 250);
+      }
+    })
+    .getExistingClientPrefill(SERVER_CLIENT_ID);
+}
+
+
+
+  // ✅ Put your real locationData object in window.locationData OR paste here:
+  const locationData = window.locationData || {
+    "AFGHANISTAN":{"BADAKHSHAN":["FAYZABAD","BAHARAK","ISHKASHIM","OTHER"],"BADGHIS":["QALA-E-NAW","MUQUR","QADIS","OTHER"],"BALKH":["MAZAR-I-SHARIF","BALKH","KHULM","OTHER"]},
+    "ALBANIA":{"BERAT":["BERAT","KUÇOVË","POLICAN","OTHER"],"DIBËR":["PESHKOPI","BULQIZË","BURREL","OTHER"],"DURRËS":["DURRËS","KRUJË","SHIJAK","OTHER"]},
+    "ALGERIA":{"ALGIERS":["ALGIERS","BAB EZZOUAR","BACHDJERRAH","OTHER"],"ORAN":["ORAN","ES SENIA","BIR EL DJIR","OTHER"],"CONSTANTINE":["CONSTANTINE","EL KHROUB","AIN SMARA","OTHER"]},
+    "ARGENTINA":{"BUENOS AIRES":["BUENOS AIRES","LA PLATA","MAR DEL PLATA","OTHER"],"CÓRDOBA":["CÓRDOBA","VILLA MARÍA","RÍO CUARTO","OTHER"],"SANTA FE":["ROSARIO","SANTA FE","RAFAELA","OTHER"]},
+    "AUSTRALIA":{"NEW SOUTH WALES":["SYDNEY","NEWCASTLE","WOLLONGONG","CENTRAL COAST","MAITLAND","OTHER"],"VICTORIA":["MELBOURNE","GEELONG","BALLARAT","BENDIGO","SHEPPARTON","OTHER"],"QUEENSLAND":["BRISBANE","GOLD COAST","SUNSHINE COAST","TOWNSVILLE","CAIRNS","OTHER"]},
+    "AUSTRIA":{"VIENNA":["VIENNA","OTHER"],"TYROL":["INNSBRUCK","KUFSTEIN","SCHWAZ","OTHER"],"SALZBURG":["SALZBURG","HALLEIN","SAALFELDEN","OTHER"]},
+    "BANGLADESH":{"DHAKA":["DHAKA","GAZIPUR","NARAYANGANJ","TONGI","OTHER"],"CHITTAGONG":["CHITTAGONG","COX'S BAZAR","COMILLA","OTHER"],"KHULNA":["KHULNA","JESSORE","SATKHIRA","OTHER"]},
+    "BELGIUM":{"BRUSSELS":["BRUSSELS","SCHAERBEEK","ANDERLECHT","OTHER"],"ANTWERP":["ANTWERP","MECHELEN","TURNHOUT","OTHER"],"EAST FLANDERS":["GHENT","AALST","SINT-NIKLAAS","OTHER"]},
+    "BRAZIL":{"SÃO PAULO":["SÃO PAULO","GUARULHOS","CAMPINAS","SÃO BERNARDO DO CAMPO","OTHER"],"RIO DE JANEIRO":["RIO DE JANEIRO","NITERÓI","DUQUE DE CAXIAS","OTHER"],"MINAS GERAIS":["BELO HORIZONTE","UBERLÂNDIA","CONTAGEM","OTHER"]},
+    "CANADA":{"ONTARIO":["TORONTO","OTTAWA","MISSISSAUGA","HAMILTON","LONDON","OTHER"],"QUEBEC":["MONTREAL","QUEBEC CITY","LAVAL","GATINEAU","OTHER"],"BRITISH COLUMBIA":["VANCOUVER","SURREY","BURNABY","RICHMOND","VICTORIA","OTHER"]},
+    "CHILE":{"SANTIAGO METROPOLITAN":["SANTIAGO","PUENTE ALTO","MAIPÚ","OTHER"],"VALPARAÍSO":["VALPARAÍSO","VIÑA DEL MAR","QUILPUÉ","OTHER"],"BIOBÍO":["CONCEPCIÓN","TALCAHUANO","LOS ÁNGELES","OTHER"]},
+    "CHINA":{"BEIJING":["BEIJING","OTHER"],"SHANGHAI":["SHANGHAI","OTHER"],"GUANGDONG":["GUANGZHOU","SHENZHEN","DONGGUAN","FOSHAN","OTHER"]},
+    "COLOMBIA":{"BOGOTÁ":["BOGOTÁ","OTHER"],"ANTIOQUIA":["MEDELLÍN","BELLO","ITAGÜÍ","OTHER"],"VALLE DEL CAUCA":["CALI","PALMIRA","BUENAVENTURA","OTHER"]},
+    "DENMARK":{"CAPITAL REGION":["COPENHAGEN","FREDERIKSBERG","GENTOFTE","OTHER"],"CENTRAL DENMARK":["AARHUS","RANDERS","HORSENS","OTHER"],"SOUTHERN DENMARK":["ODENSE","ESBJERG","VEJLE","OTHER"]},
+    "EGYPT":{"CAIRO":["CAIRO","GIZA","HELWAN","OTHER"],"ALEXANDRIA":["ALEXANDRIA","BORG EL ARAB","OTHER"],"GIZA":["GIZA","6TH OF OCTOBER CITY","OTHER"]},
+    "FINLAND":{"UUSIMAA":["HELSINKI","ESPOO","VANTAA","OTHER"],"PIRKANMAA":["TAMPERE","NOKIA","YLÖJÄRVI","OTHER"],"SOUTHWEST FINLAND":["TURKU","RAISIO","KAARINA","OTHER"]},
+    "FRANCE":{"ÎLE-DE-FRANCE":["PARIS","BOULOGNE-BILLANCOURT","SAINT-DENIS","ARGENTEUIL","OTHER"],"AUVERGNE-RHÔNE-ALPES":["LYON","GRENOBLE","VILLEURBANNE","SAINT-ÉTIENNE","OTHER"],"PROVENCE-ALPES-CÔTE D'AZUR":["MARSEILLE","NICE","TOULON","AIX-EN-PROVENCE","OTHER"]},
+    "GERMANY":{"BAVARIA":["MUNICH","NUREMBERG","AUGSBURG","REGENSBURG","OTHER"],"NORTH RHINE-WESTPHALIA":["COLOGNE","DÜSSELDORF","DORTMUND","ESSEN","OTHER"],"BADEN-WÜRTTEMBERG":["STUTTGART","KARLSRUHE","MANNHEIM","FREIBURG","OTHER"]},
+    "GREECE":{"ATTICA":["ATHENS","PIRAEUS","PERISTERI","OTHER"],"CENTRAL MACEDONIA":["THESSALONIKI","KATERINI","SERRES","OTHER"],"CRETE":["HERAKLION","CHANIA","RETHYMNO","OTHER"]},
+    "INDIA":{
+      "ANDHRA PRADESH":["VISAKHAPATNAM","VIJAYAWADA","GUNTUR","NELLORE","KURNOOL","RAJAHMUNDRY","TIRUPATI","OTHER"],
+      "ARUNACHAL PRADESH":["ITANAGAR","NAHARLAGUN","PASIGHAT","OTHER"],
+      "ASSAM":["GUWAHATI","SILCHAR","DIBRUGARH","JORHAT","NAGAON","OTHER"],
+      "BIHAR":["PATNA","GAYA","BHAGALPUR","MUZAFFARPUR","PURNIA","DARBHANGA","OTHER"],
+      "CHHATTISGARH":["RAIPUR","BHILAI","BILASPUR","KORBA","DURG","OTHER"],
+      "GOA":["PANAJI","MARGAO","VASCO DA GAMA","MAPUSA","OTHER"],
+      "GUJARAT":["AHMEDABAD","SURAT","VADODARA","RAJKOT","BHAVNAGAR","JAMNAGAR","JUNAGADH","GANDHINAGAR","OTHER"],
+      "HARYANA":["FARIDABAD","GURGAON","PANIPAT","AMBALA","YAMUNANAGAR","ROHTAK","HISAR","KARNAL","OTHER"],
+      "HIMACHAL PRADESH":["SHIMLA","DHARAMSHALA","SOLAN","MANDI","KULLU","OTHER"],
+      "JHARKHAND":["RANCHI","JAMSHEDPUR","DHANBAD","BOKARO","DEOGHAR","OTHER"],
+      "KARNATAKA":["BANGALORE","MYSORE","HUBLI","MANGALORE","BELGAUM","GULBARGA","DAVANGERE","OTHER"],
+      "KERALA":["THIRUVANANTHAPURAM","KOCHI","KOZHIKODE","THRISSUR","KOLLAM","PALAKKAD","KANNUR","OTHER"],
+      "MADHYA PRADESH":["INDORE","BHOPAL","JABALPUR","GWALIOR","UJJAIN","SAGAR","DEWAS","OTHER"],
+      "MAHARASHTRA":["MUMBAI","NAVI MUMBAI","THANE","PUNE","NAGPUR","NASHIK","AURANGABAD","SOLAPUR","KOLHAPUR","PANVEL","OTHER"],
+      "MANIPUR":["IMPHAL","THOUBAL","BISHNUPUR","OTHER"],
+      "MEGHALAYA":["SHILLONG","TURA","NONGSTOIN","OTHER"],
+      "MIZORAM":["AIZAWL","LUNGLEI","CHAMPHAI","OTHER"],
+      "NAGALAND":["KOHIMA","DIMAPUR","MOKOKCHUNG","OTHER"],
+      "ODISHA":["BHUBANESWAR","CUTTACK","ROURKELA","BERHAMPUR","SAMBALPUR","OTHER"],
+      "PUNJAB":["LUDHIANA","AMRITSAR","JALANDHAR","PATIALA","BATHINDA","MOHALI","OTHER"],
+      "RAJASTHAN":["JAIPUR","JODHPUR","UDAIPUR","KOTA","AJMER","BIKANER","ALWAR","OTHER"],
+      "SIKKIM":["GANGTOK","NAMCHI","GYALSHING","OTHER"],
+      "TAMIL NADU":["CHENNAI","COIMBATORE","MADURAI","TIRUCHIRAPPALLI","SALEM","TIRUNELVELI","ERODE","VELLORE","OTHER"],
+      "TELANGANA":["HYDERABAD","WARANGAL","NIZAMABAD","KHAMMAM","KARIMNAGAR","OTHER"],
+      "TRIPURA":["AGARTALA","DHARMANAGAR","UDAIPUR","OTHER"],
+      "UTTAR PRADESH":["LUCKNOW","KANPUR","GHAZIABAD","AGRA","MEERUT","VARANASI","ALLAHABAD","BAREILLY","NOIDA","OTHER"],
+      "UTTARAKHAND":["DEHRADUN","HARIDWAR","ROORKEE","HALDWANI","RUDRAPUR","OTHER"],
+      "WEST BENGAL":["KOLKATA","HOWRAH","DURGAPUR","ASANSOL","SILIGURI","OTHER"],
+      "DELHI (NCT)":["NEW DELHI","CENTRAL DELHI","SOUTH DELHI","NORTH DELHI","EAST DELHI","WEST DELHI","DWARKA","ROHINI","SAKET","KAROL BAGH","OTHER"],
+      "CHANDIGARH":["CHANDIGARH","OTHER"],
+      "JAMMU & KASHMIR":["SRINAGAR","JAMMU","ANANTNAG","BARAMULLA","UDHAMPUR","KATRA","OTHER"],
+      "LADAKH":["LEH","KARGIL","OTHER"],
+      "PUDUCHERRY":["PUDUCHERRY","KARAIKAL","MAHE","YANAM","OTHER"],
+      "ANDAMAN & NICOBAR ISLANDS":["PORT BLAIR","OTHER"],
+      "DADRA & NAGAR HAVELI AND DAMAN & DIU":["DAMAN","DIU","SILVASSA","OTHER"],
+      "LAKSHADWEEP":["KAVARATTI","OTHER"]
+    },
+    "INDONESIA":{"JAKARTA":["JAKARTA","OTHER"],"WEST JAVA":["BANDUNG","BEKASI","DEPOK","BOGOR","OTHER"],"EAST JAVA":["SURABAYA","MALANG","KEDIRI","OTHER"]},
+    "IRAN":{"TEHRAN":["TEHRAN","KARAJ","ESLAMSHAHR","OTHER"],"ISFAHAN":["ISFAHAN","KASHAN","NAJAFABAD","OTHER"],"KHORASAN":["MASHHAD","NISHAPUR","SABZEVAR","OTHER"]},
+    "IRAQ":{"BAGHDAD":["BAGHDAD","OTHER"],"BASRA":["BASRA","ZUBAIR","OTHER"],"NINEVEH":["MOSUL","TEL AFAR","OTHER"]},
+    "IRELAND":{"LEINSTER":["DUBLIN","DROGHEDA","DUNDALK","OTHER"],"MUNSTER":["CORK","LIMERICK","WATERFORD","OTHER"],"CONNACHT":["GALWAY","SLIGO","CASTLEBAR","OTHER"]},
+    "ISRAEL":{"TEL AVIV":["TEL AVIV","RAMAT GAN","HOLON","OTHER"],"JERUSALEM":["JERUSALEM","BEIT SHEMESH","OTHER"],"HAIFA":["HAIFA","NESHER","TIRAT CARMEL","OTHER"]},
+    "ITALY":{"LAZIO":["ROME","LATINA","GUIDONIA MONTECELIO","OTHER"],"LOMBARDY":["MILAN","BRESCIA","MONZA","BERGAMO","OTHER"],"CAMPANIA":["NAPLES","SALERNO","GIUGLIANO","OTHER"]},
+    "JAPAN":{"TOKYO":["TOKYO","YOKOHAMA","KAWASAKI","OTHER"],"OSAKA":["OSAKA","SAKAI","HIGASHIOSAKA","OTHER"],"AICHI":["NAGOYA","TOYOTA","OKAZAKI","OTHER"]},
+    "KENYA":{"NAIROBI":["NAIROBI","KIKUYU","RUIRU","OTHER"],"MOMBASA":["MOMBASA","LIKONI","OTHER"],"KIAMBU":["THIKA","KIAMBU","RUIRU","OTHER"]},
+    "MALAYSIA":{"SELANGOR":["SHAH ALAM","PETALING JAYA","SUBANG JAYA","OTHER"],"KUALA LUMPUR":["KUALA LUMPUR","OTHER"],"JOHOR":["JOHOR BAHRU","ISKANDAR PUTERI","MUAR","OTHER"]},
+    "MEXICO":{"MEXICO CITY":["MEXICO CITY","OTHER"],"JALISCO":["GUADALAJARA","ZAPOPAN","TLAQUEPAQUE","OTHER"],"NUEVO LEÓN":["MONTERREY","SAN NICOLÁS","GUADALUPE","OTHER"]},
+    "NETHERLANDS":{"NORTH HOLLAND":["AMSTERDAM","HAARLEM","ZAANSTAD","OTHER"],"SOUTH HOLLAND":["ROTTERDAM","THE HAGUE","LEIDEN","OTHER"],"NORTH BRABANT":["EINDHOVEN","TILBURG","BREDA","OTHER"]},
+    "NEW ZEALAND":{"AUCKLAND":["AUCKLAND","MANUKAU","NORTH SHORE","OTHER"],"WELLINGTON":["WELLINGTON","LOWER HUTT","PORIRUA","OTHER"],"CANTERBURY":["CHRISTCHURCH","TIMARU","ASHBURTON","OTHER"]},
+    "NIGERIA":{"LAGOS":["LAGOS","IKEJA","EPE","OTHER"],"KANO":["KANO","BICHI","RANO","OTHER"],"RIVERS":["PORT HARCOURT","OBIO-AKPOR","ELEME","OTHER"]},
+    "NORWAY":{"OSLO":["OSLO","OTHER"],"VIKEN":["BÆRUM","DRAMMEN","FREDRIKSTAD","OTHER"],"VESTLAND":["BERGEN","ASKØY","ALVER","OTHER"]},
+    "PAKISTAN":{"PUNJAB":["LAHORE","FAISALABAD","RAWALPINDI","MULTAN","GUJRANWALA","OTHER"],"SINDH":["KARACHI","HYDERABAD","SUKKUR","OTHER"],"KHYBER PAKHTUNKHWA":["PESHAWAR","MARDAN","ABBOTTABAD","OTHER"]},
+    "PERU":{"LIMA":["LIMA","CALLAO","SAN JUAN DE LURIGANCHO","OTHER"],"AREQUIPA":["AREQUIPA","CAYMA","CERRO COLORADO","OTHER"],"LA LIBERTAD":["TRUJILLO","HUANCHACO","LA ESPERANZA","OTHER"]},
+    "PHILIPPINES":{"METRO MANILA":["MANILA","QUEZON CITY","MAKATI","PASIG","OTHER"],"CALABARZON":["CALAMBA","BACOOR","ANTIPOLO","OTHER"],"CENTRAL VISAYAS":["CEBU CITY","MANDAUE","LAPU-LAPU","OTHER"]},
+    "POLAND":{"MASOVIAN":["WARSAW","RADOM","PŁOCK","OTHER"],"LESSER POLAND":["KRAKÓW","TARNÓW","NOWY SĄCZ","OTHER"],"SILESIAN":["KATOWICE","GLIWICE","ZABRZE","OTHER"]},
+    "PORTUGAL":{"LISBON":["LISBON","AMADORA","LOURES","OTHER"],"PORTO":["PORTO","VILA NOVA DE GAIA","MATOSINHOS","OTHER"],"BRAGA":["BRAGA","GUIMARÃES","BARCELOS","OTHER"]},
+    "ROMANIA":{"BUCHAREST":["BUCHAREST","OTHER"],"CLUJ":["CLUJ-NAPOCA","TURDA","DEJ","OTHER"],"TIMIȘ":["TIMIȘOARA","LUGOJ","SÂNNICOLAU MARE","OTHER"]},
+    "RUSSIA":{"MOSCOW":["MOSCOW","BALASHIKHA","KHIMKI","OTHER"],"SAINT PETERSBURG":["SAINT PETERSBURG","PUSHKIN","PETERGOF","OTHER"],"NOVOSIBIRSK":["NOVOSIBIRSK","BERDSK","ISKITIM","OTHER"]},
+    "SAUDI ARABIA":{"RIYADH":["RIYADH","DIRIYAH","OTHER"],"MAKKAH":["JEDDAH","MECCA","TAIF","OTHER"],"EASTERN PROVINCE":["DAMMAM","KHOBAR","DHAHRAN","OTHER"]},
+    "SINGAPORE":{"SINGAPORE":["SINGAPORE","OTHER"]},
+    "SOUTH AFRICA":{"GAUTENG":["JOHANNESBURG","PRETORIA","SOWETO","OTHER"],"WESTERN CAPE":["CAPE TOWN","STELLENBOSCH","PAARL","OTHER"],"KWAZULU-NATAL":["DURBAN","PIETERMARITZBURG","NEWCASTLE","OTHER"]},
+    "SOUTH KOREA":{"SEOUL":["SEOUL","OTHER"],"BUSAN":["BUSAN","OTHER"],"INCHEON":["INCHEON","OTHER"]},
+    "SPAIN":{"MADRID":["MADRID","MÓSTOLES","ALCALÁ DE HENARES","OTHER"],"CATALONIA":["BARCELONA","HOSPITALET","BADALONA","OTHER"],"ANDALUSIA":["SEVILLE","MÁLAGA","CÓRDOBA","OTHER"]},
+    "SWEDEN":{"STOCKHOLM":["STOCKHOLM","HUDDINGE","JÄRFÄLLA","OTHER"],"VÄSTRA GÖTALAND":["GOTHENBURG","MÖLNDAL","BORÅS","OTHER"],"SKÅNE":["MALMÖ","HELSINGBORG","LUND","OTHER"]},
+    "SWITZERLAND":{"ZÜRICH":["ZÜRICH","WINTERTHUR","USTER","OTHER"],"BERN":["BERN","THUN","KÖNIZ","OTHER"],"GENEVA":["GENEVA","VERNIER","CAROUGE","OTHER"]},
+    "THAILAND":{"BANGKOK":["BANGKOK","OTHER"],"CHIANG MAI":["CHIANG MAI","SAN KAMPHAENG","OTHER"],"PHUKET":["PHUKET CITY","PATONG","KATHU","OTHER"]},
+    "TURKEY":{"ISTANBUL":["ISTANBUL","OTHER"],"ANKARA":["ANKARA","OTHER"],"IZMIR":["IZMIR","BORNOVA","KARŞIYAKA","OTHER"]},
+    "UKRAINE":{"KYIV":["KYIV","OTHER"],"KHARKIV":["KHARKIV","OTHER"],"ODESA":["ODESA","ILLICHIVSK","OTHER"]},
+    "UNITED ARAB EMIRATES":{"DUBAI":["DUBAI","OTHER"],"ABU DHABI":["ABU DHABI","AL AIN","OTHER"],"SHARJAH":["SHARJAH","KALBA","OTHER"]},
+    "UNITED KINGDOM":{"ENGLAND":["LONDON","BIRMINGHAM","MANCHESTER","LEEDS","LIVERPOOL","NEWCASTLE","SHEFFIELD","BRISTOL","OTHER"],"SCOTLAND":["GLASGOW","EDINBURGH","ABERDEEN","DUNDEE","OTHER"],"WALES":["CARDIFF","SWANSEA","NEWPORT","OTHER"],"NORTHERN IRELAND":["BELFAST","DERRY","LISBURN","OTHER"]},
+    "UNITED STATES":{"CALIFORNIA":["LOS ANGELES","SAN FRANCISCO","SAN DIEGO","SAN JOSE","SACRAMENTO","OTHER"],"TEXAS":["HOUSTON","DALLAS","AUSTIN","SAN ANTONIO","FORT WORTH","OTHER"],"NEW YORK":["NEW YORK CITY","BUFFALO","ROCHESTER","ALBANY","OTHER"],"FLORIDA":["MIAMI","ORLANDO","TAMPA","JACKSONVILLE","OTHER"],"ILLINOIS":["CHICAGO","AURORA","NAPERVILLE","OTHER"]},
+    "VIETNAM":{"HANOI":["HANOI","OTHER"],"HO CHI MINH":["HO CHI MINH CITY","OTHER"],"DA NANG":["DA NANG","HOI AN","OTHER"]},
+    "NA":{"NA":["NA"]}
+  };
+
+  const countryPhoneRules = {
+    "AFGHANISTAN": { min: 9, max: 9 },
+    "ALBANIA": { min: 9, max: 9 },
+    "ALGERIA": { min: 9, max: 9 },
+    "ARGENTINA": { min: 10, max: 10 },
+    "AUSTRALIA": { min: 9, max: 9 },
+    "AUSTRIA": { min: 10, max: 13 },
+    "BANGLADESH": { min: 10, max: 10 },
+    "BELGIUM": { min: 9, max: 10 },
+    "BRAZIL": { min: 10, max: 11 },
+    "CANADA": { min: 10, max: 10 },
+    "CHILE": { min: 9, max: 9 },
+    "CHINA": { min: 11, max: 11 },
+    "COLOMBIA": { min: 10, max: 10 },
+    "DENMARK": { min: 8, max: 8 },
+    "EGYPT": { min: 10, max: 10 },
+    "FINLAND": { min: 9, max: 12 },
+    "FRANCE": { min: 9, max: 9 },
+    "GERMANY": { min: 10, max: 13 },
+    "GREECE": { min: 10, max: 10 },
+    "INDIA": { min: 9, max: 10 },
+    "INDONESIA": { min: 9, max: 12 },
+    "IRAN": { min: 10, max: 10 },
+    "IRAQ": { min: 10, max: 10 },
+    "IRELAND": { min: 9, max: 9 },
+    "ISRAEL": { min: 9, max: 9 },
+    "ITALY": { min: 9, max: 10 },
+    "JAPAN": { min: 10, max: 11 },
+    "KENYA": { min: 9, max: 10 },
+    "MALAYSIA": { min: 9, max: 10 },
+    "MEXICO": { min: 10, max: 10 },
+    "NETHERLANDS": { min: 9, max: 9 },
+    "NEW ZEALAND": { min: 8, max: 10 },
+    "NIGERIA": { min: 10, max: 10 },
+    "NORWAY": { min: 8, max: 8 },
+    "PAKISTAN": { min: 10, max: 10 },
+    "PERU": { min: 9, max: 9 },
+    "PHILIPPINES": { min: 10, max: 10 },
+    "POLAND": { min: 9, max: 9 },
+    "PORTUGAL": { min: 9, max: 9 },
+    "ROMANIA": { min: 9, max: 10 },
+    "RUSSIA": { min: 10, max: 10 },
+    "SAUDI ARABIA": { min: 9, max: 9 },
+    "SINGAPORE": { min: 8, max: 8 },
+    "SOUTH AFRICA": { min: 9, max: 10 },
+    "SOUTH KOREA": { min: 9, max: 11 },
+    "SPAIN": { min: 9, max: 9 },
+    "SWEDEN": { min: 9, max: 10 },
+    "SWITZERLAND": { min: 9, max: 9 },
+    "THAILAND": { min: 9, max: 10 },
+    "TURKEY": { min: 10, max: 10 },
+    "UKRAINE": { min: 9, max: 10 },
+    "UNITED ARAB EMIRATES": { min: 9, max: 9 },
+    "UNITED KINGDOM": { min: 10, max: 11 },
+    "UNITED STATES": { min: 10, max: 10 },
+    "VIETNAM": { min: 9, max: 10 }
+  };
+
+  const countryCallingCodes = [
+    ["AFGHANISTAN", "+93"], ["ALBANIA", "+355"], ["ALGERIA", "+213"], ["AMERICAN SAMOA", "+1684"], ["ANDORRA", "+376"], ["ANGOLA", "+244"], ["ANGUILLA", "+1264"], ["ANTIGUA AND BARBUDA", "+1268"], ["ARGENTINA", "+54"], ["ARMENIA", "+374"], ["ARUBA", "+297"], ["AUSTRALIA", "+61"], ["AUSTRIA", "+43"], ["AZERBAIJAN", "+994"],
+    ["BAHAMAS", "+1242"], ["BAHRAIN", "+973"], ["BANGLADESH", "+880"], ["BARBADOS", "+1246"], ["BELARUS", "+375"], ["BELGIUM", "+32"], ["BELIZE", "+501"], ["BENIN", "+229"], ["BERMUDA", "+1441"], ["BHUTAN", "+975"], ["BOLIVIA", "+591"], ["BOSNIA AND HERZEGOVINA", "+387"], ["BOTSWANA", "+267"], ["BRAZIL", "+55"], ["BRUNEI", "+673"], ["BULGARIA", "+359"], ["BURKINA FASO", "+226"], ["BURUNDI", "+257"],
+    ["CAMBODIA", "+855"], ["CAMEROON", "+237"], ["CANADA", "+1"], ["CAPE VERDE", "+238"], ["CAYMAN ISLANDS", "+1345"], ["CENTRAL AFRICAN REPUBLIC", "+236"], ["CHAD", "+235"], ["CHILE", "+56"], ["CHINA", "+86"], ["COLOMBIA", "+57"], ["COMOROS", "+269"], ["CONGO", "+242"], ["COSTA RICA", "+506"], ["CROATIA", "+385"], ["CUBA", "+53"], ["CYPRUS", "+357"], ["CZECH REPUBLIC", "+420"],
+    ["DENMARK", "+45"], ["DJIBOUTI", "+253"], ["DOMINICA", "+1767"], ["DOMINICAN REPUBLIC", "+1809"], ["ECUADOR", "+593"], ["EGYPT", "+20"], ["EL SALVADOR", "+503"], ["EQUATORIAL GUINEA", "+240"], ["ERITREA", "+291"], ["ESTONIA", "+372"], ["ETHIOPIA", "+251"],
+    ["FIJI", "+679"], ["FINLAND", "+358"], ["FRANCE", "+33"], ["FRENCH GUIANA", "+594"], ["FRENCH POLYNESIA", "+689"], ["GABON", "+241"], ["GAMBIA", "+220"], ["GEORGIA", "+995"], ["GERMANY", "+49"], ["GHANA", "+233"], ["GIBRALTAR", "+350"], ["GREECE", "+30"], ["GREENLAND", "+299"], ["GRENADA", "+1473"], ["GUAM", "+1671"], ["GUATEMALA", "+502"], ["GUINEA", "+224"], ["GUINEA-BISSAU", "+245"], ["GUYANA", "+592"],
+    ["HAITI", "+509"], ["HONDURAS", "+504"], ["HONG KONG", "+852"], ["HUNGARY", "+36"], ["ICELAND", "+354"], ["INDIA", "+91"], ["INDONESIA", "+62"], ["IRAN", "+98"], ["IRAQ", "+964"], ["IRELAND", "+353"], ["ISRAEL", "+972"], ["ITALY", "+39"], ["IVORY COAST", "+225"],
+    ["JAMAICA", "+1876"], ["JAPAN", "+81"], ["JORDAN", "+962"], ["KAZAKHSTAN", "+7"], ["KENYA", "+254"], ["KIRIBATI", "+686"], ["KUWAIT", "+965"], ["KYRGYZSTAN", "+996"], ["LAOS", "+856"], ["LATVIA", "+371"], ["LEBANON", "+961"], ["LESOTHO", "+266"], ["LIBERIA", "+231"], ["LIBYA", "+218"], ["LIECHTENSTEIN", "+423"], ["LITHUANIA", "+370"], ["LUXEMBOURG", "+352"],
+    ["MACAU", "+853"], ["MADAGASCAR", "+261"], ["MALAWI", "+265"], ["MALAYSIA", "+60"], ["MALDIVES", "+960"], ["MALI", "+223"], ["MALTA", "+356"], ["MARSHALL ISLANDS", "+692"], ["MARTINIQUE", "+596"], ["MAURITANIA", "+222"], ["MAURITIUS", "+230"], ["MEXICO", "+52"], ["MICRONESIA", "+691"], ["MOLDOVA", "+373"], ["MONACO", "+377"], ["MONGOLIA", "+976"], ["MONTENEGRO", "+382"], ["MONTSERRAT", "+1664"], ["MOROCCO", "+212"], ["MOZAMBIQUE", "+258"], ["MYANMAR", "+95"],
+    ["NAMIBIA", "+264"], ["NAURU", "+674"], ["NEPAL", "+977"], ["NETHERLANDS", "+31"], ["NEW CALEDONIA", "+687"], ["NEW ZEALAND", "+64"], ["NICARAGUA", "+505"], ["NIGER", "+227"], ["NIGERIA", "+234"], ["NORTH KOREA", "+850"], ["NORTH MACEDONIA", "+389"], ["NORWAY", "+47"],
+    ["OMAN", "+968"], ["PAKISTAN", "+92"], ["PALAU", "+680"], ["PANAMA", "+507"], ["PAPUA NEW GUINEA", "+675"], ["PARAGUAY", "+595"], ["PERU", "+51"], ["PHILIPPINES", "+63"], ["POLAND", "+48"], ["PORTUGAL", "+351"], ["PUERTO RICO", "+1787"],
+    ["QATAR", "+974"], ["ROMANIA", "+40"], ["RUSSIA", "+7"], ["RWANDA", "+250"], ["SAINT KITTS AND NEVIS", "+1869"], ["SAINT LUCIA", "+1758"], ["SAINT VINCENT AND THE GRENADINES", "+1784"], ["SAMOA", "+685"], ["SAN MARINO", "+378"], ["SAO TOME AND PRINCIPE", "+239"], ["SAUDI ARABIA", "+966"], ["SENEGAL", "+221"], ["SERBIA", "+381"], ["SEYCHELLES", "+248"], ["SIERRA LEONE", "+232"], ["SINGAPORE", "+65"], ["SLOVAKIA", "+421"], ["SLOVENIA", "+386"], ["SOLOMON ISLANDS", "+677"], ["SOMALIA", "+252"], ["SOUTH AFRICA", "+27"], ["SOUTH KOREA", "+82"], ["SOUTH SUDAN", "+211"], ["SPAIN", "+34"], ["SRI LANKA", "+94"], ["SUDAN", "+249"], ["SURINAME", "+597"], ["SWEDEN", "+46"], ["SWITZERLAND", "+41"], ["SYRIA", "+963"],
+    ["TAIWAN", "+886"], ["TAJIKISTAN", "+992"], ["TANZANIA", "+255"], ["THAILAND", "+66"], ["TIMOR-LESTE", "+670"], ["TOGO", "+228"], ["TONGA", "+676"], ["TRINIDAD AND TOBAGO", "+1868"], ["TUNISIA", "+216"], ["TURKEY", "+90"], ["TURKMENISTAN", "+993"], ["TURKS AND CAICOS ISLANDS", "+1649"], ["TUVALU", "+688"],
+    ["UGANDA", "+256"], ["UKRAINE", "+380"], ["UNITED ARAB EMIRATES", "+971"], ["UNITED KINGDOM", "+44"], ["UNITED STATES", "+1"], ["URUGUAY", "+598"], ["UZBEKISTAN", "+998"], ["VANUATU", "+678"], ["VATICAN CITY", "+379"], ["VENEZUELA", "+58"], ["VIETNAM", "+84"], ["YEMEN", "+967"], ["ZAMBIA", "+260"], ["ZIMBABWE", "+263"]
+  ];
+
+  const countryCodeByName = countryCallingCodes.reduce((acc, item) => {
+    acc[String(item[0]).toUpperCase()] = item[1];
+    return acc;
+  }, {});
+
+  function populateCountryCodeDropdown(selectId){
+    const sel = $(selectId);
+    if (!sel) return;
+    const oldVal = sel.value || "+91";
+    sel.innerHTML = "";
+    countryCallingCodes.forEach(item => {
+      const opt = document.createElement("option");
+      opt.value = item[1];
+      opt.textContent = `${item[1]} ${item[0]}`;
+      sel.appendChild(opt);
+    });
+    sel.value = oldVal;
+    if (!sel.value) sel.value = "+91";
+  }
+
+  function populatePhoneCountryCodes(){
+    populateCountryCodeDropdown("clientCountryCode");
+    populateCountryCodeDropdown("billingCountryCode");
+  }
+
+  function selectedCallingCodeForCountry(){
+    const country = String($("countrySelect")?.value || "").trim().toUpperCase();
+    return countryCodeByName[country] || "+91";
+  }
+
+  function applyCountryCodeFromCountry(){
+    const code = selectedCallingCodeForCountry();
+    const clientSel = $("clientCountryCode");
+    const billingSel = $("billingCountryCode");
+    if (clientSel && !clientSel.dataset.userChanged) clientSel.value = code;
+    if (billingSel && !billingSel.dataset.userChanged) billingSel.value = code;
+  }
+
+  function markCountryCodeManual(selectId){
+    const sel = $(selectId);
+    if (!sel) return;
+    sel.addEventListener("change", () => { sel.dataset.userChanged = "1"; });
+  }
+
+  function getLocalPhoneDigits(value, code){
+    let digits = String(value || "").replace(/\D/g, "");
+    const codeDigits = String(code || "").replace(/\D/g, "");
+
+    const country = $("countrySelect")?.value || "";
+    const rule = getCountryPhoneRule(country);
+
+    /*
+     * Do NOT remove 91 from a normal 10 digit Indian mobile like 9136248543.
+     * Remove country code only when full number length is more than allowed
+     * local length, e.g. +919136248543 / 919136248543 = 12 digits.
+     */
+    if (codeDigits && digits.startsWith(codeDigits) && digits.length > rule.max) {
+      const withoutCode = digits.slice(codeDigits.length);
+
+      if (withoutCode.length >= rule.min && withoutCode.length <= rule.max) {
+        digits = withoutCode;
+      }
+    }
+
+    return digits;
+  }
+
+  function buildPhoneWithCode(code, value){
+    const localDigits = getLocalPhoneDigits(value, code);
+    if (!localDigits) return "";
+    const cleanCode = String(code || "").trim() || "+91";
+    return cleanCode + localDigits;
+  }
+
+  function hydratePhoneFieldFromSaved(inputId, selectId){
+    const input = $(inputId);
+    const sel = $(selectId);
+    if (!input || !sel) return;
+    const raw = String(input.value || "").trim();
+    if (!raw) return;
+    const digits = raw.replace(/\D/g, "");
+    if (!digits) return;
+
+    const sortedCodes = countryCallingCodes.map(x => x[1]).sort((a, b) => b.length - a.length);
+    const matchedCode = sortedCodes.find(code => digits.startsWith(code.replace(/\D/g, "")));
+    if (matchedCode) {
+      sel.value = matchedCode;
+      input.value = digits.slice(matchedCode.replace(/\D/g, "").length);
+      return;
+    }
+
+    input.value = digits;
+  }
+
+  function hydrateAllPhoneFieldsFromSaved(){
+    hydratePhoneFieldFromSaved("clientPhone", "clientCountryCode");
+    hydratePhoneFieldFromSaved("billingPhone", "billingCountryCode");
+  }
+
+  function onlyDigits(value){
+    return String(value || "").replace(/\D/g, "");
+  }
+
+  function getCountryPhoneRule(country){
+    const key = String(country || "").trim().toUpperCase();
+    return countryPhoneRules[key] || { min: 6, max: 15 };
+  }
+
+  function getPhoneValidationMessage(label, country, rule){
+    if (rule.min === rule.max) {
+      return `${label} MUST BE EXACTLY ${rule.min} DIGITS FOR ${country}.`;
+    }
+    return `${label} MUST BE BETWEEN ${rule.min} AND ${rule.max} DIGITS FOR ${country}.`;
+  }
+
+  function validatePhoneByCountry(value, country, isRequired, label, callingCode){
+    const code = callingCode || selectedCallingCodeForCountry();
+    const digits = getLocalPhoneDigits(value, code);
+
+    if (!digits) {
+      if (isRequired) return { ok: false, msg: `${label} IS REQUIRED.` };
+      return { ok: true, digits: "" };
+    }
+
+    const rule = getCountryPhoneRule(country);
+    if (digits.length < rule.min || digits.length > rule.max) {
+      return { ok: false, msg: getPhoneValidationMessage(label, country, rule) };
+    }
+
+    return { ok: true, digits };
+  }
+
+  function attachCountryPhoneValidation(inputId, label, required){
+    const input = $(inputId);
+    if (!input) return;
+
+    const run = () => {
+      const country = $("countrySelect")?.value || "";
+      if (!country) {
+        input.setCustomValidity("");
+        return;
+      }
+      const codeSel = label === "BILLING PHONE" ? $("billingCountryCode") : (label === "CLIENT PHONE" ? $("clientCountryCode") : null);
+      if (codeSel && input.value && !codeSel.value) {
+        input.setCustomValidity(`${label} COUNTRY CODE IS REQUIRED.`);
+        return;
+      }
+      const result = validatePhoneByCountry(input.value || "", country, required, label, codeSel?.value || selectedCallingCodeForCountry());
+      input.setCustomValidity(result.ok ? "" : result.msg);
+    };
+
+    input.addEventListener("input", run);
+    input.addEventListener("blur", run);
+    $("countrySelect")?.addEventListener("change", run);
+  }
+
+  const CONFIG = {
+    branches: [],
+    crmNames: [], salespersons: [], relations: [], productCategories: [], notBoughtReasons: [],
+    beverages: [], sugarOptions: [], snackOptions: [], giftOptions: [], sources: [],
+    clientPotentialCategories: [], highPotentialReasons: [], castes: []
+  };
+
+  function setCollapsedBlock(el, collapsed){ if(el) el.classList.toggle("collapsed", !!collapsed); }
+
+  function populateWeddingYears(){
+    const yearSel = $("weddingYear");
+    if (!yearSel) return;
+
+    const oldVal = yearSel.value || "";
+    yearSel.innerHTML = '<option value="">SELECT YEAR</option>';
+
+    const currentYear = new Date().getFullYear();
+    for (let y = currentYear; y <= currentYear + 10; y++) {
+      const opt = document.createElement("option");
+      opt.value = String(y);
+      opt.textContent = String(y);
+      yearSel.appendChild(opt);
+    }
+
+    if (oldVal) yearSel.value = oldVal;
+  }
+
+  function hookBridalStatus(){
+    const bridalStatus = $("bridalStatus");
+    const weddingWrap = $("weddingMonthWrap");
+    const weddingMonth = $("weddingMonth");
+    const weddingYear = $("weddingYear");
+
+    if (!bridalStatus || !weddingWrap || !weddingMonth || !weddingYear) return;
+
+    populateWeddingYears();
+
+    const apply = () => {
+      const isBridal = String(bridalStatus.value || "").trim().toUpperCase() === "BRIDAL";
+
+      setCollapsedBlock(weddingWrap, !isBridal);
+      weddingMonth.required = isBridal;
+      weddingYear.required = isBridal;
+
+      if (!isBridal) {
+        weddingMonth.value = "";
+        weddingYear.value = "";
+      }
+    };
+
+    if (!bridalStatus.dataset.hooked) {
+      bridalStatus.addEventListener("change", apply);
+      bridalStatus.dataset.hooked = "1";
+    }
+
+    apply();
+    enforceNewClientDetailRequiredFields();
+  }
+
+  function syncOccupationOtherVisibility(){
+    const occupation = $("occupation");
+    const wrap = $("occupationOtherWrap");
+    const otherInput = $("occupationOther");
+    if (!occupation || !wrap || !otherInput) return;
+
+    const isOther = String(occupation.value || "").trim().toUpperCase() === "OTHER";
+    setCollapsedBlock(wrap, !isOther);
+    otherInput.required = isOther;
+
+    if (!isOther) otherInput.value = "";
+  }
+
+  function hookOccupationDropdown(){
+    const occupation = $("occupation");
+    if (!occupation) return;
+
+    if (!occupation.dataset.hooked) {
+      occupation.addEventListener("change", syncOccupationOtherVisibility);
+      occupation.dataset.hooked = "1";
+    }
+
+    syncOccupationOtherVisibility();
+  }
+
+
+
+
+
+  function enforceNewClientDetailRequiredFields(){
+    const requiredPairs = [
+      ["occupation", "OCCUPATION"],
+      ["bridalStatus", "BRIDAL / NON BRIDAL"],
+      ["communicationPreference", "COMMUNICATION PREFERENCE"]
+    ];
+
+    requiredPairs.forEach(([id, labelText]) => {
+      const el = $(id);
+      if (!el) return;
+      el.required = true;
+
+      const field = el.closest(".field");
+      const label = field ? field.querySelector("label") : null;
+      if (label && !label.querySelector(".req")) {
+        const star = document.createElement("span");
+        star.className = "req";
+        star.textContent = " *";
+        label.appendChild(star);
+      }
+    });
+
+    const occupation = $("occupation");
+    const occupationOther = $("occupationOther");
+    if (occupationOther) {
+      occupationOther.required = String(occupation?.value || "").trim().toUpperCase() === "OTHER";
+    }
+
+    const bridalStatus = $("bridalStatus");
+    const isBridal = String(bridalStatus?.value || "").trim().toUpperCase() === "BRIDAL";
+    if ($("weddingMonth")) $("weddingMonth").required = isBridal;
+    if ($("weddingYear")) $("weddingYear").required = isBridal;
+  }
+
+
+  function setClientTypeByPhoneResult(isFound){
+    const clientType = $("clientTypeSelect");
+    if (!clientType) return;
+    setSelectValue(clientType, isFound ? "OLD CLIENT" : "NEW CLIENT");
+  }
+
+  function autoSetClientTypeByPhones(){
+    const clientType = $("clientTypeSelect");
+    if (!clientType || isEditWalkinMode() || isExistingClientMode()) return;
+
+    const clientPhoneValue = buildPhoneWithCode(
+      $("clientCountryCode")?.value || selectedCallingCodeForCountry(),
+      $("clientPhone")?.value || ""
+    );
+    const billingPhoneValue = buildPhoneWithCode(
+      $("billingCountryCode")?.value || selectedCallingCodeForCountry(),
+      $("billingPhone")?.value || ""
+    );
+
+    if (!clientPhoneValue && !billingPhoneValue) {
+      clientType.value = "";
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(res){
+        if (res && res.ok) {
+          setSelectValue(clientType, res.clientType || (res.found ? "OLD CLIENT" : "NEW CLIENT"));
+        }
+      })
+      .withFailureHandler(function(err){
+        console.error(err);
+      })
+      .checkClientTypeByPhone(clientPhoneValue, billingPhoneValue);
+  }
+
+  function hookAutoClientTypeByPhone(){
+    ["clientPhone", "billingPhone", "clientCountryCode", "billingCountryCode"].forEach(id => {
+      const el = $(id);
+      if (!el || el.dataset.clientTypeHooked) return;
+      el.addEventListener("blur", autoSetClientTypeByPhones);
+      el.addEventListener("change", autoSetClientTypeByPhones);
+      el.dataset.clientTypeHooked = "1";
+    });
+  }
+
+  function setSectionEnabled(sectionEl, enabled) {
+    if (!sectionEl) return;
+    sectionEl.classList.toggle("hidden", !enabled);
+    sectionEl.querySelectorAll("input, select, textarea").forEach(el=>{
+      if (enabled) {
+        if (el.dataset.wasRequired === "1") el.required = true;
+        delete el.dataset.wasRequired;
+      } else {
+        if (el.required) el.dataset.wasRequired = "1";
+        el.required = false;
+      }
+    });
+  }
+
+  function populateDropdown(selectEl, list, placeholder){
+    selectEl.innerHTML = "";
+    const def = document.createElement("option");
+    def.value = "";
+    def.textContent = placeholder || "SELECT";
+    def.selected = true;
+    selectEl.appendChild(def);
+
+    (list || []).forEach(v => {
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = v;
+      selectEl.appendChild(opt);
+    });
+
+    selectEl.value = "";
+    selectEl.selectedIndex = 0;
+  }
+
+  function generateCheckboxes(container, name, options, otherWrapId) {
+    container.innerHTML = "";
+    (options || []).forEach(val => {
+      const label = document.createElement("label");
+      label.className = "opt";
+
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.name = name;
+      input.value = val;
+
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(" " + val));
+      container.appendChild(label);
+
+      if (otherWrapId && String(val).toUpperCase().startsWith("OTHER")) {
+        input.addEventListener("change", () => {
+          const wrap = $(otherWrapId);
+          if (wrap) wrap.classList.toggle("collapsed", !input.checked);
+        });
+      }
+    });
+  }
+
+  function generateRadioButtons(container, name, options, otherWrapId) {
+    container.innerHTML = "";
+    (options || []).forEach(val => {
+      const label = document.createElement("label");
+      label.className = "opt";
+
+      const input = document.createElement("input");
+      input.type = "radio";
+      input.name = name;
+      input.value = val;
+
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(" " + val));
+      container.appendChild(label);
+
+      if (otherWrapId && String(val).toUpperCase().startsWith("OTHER")) {
+        input.addEventListener("change", () => {
+          const wrap = $(otherWrapId);
+          if (wrap) wrap.classList.toggle("collapsed", !input.checked);
+        });
+      }
+    });
+  }
+
+  function setRadioRequired(name, required){
+    document.querySelectorAll(`input[type="radio"][name="${name}"]`).forEach(r => r.required = !!required);
+  }
+
+  function requireSelect(id, required){
+    const el = $(id);
+    if (el) el.required = !!required;
+  }
+
+  function setCheckboxGroupRequired(containerId, required){
+    const el = $(containerId);
+    if (el) el.dataset.required = required ? "1" : "0";
+  }
+
+  function populateCountries(){
+    const countrySel = $("countrySelect");
+    countrySel.innerHTML = "";
+    const def = document.createElement("option");
+    def.value = "";
+    def.textContent = "SELECT COUNTRY";
+    def.selected = true;
+    countrySel.appendChild(def);
+
+    Object.keys(locationData || {}).sort().forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = c;
+      countrySel.appendChild(opt);
+    });
+
+    countrySel.value = "";
+    countrySel.selectedIndex = 0;
+  }
+
+  function populateStates(country){
+    const stateSel = $("stateSelect");
+    stateSel.innerHTML = "";
+    const def = document.createElement("option");
+    def.value = "";
+    def.textContent = country ? "SELECT STATE" : "SELECT COUNTRY FIRST";
+    def.selected = true;
+    stateSel.appendChild(def);
+
+    if(!country || !locationData[country]){
+      stateSel.disabled = true;
+      stateSel.value = "";
+      stateSel.selectedIndex = 0;
+      return;
+    }
+
+    Object.keys(locationData[country]).sort().forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = s;
+      opt.textContent = s;
+      stateSel.appendChild(opt);
+    });
+
+    stateSel.disabled = false;
+    stateSel.value = "";
+    stateSel.selectedIndex = 0;
+  }
+
+  function populateCities(country, state){
+    const citySel = $("citySelect");
+    citySel.innerHTML = "";
+    const def = document.createElement("option");
+    def.value = "";
+    def.textContent = state ? "SELECT CITY" : "SELECT STATE FIRST";
+    def.selected = true;
+    citySel.appendChild(def);
+
+    const cities = (locationData && locationData[country] && locationData[country][state]) || null;
+    if(!country || !state || !cities){
+      citySel.disabled = true;
+      citySel.value = "";
+      citySel.selectedIndex = 0;
+      return;
+    }
+
+    cities.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = c;
+      citySel.appendChild(opt);
+    });
+
+    citySel.disabled = false;
+    citySel.value = "";
+    citySel.selectedIndex = 0;
+  }
+
+  $("countrySelect").addEventListener("change", function(){
+    populateStates(this.value);
+    populateCities("", "");
+    setCollapsedBlock($("cityOtherWrap"), true);
+    setCollapsedBlock($("occupationOtherWrap"), true);
+    setCollapsedBlock($("weddingMonthWrap"), true);
+    applyCountryCodeFromCountry();
+  });
+
+  $("stateSelect").addEventListener("change", function(){
+    populateCities($("countrySelect").value, this.value);
+    setCollapsedBlock($("cityOtherWrap"), true);
+    setCollapsedBlock($("occupationOtherWrap"), true);
+    setCollapsedBlock($("weddingMonthWrap"), true);
+  });
+
+  $("citySelect").addEventListener("change", function(){
+    setCollapsedBlock($("cityOtherWrap"), this.value !== "OTHER");
+  });
+
+  function buildTagInputs(boxId, titleText, count, prefix, labelBase){
+    const box = $(boxId);
+    box.innerHTML = "";
+    if(!count || count <= 0 || count === "NA"){
+      box.classList.add("hidden");
+      return;
+    }
+
+    box.classList.remove("hidden");
+
+    const tagBox = document.createElement("div");
+    tagBox.className = "tagBox";
+
+    const title = document.createElement("div");
+    title.className = "tagTitle";
+    title.textContent = titleText;
+    tagBox.appendChild(title);
+
+    for(let i = 1; i <= count; i++){
+      const f = document.createElement("div");
+      f.className = "field";
+
+      const l = document.createElement("label");
+      l.textContent = `${labelBase} ${i}`;
+
+      const inp = document.createElement("input");
+      inp.type = "text";
+      inp.name = `${prefix}${i}`;
+      inp.placeholder = "TAG / CODE";
+
+      f.appendChild(l);
+      f.appendChild(inp);
+      tagBox.appendChild(f);
+    }
+
+    box.appendChild(tagBox);
+  }
+
+  function buildSeenTags(count){ buildTagInputs("tagsContainer", `${count} PRODUCTS SEEN`, count, "seen_product_tag_", "TAG"); }
+  function buildBoughtTags(count){ buildTagInputs("boughtTagsContainer", `${count} BOUGHT PRODUCTS`, count, "bought_product_tag_", "PRODUCT"); }
+  function buildOrderTags(count){ buildTagInputs("orderTagsContainer", `${count} ORDER PRODUCTS`, count, "order_tag_", "PRODUCT"); }
+  function buildCameForTags(count){ buildTagInputs("cameForTagsContainer", `${count} PRODUCTS (CAME FOR)`, count, "camefor_tag_", "TAG"); }
+  function buildNewThingsTags(count){ buildTagInputs("newThingsTagsContainer", `${count} NEW PRODUCTS`, count, "new_things_tag_", "TAG"); }
+
+  $("seenCount").addEventListener("change", function(){
+    const v = (this.value === "NA") ? "NA" : parseInt(this.value, 10);
+    buildSeenTags(v);
+  });
+
+  $("boughtCount").addEventListener("change", function(){ buildBoughtTags(parseInt(this.value, 10)); });
+  $("orderCount").addEventListener("change", function(){ buildOrderTags(parseInt(this.value, 10)); });
+
+  $("cameForCount").addEventListener("change", function(){
+    const v = (this.value === "NA") ? "NA" : parseInt(this.value, 10);
+    buildCameForTags(v);
+  });
+
+  $("newThingsCount").addEventListener("change", function(){ buildNewThingsTags(parseInt(this.value, 10)); });
+
+  $("companionsCount").addEventListener("change", function(){
+    const count = parseInt(this.value, 10);
+    const box = $("companionsTagsContainer");
+    box.innerHTML = "";
+
+    if(!count || count <= 0){
+      box.classList.add("hidden");
+      return;
+    }
+
+    box.classList.remove("hidden");
+
+    const tagBox = document.createElement("div");
+    tagBox.className = "tagBox";
+
+    const title = document.createElement("div");
+    title.className = "tagTitle";
+    title.textContent = "FAMILY / FRIENDS DETAILS (OPTIONAL)";
+    tagBox.appendChild(title);
+
+    const mk = (txt, el) => {
+      const f = document.createElement("div");
+      f.className = "field";
+      const l = document.createElement("label");
+      l.textContent = txt;
+      f.appendChild(l);
+      f.appendChild(el);
+      return f;
+    };
+
+    for(let i = 1; i <= count; i++){
+      const row = document.createElement("div");
+      row.className = "tripleRow";
+
+      const in1 = document.createElement("input");
+      in1.type = "text";
+      in1.name = "companion_name_" + i;
+
+      const in2 = document.createElement("input");
+      in2.type = "tel";
+      in2.name = "companion_phone_" + i;
+
+      in2.addEventListener("input", () => {
+        in2.value = in2.value.replace(/[^0-9+\-\s()]/g, "");
+      });
+
+      const validateCompanionPhone = () => {
+        const country = $("countrySelect")?.value || "";
+        if (!country) {
+          in2.setCustomValidity("");
+          return;
+        }
+        const result = validatePhoneByCountry(in2.value || "", country, false, `COMPANION MOBILE ${i}`);
+        in2.setCustomValidity(result.ok ? "" : result.msg);
+      };
+
+      in2.addEventListener("input", validateCompanionPhone);
+      in2.addEventListener("blur", validateCompanionPhone);
+      $("countrySelect")?.addEventListener("change", validateCompanionPhone);
+
+      const sel = document.createElement("select");
+      sel.name = "companion_relation_" + i;
+      populateDropdown(sel, CONFIG.relations, "SELECT");
+
+      row.appendChild(mk("NAME " + i, in1));
+      row.appendChild(mk("MOBILE " + i, in2));
+      row.appendChild(mk("RELATION " + i, sel));
+      tagBox.appendChild(row);
+    }
+
+    box.appendChild(tagBox);
+  });
+
+  function setWrap(wrapId, show, inputSelector){
+    const wrap = $(wrapId);
+    if(!wrap) return;
+
+    wrap.classList.toggle("hidden", !show);
+
+    const input = wrap.querySelector(inputSelector);
+    if(input){
+      input.required = !!show;
+      if(!show){
+        if(input.type === "file") input.value = "";
+        else input.value = "";
+      }
+    }
+  }
+
+  function bindYesNoOnly(radioName, uploadWrapId, reasonWrapId, uploadSelector, reasonSelector){
+    const apply = () => {
+      const v = document.querySelector(`input[type="radio"][name="${radioName}"]:checked`)?.value || "";
+      const showUpload = (v === "YES");
+      const showReason = (v === "NO");
+
+      setWrap(uploadWrapId, showUpload, uploadSelector);
+      setWrap(reasonWrapId, showReason, reasonSelector);
+    };
+
+    document.querySelectorAll(`input[type="radio"][name="${radioName}"]`).forEach(r => {
+      r.addEventListener("change", apply);
+    });
+
+    apply();
+  }
+
+  function renderReferralFields(){
+    const countEl = $("referralsCount");
+    const container = $("referralsFieldsContainer");
+    if (!countEl || !container) return;
+
+    const count = parseInt(countEl.value || "0", 10);
+    container.innerHTML = "";
+
+    if (!count || count < 1) return;
+
+    for (let i = 1; i <= count; i++) {
+      const block = document.createElement("div");
+      block.className = "subcard";
+      block.innerHTML = `
+        <div class="tagTitle">REFERRAL ${i}</div>
+        <div class="doubleRow">
+          <div class="field">
+            <label>REFERRAL NAME <span class="req">*</span></label>
+            <input type="text" name="referral_name_${i}" required />
+          </div>
+          <div class="field">
+            <label>REFERRAL NUMBER <span class="req">*</span></label>
+            <input type="tel" name="referral_number_${i}" required />
+          </div>
+        </div>
+      `;
+      container.appendChild(block);
+    }
+  }
+
+  function clearReferralFields(){
+    const countEl = $("referralsCount");
+    const container = $("referralsFieldsContainer");
+
+    if (countEl) {
+      countEl.required = false;
+      countEl.value = "";
+    }
+
+    if (container) container.innerHTML = "";
+  }
+
+  function hookReferralFields(){
+    const apply = () => {
+      const v = document.querySelector('input[type="radio"][name="referrals_asked"]:checked')?.value || "";
+      const showDetails = (v === "YES");
+      const showReason = (v === "NO");
+
+      const detailsWrap = $("refDetailsWrap");
+      const reasonWrap = $("refReasonWrap");
+      const countEl = $("referralsCount");
+      const reasonInput = document.querySelector('input[type="text"][name="referrals_no_reason"]');
+
+      if (detailsWrap) detailsWrap.classList.toggle("hidden", !showDetails);
+      if (reasonWrap) reasonWrap.classList.toggle("hidden", !showReason);
+
+      if (countEl) {
+        countEl.required = showDetails;
+        if (!showDetails) countEl.value = "";
+      }
+
+      if (reasonInput) {
+        reasonInput.required = showReason;
+        if (!showReason) reasonInput.value = "";
+      }
+
+      if (showDetails) {
+        renderReferralFields();
+      } else {
+        const container = $("referralsFieldsContainer");
+        if (container) container.innerHTML = "";
+      }
+    };
+
+    document.querySelectorAll('input[type="radio"][name="referrals_asked"]').forEach(r => {
+      r.addEventListener("change", apply);
+    });
+
+    const countEl = $("referralsCount");
+    if (countEl) countEl.addEventListener("change", renderReferralFields);
+
+    apply();
+  }
+
+  function hookCrmConditional(){
+    bindYesNoOnly("google_review_asked", "googleUploadWrap", "googleReasonWrap", 'input[type="file"][name="google_review_screenshot"]', 'input[type="text"][name="google_review_no_reason"]');
+    bindYesNoOnly("testimonial_asked", "testiUploadWrap", "testiReasonWrap", 'input[type="file"][name="testimonial_media"]', 'input[type="text"][name="testimonial_no_reason"]');
+    bindYesNoOnly("feedback_asked", "feedbackUploadWrap", "feedbackReasonWrap", 'input[type="file"][name="feedback_screenshot"]', 'input[type="text"][name="feedback_no_reason"]');
+    bindYesNoOnly("thankyou_note", "noteUploadWrap", "noteReasonWrap", 'input[type="file"][name="thankyou_note_photo"]', 'input[type="text"][name="thankyou_note_no_reason"]');
+    hookReferralFields();
+    bindYesNoOnly("instagram_follow_asked", "instaUploadWrap", "instaReasonWrap", 'input[type="file"][name="instagram_follow_proof"]', 'input[type="text"][name="instagram_follow_no_reason"]');
+  }
+
+  const REMARK_PHOTO_LIMIT = 10;
+
+  function countRemarkPhotoInputs(){
+    return $("remarkPhotosWrap").querySelectorAll('input[type="file"][data-role="remark-photo"]').length;
+  }
+
+  function updateRemarkPhotoButtonState(){
+    const addBtn = $("addRemarkPhotoBtn");
+    const used = countRemarkPhotoInputs();
+
+    if (used >= REMARK_PHOTO_LIMIT) {
+      addBtn.disabled = true;
+      $("remarkPhotoHint").textContent = "LIMIT REACHED (10/10).";
+    } else {
+      addBtn.disabled = false;
+      $("remarkPhotoHint").textContent = `YOU CAN UPLOAD MAX 10 PHOTOS. ADDED: ${used}/10`;
+    }
+  }
+
+  function createRemarkPhotoInput(index){
+    const holder = document.createElement("div");
+    holder.className = "photoItem";
+
+    const label = document.createElement("label");
+    label.textContent = `PHOTO ${index} (OPTIONAL)`;
+    holder.appendChild(label);
+
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.name = `remark_photo_${index}`;
+    input.dataset.role = "remark-photo";
+    holder.appendChild(input);
+
+    const meta = document.createElement("div");
+    meta.className = "photoMeta";
+    meta.textContent = "NO FILE SELECTED";
+    holder.appendChild(meta);
+
+    input.addEventListener("change", () => {
+      meta.textContent = (input.files && input.files.length) ? input.files[0].name : "NO FILE SELECTED";
+      updateRemarkPhotoButtonState();
+    });
+
+    return holder;
+  }
+
+  function addRemarkPhotoInput(){
+    const current = countRemarkPhotoInputs();
+    if (current >= REMARK_PHOTO_LIMIT) return;
+    const nextIndex = current + 1;
+    $("remarkPhotosWrap").appendChild(createRemarkPhotoInput(nextIndex));
+    updateRemarkPhotoButtonState();
+  }
+
+  $("addRemarkPhotoBtn").addEventListener("click", () => {
+    addRemarkPhotoInput();
+  });
+
+  function expandCard(sectionEl, expand) {
+    if (!sectionEl) return;
+    sectionEl.setAttribute("aria-expanded", expand ? "true" : "false");
+    const body = sectionEl.querySelector(".cardBody");
+    if (body) body.classList.toggle("collapsed", !expand);
+  }
+
+  function applyRules(){
+    $("visitDate").required = true;
+    $("sourceSelect").required = true;
+    $("branchSelect").required = true;
+    $("crmSelect").required = true;
+    document.querySelectorAll('input[type="radio"][name="gender"]').forEach(r => r.required = true);
+    document.querySelector('input[name="client_name"]').required = true;
+    document.querySelector('input[name="billing_phone"]').required = true;
+    if ($("billingCountryCode")) $("billingCountryCode").required = true;
+    document.querySelector('input[name="pincode"]').required = true;
+    document.querySelector('textarea[name="address"]').required = true;
+    if ($("casteSelect")) $("casteSelect").required = true;
+    $("countrySelect").required = true;
+    $("stateSelect").required = true;
+    $("citySelect").required = true;
+    $("salespersonSelect").required = true;
+
+    if ($("occupation")) $("occupation").required = true;
+    if ($("bridalStatus")) $("bridalStatus").required = true;
+    if ($("communicationPreference")) $("communicationPreference").required = true;
+    hookOccupationDropdown();
+    hookBridalStatus();
+    enforceNewClientDetailRequiredFields();
+
+    setSectionEnabled($("buyerSection"), true);
+    $("buyStatus").required = true;
+
+    setSectionEnabled($("crmApproachSection"), false);
+    setSectionEnabled($("preferencesSection"), false);
+    setSectionEnabled($("remarkSection"), false);
+
+    const sourceVal = ($("sourceSelect").value || "").toUpperCase().trim();
+    const isReference = (sourceVal === "REFERENCE");
+    setCollapsedBlock($("referenceWrap"), !isReference);
+    $("referenceName").required = !!isReference;
+
+    if(!isReference){
+      $("referenceName").value = "";
+      $("referencePhone").value = "";
+      $("referencePhone").setCustomValidity("");
+    }
+
+    const isOtherSource = (sourceVal === "OTHER" || sourceVal.startsWith("OTHER"));
+    setCollapsedBlock($("sourceOtherWrap"), !isOtherSource);
+
+    requireSelect("seenCount", false);
+    requireSelect("boughtCount", false);
+    requireSelect("otherOrderSelect", false);
+    requireSelect("orderCount", false);
+    requireSelect("cameForCount", false);
+
+    setRadioRequired("repair_approach", false);
+
+    requireSelect("newThingsChoice", false);
+    requireSelect("newThingsCount", false);
+    requireSelect("newThingsSalespersonSelect", false);
+
+    setCheckboxGroupRequired("notBoughtReasonsContainer", false);
+
+    setSectionEnabled($("notBoughtSection"), false);
+    setSectionEnabled($("cameForSection"), false);
+    setSectionEnabled($("repairApproachSection"), false);
+    setSectionEnabled($("seenSection"), false);
+    setSectionEnabled($("boughtDetails"), false);
+    setSectionEnabled($("otherOrderSection"), false);
+    setSectionEnabled($("orderDetailsSection"), false);
+    setSectionEnabled($("newThingsQuestionSection"), false);
+    setSectionEnabled($("newThingsDetailsSection"), false);
+
+    const buy = $("buyStatus").value || "";
+
+
+
+        if (buy === "STORE_VISIT" || buy === "PRICE_CALCULATION") {
+      setSectionEnabled($("notBoughtSection"), false);
+      setSectionEnabled($("cameForSection"), false);
+      setSectionEnabled($("repairApproachSection"), false);
+      setSectionEnabled($("seenSection"), false);
+      setSectionEnabled($("boughtDetails"), false);
+      setSectionEnabled($("otherOrderSection"), false);
+      setSectionEnabled($("orderDetailsSection"), false);
+      setSectionEnabled($("newThingsQuestionSection"), false);
+      setSectionEnabled($("newThingsDetailsSection"), false);
+
+      setSectionEnabled($("crmApproachSection"), false);
+      setSectionEnabled($("preferencesSection"), false);
+      setSectionEnabled($("remarkSection"), true);
+
+      expandCard($("remarkSection"), true);
+
+      const nextVisit = $("nextVisitDate");
+      const nextStar = $("nextVisitReq");
+      if (nextVisit) nextVisit.required = false;
+      if (nextStar) nextStar.style.display = "none";
+
+      syncMoreDesignCategoriesVisibility();
+      return;
+    }
+
+    
+
+
+    const nextVisit = $("nextVisitDate");
+    const nextStar = $("nextVisitReq");
+    if (buy === "NO") {
+      nextVisit.required = true;
+      nextStar.style.display = "inline";
+    } else {
+      nextVisit.required = false;
+      nextStar.style.display = "none";
+    }
+
+    if (buy === "PRODUCT_EXCHANGE") {
+      setSectionEnabled($("cameForSection"), true);
+      requireSelect("cameForCount", true);
+      expandCard($("cameForSection"), true);
+
+      setSectionEnabled($("seenSection"), true);
+      requireSelect("seenCount", true);
+      expandCard($("seenSection"), true);
+
+      setSectionEnabled($("newThingsDetailsSection"), true);
+      requireSelect("newThingsSalespersonSelect", true);
+      requireSelect("newThingsCount", true);
+      expandCard($("newThingsDetailsSection"), true);
+
+      setSectionEnabled($("crmApproachSection"), true);
+      setSectionEnabled($("preferencesSection"), true);
+      setSectionEnabled($("remarkSection"), true);
+
+      expandCard($("crmApproachSection"), false);
+      expandCard($("preferencesSection"), false);
+      expandCard($("remarkSection"), false);
+      return;
+    }
+
+    if (buy === "YES") {
+      setSectionEnabled($("seenSection"), true);
+      setSectionEnabled($("boughtDetails"), true);
+      setSectionEnabled($("otherOrderSection"), true);
+
+      requireSelect("seenCount", true);
+      requireSelect("boughtCount", true);
+      requireSelect("otherOrderSelect", true);
+
+      const oo = $("otherOrderSelect").value || "";
+      if (oo === "YES") {
+        setSectionEnabled($("orderDetailsSection"), true);
+        requireSelect("orderCount", true);
+      }
+
+    } else if (buy === "NO") {
+      setSectionEnabled($("notBoughtSection"), true);
+      setSectionEnabled($("seenSection"), true);
+
+      setCheckboxGroupRequired("notBoughtReasonsContainer", true);
+      requireSelect("seenCount", true);
+
+    } else if (
+      buy === "REPAIR_PLACED" ||
+      buy === "REPAIR_PICKUP" ||
+      buy === "ORDER_PLACED" ||
+      buy === "ORDER_PICKUP" ||
+      buy === "PRODUCT_RETURN"
+    ) {
+      setSectionEnabled($("cameForSection"), true);
+      requireSelect("cameForCount", true);
+
+      setSectionEnabled($("repairApproachSection"), true);
+      setRadioRequired("repair_approach", true);
+
+      const repairApproach = document.querySelector('input[name="repair_approach"]:checked')?.value || "";
+
+      if (repairApproach === "YES") {
+        setSectionEnabled($("seenSection"), true);
+        requireSelect("seenCount", true);
+
+        setSectionEnabled($("newThingsQuestionSection"), true);
+        requireSelect("newThingsChoice", true);
+
+        const ch = $("newThingsChoice").value || "";
+        if (ch === "BUYING_NEW_PRODUCT" || ch === "MAKING_NEW_ORDER") {
+          setSectionEnabled($("newThingsDetailsSection"), true);
+          requireSelect("newThingsCount", true);
+          requireSelect("newThingsSalespersonSelect", true);
+        }
+      } else if (repairApproach === "NO") {
+        setSectionEnabled($("seenSection"), false);
+        setSectionEnabled($("newThingsQuestionSection"), false);
+        setSectionEnabled($("newThingsDetailsSection"), false);
+      }
+    }
+
+    setSectionEnabled($("crmApproachSection"), true);
+    setSectionEnabled($("preferencesSection"), true);
+    setSectionEnabled($("remarkSection"), true);
+
+    syncMoreDesignCategoriesVisibility();
+  }
+
+  function validateRequiredCheckboxGroup(containerId, label){
+    const el = $(containerId);
+    if(!el || el.dataset.required !== "1") return {ok:true};
+    const any = el.querySelectorAll('input[type="checkbox"]:checked').length > 0;
+    if(!any) return {ok:false, msg:`PLEASE SELECT AT LEAST ONE OPTION FOR: ${label}`};
+    return {ok:true};
+  }
+
+  document.querySelectorAll(".cardHeader").forEach(header => {
+    header.addEventListener("click", function(e){
+      if(["INPUT","SELECT","BUTTON","TEXTAREA"].includes(e.target.tagName)) return;
+      const card = this.parentElement;
+      const expanded = card.getAttribute("aria-expanded") === "true";
+      card.setAttribute("aria-expanded", expanded ? "false" : "true");
+      const body = card.querySelector(".cardBody");
+      if(body) body.classList.toggle("collapsed", expanded);
+    });
+  });
+
+  function hardResetForm(){
+    const form = $("mkForm");
+
+    form.querySelectorAll("input, textarea").forEach(el => {
+      if (el.id === "clientIdField") return;
+
+      if(el.type === "checkbox" || el.type === "radio") el.checked = false;
+      else if(el.type !== "file") el.value = "";
+    });
+
+    form.querySelectorAll('input[type="file"]').forEach(inp => {
+      if (inp.dataset.role === "remark-photo") return;
+      const clone = inp.cloneNode(true);
+      inp.parentNode.replaceChild(clone, inp);
+    });
+
+    form.querySelectorAll("select").forEach(sel => {
+      sel.value = "";
+      if(sel.options.length) sel.selectedIndex = 0;
+    });
+
+    populateCountries();
+    populatePhoneCountryCodes();
+    ["clientCountryCode", "billingCountryCode"].forEach(id => { if ($(id)) $(id).dataset.userChanged = ""; });
+    populateStates("");
+    populateCities("", "");
+
+    setCollapsedBlock($("cityOtherWrap"), true);
+    setCollapsedBlock($("occupationOtherWrap"), true);
+    setCollapsedBlock($("weddingMonthWrap"), true);
+    setCollapsedBlock($("weddingMonthWrap"), true);
+    if ($("weddingMonth")) {
+      $("weddingMonth").required = false;
+      $("weddingMonth").value = "";
+    }
+    setCollapsedBlock($("sourceOtherWrap"), true);
+    setCollapsedBlock($("casteOtherWrap"), true);
+    setCollapsedBlock($("notBoughtOtherWrap"), true);
+    setCollapsedBlock($("boughtOtherWrap"), true);
+    setCollapsedBlock($("seenOtherWrap"), true);
+    setCollapsedBlock($("orderOtherWrap"), true);
+    setCollapsedBlock($("cameForOtherWrap"), true);
+    setCollapsedBlock($("newThingsOtherWrap"), true);
+    setCollapsedBlock($("bevOtherWrap"), true);
+    setCollapsedBlock($("sugarOtherWrap"), true);
+    setCollapsedBlock($("snackOtherWrap"), true);
+    setCollapsedBlock($("giftOtherWrap"), true);
+
+    setCollapsedBlock($("referenceWrap"), true);
+    $("referenceName").value = "";
+    $("referencePhone").value = "";
+
+    $("clientPhone").setCustomValidity("");
+    $("billingPhone").setCustomValidity("");
+    $("referencePhone").setCustomValidity("");
+
+    ["googleUploadWrap","googleReasonWrap","testiUploadWrap","testiReasonWrap","feedbackUploadWrap","feedbackReasonWrap","noteUploadWrap","noteReasonWrap","refDetailsWrap","refReasonWrap","instaUploadWrap","instaReasonWrap"]
+      .forEach(id => { const el = $(id); if(el) el.classList.add("hidden"); });
+
+    clearReferralFields();
+
+    $("companionsTagsContainer").innerHTML = "";
+    $("companionsTagsContainer").classList.add("hidden");
+    $("boughtTagsContainer").innerHTML = "";
+    $("boughtTagsContainer").classList.add("hidden");
+    $("tagsContainer").innerHTML = "";
+    $("tagsContainer").classList.add("hidden");
+    $("orderTagsContainer").innerHTML = "";
+    $("orderTagsContainer").classList.add("hidden");
+    $("cameForTagsContainer").innerHTML = "";
+    $("cameForTagsContainer").classList.add("hidden");
+    $("newThingsTagsContainer").innerHTML = "";
+    $("newThingsTagsContainer").classList.add("hidden");
+
+    $("remarkPhotosWrap").innerHTML = "";
+    addRemarkPhotoInput();
+
+    $("status").textContent = "";
+
+      applyRules();
+hookCrmConditional();
+hookBridalStatus();
+hookOccupationDropdown();
+hookAutoClientTypeByPhone();
+applyUrlParamsToForm();
+
+loadWalkinEditPrefillIfNeeded(function(){
+  if (!isEditWalkinMode()) {
+    loadExistingClientPrefillIfNeeded(function(){
+      loadTokenPrefillIfNeeded();
+    });
+  }
+});
+  }
+
+  async function handleSubmit(event){
+    event.preventDefault();
+
+    applyRules();
+    hookOccupationDropdown();
+    hookBridalStatus();
+
+    // Fail-safe required validation for new client-detail questions
+    const occupationEl = $("occupation");
+    const bridalEl = $("bridalStatus");
+    const commEl = $("communicationPreference");
+    const occOtherEl = $("occupationOther");
+    const weddingMonthEl = $("weddingMonth");
+    const weddingYearEl = $("weddingYear");
+
+    if (occupationEl) occupationEl.required = true;
+    if (bridalEl) bridalEl.required = true;
+    if (commEl) commEl.required = true;
+    if (occOtherEl) occOtherEl.required = String(occupationEl?.value || "").trim().toUpperCase() === "OTHER";
+    const isBridalNow = String(bridalEl?.value || "").trim().toUpperCase() === "BRIDAL";
+    if (weddingMonthEl) weddingMonthEl.required = isBridalNow;
+    if (weddingYearEl) weddingYearEl.required = isBridalNow;
+
+    if (!$("mkForm").checkValidity()){
+      $("mkForm").reportValidity();
+      return;
+    }
+
+    const v1 = validateRequiredCheckboxGroup("notBoughtReasonsContainer","REASON FOR NOT BUYING");
+    if(!v1.ok){ alert(v1.msg); return; }
+
+    const selectedCountry = $("countrySelect").value || "";
+
+    const phoneChecks = [
+      validatePhoneByCountry($("referencePhone")?.value || "", selectedCountry, false, "REFERENCE PHONE", selectedCallingCodeForCountry()),
+      validatePhoneByCountry($("clientPhone")?.value || "", selectedCountry, false, "CLIENT PHONE", $("clientCountryCode")?.value || selectedCallingCodeForCountry()),
+      validatePhoneByCountry($("billingPhone")?.value || "", selectedCountry, true, "BILLING PHONE", $("billingCountryCode")?.value || selectedCallingCodeForCountry())
+    ];
+
+    document.querySelectorAll('input[name^="companion_phone_"]').forEach((inp, idx) => {
+      phoneChecks.push(
+        validatePhoneByCountry(inp.value || "", selectedCountry, false, `COMPANION MOBILE ${idx + 1}`)
+      );
+    });
+
+    const invalidPhone = phoneChecks.find(x => !x.ok);
+    if (invalidPhone) {
+      alert(invalidPhone.msg);
+      return;
+    }
+
+    const selectedPhotos = [];
+    $("remarkPhotosWrap").querySelectorAll('input[type="file"][data-role="remark-photo"]').forEach(inp => {
+      if (inp.files && inp.files.length) selectedPhotos.push(inp.files[0]);
+    });
+
+    if (selectedPhotos.length > REMARK_PHOTO_LIMIT) {
+      alert("MAX 10 PHOTOS ALLOWED.");
+      return;
+    }
+
+    const form = $("mkForm");
+    const submitBtn = $("submitBtn");
+    const statusEl = $("status");
+
+    submitBtn.disabled = true;
+    statusEl.textContent = "SUBMITTING...";
+
+    const formDataObj = {};
+    const fileInputs = [];
+
+    form.querySelectorAll("input, select, textarea").forEach(el => {
+      const name = el.name;
+      if(!name) return;
+
+      const section = el.closest(".card");
+      if(section && section.classList.contains("hidden")) return;
+
+      if(el.type === "file"){
+        if(el.files && el.files.length) fileInputs.push({fieldName:name, file:el.files[0]});
+      } else if(el.type === "checkbox"){
+        if(!formDataObj[name]) formDataObj[name] = [];
+        if(el.checked) formDataObj[name].push(el.value);
+      } else if(el.type === "radio"){
+        if(el.checked) formDataObj[name] = el.value;
+      } else {
+        if (el.value !== "") formDataObj[name] = el.value;
+      }
+    });
+
+    formDataObj.client_phone = buildPhoneWithCode($("clientCountryCode")?.value || selectedCallingCodeForCountry(), $("clientPhone")?.value || "");
+    formDataObj.billing_phone = buildPhoneWithCode($("billingCountryCode")?.value || selectedCallingCodeForCountry(), $("billingPhone")?.value || "");
+
+    const fileToPayload = (item) => new Promise((resolve,reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result.split(",")[1];
+        resolve({
+          fieldName:item.fieldName,
+          fileName:item.file.name,
+          mimeType:item.file.type || "application/octet-stream",
+          base64
+        });
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(item.file);
+    });
+
+    let filesPayload = [];
+    if(fileInputs.length) filesPayload = await Promise.all(fileInputs.map(fileToPayload));
+
+    const checkedReasons = Array.from(
+  document.querySelectorAll('#notBoughtReasonsContainer input[type="checkbox"]:checked')
+).map(el => String(el.value || "").trim().toUpperCase());
+
+if (checkedReasons.includes("WANT TO SEE MORE DESIGNS")) {
+  const checkedMoreDesign = document.querySelectorAll('#moreDesignCategoriesContainer input[type="checkbox"]:checked').length;
+  if (!checkedMoreDesign) {
+    statusEl.textContent = "PLEASE SELECT AT LEAST ONE CATEGORY IN WHICH CATEGORIES CLIENT WANT TO SEE MORE.";
+    submitBtn.disabled = false;
+    return;
+  }
+}
+
+
+
+    google.script.run
+      .withSuccessHandler(function(res){
+  if (res && res.mode === "EDIT_WALKIN_ENTRY") {
+    statusEl.textContent = "WALK-IN ENTRY UPDATED SUCCESSFULLY.";
+    submitBtn.disabled = false;
+  } else {
+    statusEl.textContent = "SUBMITTED SUCCESSFULLY.";
+    submitBtn.disabled = false;
+    hardResetForm();
+  }
+})
+      .withFailureHandler(function(err){
+        console.error(err);
+        const msg = (err && (err.message || err.toString())) ? (err.message || err.toString()) : "UNKNOWN ERROR";
+        statusEl.textContent = "ERROR: " + String(msg).replace(/^Error:\\s*/i, "");
+        submitBtn.disabled = false;
+      })
+      .submitForm(formDataObj, filesPayload);
+  }
+
+  $("mkForm").addEventListener("submit", handleSubmit);
+  $("resetBtn").addEventListener("click", hardResetForm);
+  hookBridalStatus();
+
+  $("buyStatus").addEventListener("change", applyRules);
+  $("otherOrderSelect").addEventListener("change", applyRules);
+  $("newThingsChoice").addEventListener("change", applyRules);
+  $("sourceSelect").addEventListener("change", applyRules);
+
+  document.addEventListener("change", (e) => {
+    if (e.target && e.target.name === "repair_approach") applyRules();
+  });
+
+  document.addEventListener("change", function(e){
+  if (e.target && e.target.closest("#notBoughtReasonsContainer")) {
+    syncMoreDesignCategoriesVisibility();
+  }
+});
+
+
+
+
+  $("casteSelect").addEventListener("change", function(){
+    const v = (this.value || "").toUpperCase();
+    const isOther = (v === "OTHER" || v.startsWith("OTHER"));
+    setCollapsedBlock($("casteOtherWrap"), !isOther);
+  });
+
+  function loadFormData(){
+    google.script.run
+      .withSuccessHandler(function(data){
+        data = data || {};
+        CONFIG.crmNames = data.crmNames || [];
+        CONFIG.salespersons = data.salespersons || [];
+        CONFIG.relations = data.relations || [];
+        CONFIG.productCategories = data.productCategories || [];
+        CONFIG.notBoughtReasons = data.notBoughtReasons || [];
+        CONFIG.beverages = data.beverages || [];
+        CONFIG.sugarOptions = data.sugarOptions || [];
+        CONFIG.snackOptions = data.snackOptions || [];
+        CONFIG.giftOptions = data.giftOptions || [];
+        CONFIG.sources = data.sources || [];
+        CONFIG.clientPotentialCategories = data.clientPotentialCategories || [];
+        CONFIG.highPotentialReasons = data.highPotentialReasons || [];
+        CONFIG.castes = data.castes || [];
+        CONFIG.branches = data.branches || [];
+
+        populateDropdown($("branchSelect"), CONFIG.branches, "SELECT");
+        populateDropdown($("otherStoreVisitSelect"), CONFIG.branches, "SELECT");
+        populateDropdown($("crmSelect"), CONFIG.crmNames, "SELECT");
+        populateDropdown($("salespersonSelect"), CONFIG.salespersons, "SELECT");
+        populateDropdown($("newThingsSalespersonSelect"), CONFIG.salespersons, "SELECT");
+        populateDropdown($("sourceSelect"), CONFIG.sources, "SELECT");
+
+
+        generateCheckboxes($("boughtCategoriesContainer"), "bought_categories", CONFIG.productCategories, "boughtOtherWrap");
+        generateCheckboxes($("seenCategoriesContainer"), "seen_categories", CONFIG.productCategories, "seenOtherWrap");
+        generateCheckboxes($("orderCategoriesContainer"), "order_categories", CONFIG.productCategories, "orderOtherWrap");
+        generateCheckboxes($("cameForCategoriesContainer"), "camefor_categories", CONFIG.productCategories, "cameForOtherWrap");
+        generateCheckboxes($("newThingsCategoriesContainer"), "new_things_categories", CONFIG.productCategories, "newThingsOtherWrap");
+        generateCheckboxes($("moreDesignCategoriesContainer"), "more_design_categories", CONFIG.productCategories, "moreDesignOtherWrap");
+
+        generateCheckboxes($("notBoughtReasonsContainer"), "not_bought_reason", CONFIG.notBoughtReasons, "notBoughtOtherWrap");
+
+        generateRadioButtons($("beverageContainer"), "beverage", CONFIG.beverages, "bevOtherWrap");
+        generateRadioButtons($("sugarContainer"), "sugar", CONFIG.sugarOptions, "sugarOtherWrap");
+        generateRadioButtons($("snackContainer"), "snack", CONFIG.snackOptions, "snackOtherWrap");
+        generateCheckboxes($("giftContainer"), "gift", CONFIG.giftOptions, "giftOtherWrap");
+
+        populateDropdown($("clientPotentialSelect"), CONFIG.clientPotentialCategories, "SELECT");
+        populateDropdown($("highPotentialReasonSelect"), CONFIG.highPotentialReasons, "SELECT");
+        populateDropdown($("casteSelect"), CONFIG.castes, "SELECT");
+
+        populateCountries();
+        populatePhoneCountryCodes();
+        markCountryCodeManual("clientCountryCode");
+        markCountryCodeManual("billingCountryCode");
+        populateStates("");
+        populateCities("", "");
+
+        hookCrmConditional();
+
+        attachCountryPhoneValidation("referencePhone", "REFERENCE PHONE", false);
+        attachCountryPhoneValidation("clientPhone", "CLIENT PHONE", false);
+        attachCountryPhoneValidation("billingPhone", "BILLING PHONE", true);
+
+        attachPhoneInputSanitizer("referencePhone");
+        attachPhoneInputSanitizer("clientPhone");
+        attachPhoneInputSanitizer("billingPhone");
+
+        hookBridalStatus();
+        hookOccupationDropdown();
+        enforceNewClientDetailRequiredFields();
+        hookAutoClientTypeByPhone();
+
+        $("remarkPhotosWrap").innerHTML = "";
+        addRemarkPhotoInput();
+
+          applyUrlParamsToForm();
+applyRules();
+
+loadWalkinEditPrefillIfNeeded(function(){
+  if (!isEditWalkinMode()) {
+    loadExistingClientPrefillIfNeeded(function(){
+      loadTokenPrefillIfNeeded();
+    });
+  }
+});
+      })
+
+
+
+      .withFailureHandler(function(err){
+        console.error(err);
+        alert("ERROR LOADING FORM DATA. CHECK APPS SCRIPT LOG.");
+        populateCountries();
+        populateStates("");
+        populateCities("", "");
+        hookCrmConditional();
+        hookBridalStatus();
+        hookOccupationDropdown();
+        enforceNewClientDetailRequiredFields();
+        hookAutoClientTypeByPhone();
+        $("remarkPhotosWrap").innerHTML = "";
+        addRemarkPhotoInput();
+                applyUrlParamsToForm();
+        applyRules();
+        loadExistingClientPrefillIfNeeded(function(){
+          loadTokenPrefillIfNeeded();
+        });
+      })
+      .getFormDataOptions();
+  }
+
+  document.querySelectorAll("input, select, textarea").forEach(el => {
+    el.addEventListener("focus", () => {
+      setTimeout(() => el.scrollIntoView({behavior:"smooth", block:"center"}), 250);
+    });
+  });
+
+  document.addEventListener("DOMContentLoaded", function(){
+    loadFormData();
+    setTimeout(enforceNewClientDetailRequiredFields, 300);
+    setTimeout(enforceNewClientDetailRequiredFields, 1200);
+  });
+
+
+
+
+document.addEventListener("change", function(e){
+  if (e.target && e.target.closest("#notBoughtReasonsContainer")) {
+    syncMoreDesignCategoriesVisibility();
+  }
+});
+
+
+
+
+
+  function attachPhoneInputSanitizer(inputId){
+    const input = $(inputId);
+    if (!input) return;
+
+    input.addEventListener("input", () => {
+      input.value = input.value.replace(/[^0-9+\-\s()]/g, "");
+    });        
+  }
+
+
+
+function syncMoreDesignCategoriesVisibility() {
+  const checked = Array.from(
+    document.querySelectorAll('#notBoughtReasonsContainer input[type="checkbox"]:checked')
+  ).map(el => String(el.value || "").trim().toUpperCase());
+
+  const wrap = $("moreDesignCategoriesWrap");
+  const container = $("moreDesignCategoriesContainer");
+
+  const hasMoreDesign = checked.includes("WANT TO SEE MORE DESIGNS");
+
+  if (hasMoreDesign) {
+    wrap.classList.remove("collapsed");
+    if (container) container.dataset.required = "1";
+  } else {
+    wrap.classList.add("collapsed");
+    if (container) {
+      container.dataset.required = "0";
+      container.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+    }
+
+    const otherWrap = $("moreDesignOtherWrap");
+    if (otherWrap) otherWrap.classList.add("collapsed");
+
+    const otherInput = document.querySelector('input[name="more_design_other_text"]');
+    if (otherInput) otherInput.value = "";
+  }
+}
+
+
+
+
+</script>
+</body>
+</html>
