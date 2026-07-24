@@ -426,10 +426,14 @@ describe("Phase 2 visit intake guarantees", () => {
     await database.exec("SET ROLE authenticated");
     await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [user]);
     try {
-      const result = await database.query<{ client_id: string; timeline_id: string; reference_number: string }>(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ branch_id: branch, primary_name: "Walk In", primary_phone: "+91 90123 45999", did_buy: true, seen_categories: ["Ring"] })]);
+      const newClientId = "20000000-0000-4000-8000-000000000201";
+      const timelineId = "40000000-0000-4000-8000-000000000201";
+      const documentPath = `${newClientId}/${timelineId}/50000000-0000-4000-8000-000000000201_proof.jpg`;
+      const result = await database.query<{ client_id: string; timeline_id: string; reference_number: string }>(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ proposed_client_id: newClientId, proposed_timeline_id: timelineId, branch_id: branch, primary_name: "Walk In", primary_phone: "+91 90123 45999", did_buy: true, seen_categories: ["Ring"], documents: [{ storage_path: documentPath, file_name: "proof.jpg", mime_type: "image/jpeg" }] })]);
       expect(result.rows[0]?.reference_number).toMatch(/^PHA-\d{6}-\d{4}$/);
       await expect(database.query(`SELECT phone FROM client_phone_index WHERE client_id = $1`, [result.rows[0]!.client_id])).resolves.toMatchObject({ rows: [{ phone: "9012345999" }] });
       await expect(database.query(`SELECT client_timeline_id FROM visit_forms WHERE client_timeline_id = $1`, [result.rows[0]!.timeline_id])).resolves.toMatchObject({ rows: [{ client_timeline_id: result.rows[0]!.timeline_id }] });
+      await expect(database.query(`SELECT client_id, client_timeline_id, storage_path FROM documents WHERE storage_path = $1`, [documentPath])).resolves.toMatchObject({ rows: [{ client_id: newClientId, client_timeline_id: timelineId, storage_path: documentPath }] });
     } finally { await database.exec("RESET ROLE"); }
   });
 
