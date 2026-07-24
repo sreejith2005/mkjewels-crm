@@ -697,6 +697,7 @@ export type Database = {
       }
       not_bought_followups: {
         Row: {
+          branch_id: string | null
           call_response: string | null
           client_id: string
           created_at: string
@@ -705,9 +706,12 @@ export type Database = {
           next_followup_date: string | null
           reference_number: string | null
           remark: string | null
+          source_timeline_id: string | null
+          source_visit_form_id: string | null
           status: string
         }
         Insert: {
+          branch_id?: string | null
           call_response?: string | null
           client_id: string
           created_at?: string
@@ -716,9 +720,12 @@ export type Database = {
           next_followup_date?: string | null
           reference_number?: string | null
           remark?: string | null
+          source_timeline_id?: string | null
+          source_visit_form_id?: string | null
           status: string
         }
         Update: {
+          branch_id?: string | null
           call_response?: string | null
           client_id?: string
           created_at?: string
@@ -727,15 +734,38 @@ export type Database = {
           next_followup_date?: string | null
           reference_number?: string | null
           remark?: string | null
+          source_timeline_id?: string | null
+          source_visit_form_id?: string | null
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "not_bought_followups_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "not_bought_followups_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "not_bought_followups_source_timeline_id_fkey"
+            columns: ["source_timeline_id"]
+            isOneToOne: false
+            referencedRelation: "client_timeline"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "not_bought_followups_source_visit_form_id_fkey"
+            columns: ["source_visit_form_id"]
+            isOneToOne: false
+            referencedRelation: "visit_forms"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "not_bought_followups_entered_by_fkey"
@@ -748,25 +778,34 @@ export type Database = {
       }
       not_bought_history: {
         Row: {
+          call_response: string | null
           created_at: string
           followup_id: string
           id: string
+          previous_status: string | null
           remark: string | null
           status: string
+          updated_by: string | null
         }
         Insert: {
+          call_response?: string | null
           created_at?: string
           followup_id: string
           id?: string
+          previous_status?: string | null
           remark?: string | null
           status: string
+          updated_by?: string | null
         }
         Update: {
+          call_response?: string | null
           created_at?: string
           followup_id?: string
           id?: string
+          previous_status?: string | null
           remark?: string | null
           status?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -774,6 +813,13 @@ export type Database = {
             columns: ["followup_id"]
             isOneToOne: false
             referencedRelation: "not_bought_followups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "not_bought_history_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -1052,6 +1098,10 @@ export type Database = {
       submit_walkin_visit: {
         Args: { p_payload: Json }
         Returns: { client_id: string; timeline_id: string; reference_number: string }[]
+      }
+      update_not_bought_followup: {
+        Args: { p_call_response: string; p_followup_id: string; p_next_followup_date?: string; p_remark?: string }
+        Returns: Database["public"]["Tables"]["not_bought_followups"]["Row"]
       }
     }
     Enums: {

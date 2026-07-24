@@ -25,6 +25,9 @@ const phaseTwoDocumentsMigrationPath = fileURLToPath(
 const phaseThreeMigrationPath = fileURLToPath(
   new URL("../prisma/migrations/20260724030000_phase_3_allocation_access/migration.sql", import.meta.url),
 );
+const phaseFourMigrationPath = fileURLToPath(
+  new URL("../prisma/migrations/20260724040000_phase_4_not_bought_followups/migration.sql", import.meta.url),
+);
 
 let database: PGlite;
 
@@ -67,6 +70,7 @@ beforeAll(async () => {
   await database.exec(await readFile(phaseTwoMigrationPath, "utf8"));
   await database.exec(await readFile(phaseTwoDocumentsMigrationPath, "utf8"));
   await database.exec(await readFile(phaseThreeMigrationPath, "utf8"));
+  await database.exec(await readFile(phaseFourMigrationPath, "utf8"));
 });
 
 afterAll(async () => {
@@ -445,14 +449,14 @@ describe("Phase 2 visit intake guarantees", () => {
     } finally { await database.exec("RESET ROLE"); }
   });
 
-  it("updates an existing client without duplication and leaves Phase 4 followups empty", async () => {
+  it("updates an existing client without duplication and creates its Phase 4 follow-up", async () => {
     const branch = "10000000-0000-4000-8000-000000000202"; const user = "30000000-0000-4000-8000-000000000202"; const client = "20000000-0000-4000-8000-000000000202";
     await database.query(`INSERT INTO branches (id,name) VALUES ($1,'Existing Branch')`, [branch]); await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,'Existing User','existing@example.com','salesperson',$2)`, [user, branch]); await database.query(`INSERT INTO clients (client_id,primary_name,primary_phone) VALUES ($1,'Existing','9000000202')`, [client]);
     await database.exec("SET ROLE authenticated"); await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [user]);
     try {
       await database.query(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ client_id: client, branch_id: branch, primary_name: "Existing Updated", primary_phone: "9000000202", did_buy: false, not_bought_reasons: ["Price"], next_visit_date: "2026-08-01", client_potential_category: "High" })]);
       await expect(database.query(`SELECT primary_name, client_potential_category, next_visit_date::text FROM clients WHERE client_id = $1`, [client])).resolves.toMatchObject({ rows: [{ primary_name: "Existing Updated", client_potential_category: "High", next_visit_date: "2026-08-01" }] });
-      await expect(database.query(`SELECT * FROM not_bought_followups WHERE client_id = $1`, [client])).resolves.toMatchObject({ rows: [] });
+      await expect(database.query(`SELECT status, remark FROM not_bought_followups WHERE client_id = $1`, [client])).resolves.toMatchObject({ rows: [{ status: "pending", remark: "Price" }] });
     } finally { await database.exec("RESET ROLE"); }
   });
 
@@ -508,5 +512,46 @@ describe("Phase 3 roster and availability guarantees", () => {
       await database.query(`UPDATE crm_allocation SET active=false WHERE branch_id=$1 AND crm_name='Historical CRM'`, [branch]);
       await expect(database.query(`SELECT t.crm_name, v.client_timeline_id FROM client_timeline t JOIN visit_forms v ON v.client_timeline_id=t.id WHERE t.id=$1`, [timeline])).resolves.toMatchObject({ rows: [{ crm_name: "Historical CRM", client_timeline_id: timeline }] });
     } finally { await database.exec("RESET ROLE"); }
+  });
+});
+
+describe("Phase 4 not-bought follow-up guarantees", () => {
+  async function createNotBoughtVisit(branch: string, user: string, client: string, suffix: string, eventDate = "2026-07-20T10:00:00Z") {
+    await database.query(`INSERT INTO branches (id,name) VALUES ($1,$2)`, [branch, `Followup Branch ${suffix}`]);
+    await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,$2,$3,'salesperson',$4)`, [user, `Followup User ${suffix}`, `followup-${suffix}@example.com`, branch]);
+    await database.query(`INSERT INTO clients (client_id,primary_name,primary_phone) VALUES ($1,$2,$3)`, [client, `Followup Client ${suffix}`, `9000004${suffix.padStart(3, "0")}`]);
+    await database.exec("SET ROLE authenticated"); await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [user]);
+    const result = await database.query<{ timeline_id: string }>(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ client_id: client, branch_id: branch, primary_name: `Followup Client ${suffix}`, primary_phone: `9000004${suffix.padStart(3, "0")}`, did_buy: false, not_bought_reasons: ["Price"], event_date: eventDate })]);
+    return result.rows[0]!;
+  }
+
+  it("auto-creates one pending follow-up with traceability and three-day defaults for a did_buy=false visit", async () => {
+    const branch = "10000000-0000-4000-8000-000000000401", user = "30000000-0000-4000-8000-000000000401", client = "20000000-0000-4000-8000-000000000401";
+    try { const visit = await createNotBoughtVisit(branch, user, client, "401"); await expect(database.query(`SELECT status,next_followup_date::text,remark,branch_id::text,source_timeline_id::text,source_visit_form_id FROM not_bought_followups WHERE client_id=$1`, [client])).resolves.toMatchObject({ rows: [{ status: "pending", next_followup_date: "2026-07-23", remark: "Price", branch_id: branch, source_timeline_id: visit.timeline_id, source_visit_form_id: expect.any(String) }] }); } finally { await database.exec("RESET ROLE"); }
+  });
+
+  it("does not create a duplicate when a client has a second not-bought visit while pending", async () => {
+    const branch = "10000000-0000-4000-8000-000000000402", user = "30000000-0000-4000-8000-000000000402", client = "20000000-0000-4000-8000-000000000402";
+    try { await createNotBoughtVisit(branch, user, client, "402"); await database.query(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ client_id: client, branch_id: branch, primary_name: "Followup Client 402", primary_phone: "9000004402", did_buy: false, event_date: "2026-07-21T10:00:00Z" })]); await expect(database.query(`SELECT id FROM not_bought_followups WHERE client_id=$1`, [client])).resolves.toMatchObject({ rows: [expect.anything()] }); } finally { await database.exec("RESET ROLE"); }
+  });
+
+  it("allows a new follow-up after a converted follow-up and another not-bought visit", async () => {
+    const branch = "10000000-0000-4000-8000-000000000403", user = "30000000-0000-4000-8000-000000000403", client = "20000000-0000-4000-8000-000000000403";
+    try { await createNotBoughtVisit(branch, user, client, "403"); const existing = await database.query<{ id: string }>(`SELECT id FROM not_bought_followups WHERE client_id=$1`, [client]); await database.query(`SELECT update_not_bought_followup($1,'converted','Converted in store',NULL)`, [existing.rows[0]!.id]); await database.query(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ client_id: client, branch_id: branch, primary_name: "Followup Client 403", primary_phone: "9000004403", did_buy: false, event_date: "2026-07-22T10:00:00Z" })]); await expect(database.query(`SELECT status FROM not_bought_followups WHERE client_id=$1 ORDER BY created_at`, [client])).resolves.toMatchObject({ rows: [{ status: "converted" }, { status: "pending" }] }); } finally { await database.exec("RESET ROLE"); }
+  });
+
+  it("logs every call outcome with old and new status plus the acting user", async () => {
+    const branch = "10000000-0000-4000-8000-000000000404", user = "30000000-0000-4000-8000-000000000404", client = "20000000-0000-4000-8000-000000000404";
+    try { await createNotBoughtVisit(branch, user, client, "404"); const followup = await database.query<{ id: string }>(`SELECT id FROM not_bought_followups WHERE client_id=$1`, [client]); await database.query(`SELECT update_not_bought_followup($1,'interested','Will visit Saturday',NULL)`, [followup.rows[0]!.id]); await expect(database.query(`SELECT previous_status,status,call_response,remark,updated_by::text FROM not_bought_history WHERE followup_id=$1`, [followup.rows[0]!.id])).resolves.toMatchObject({ rows: [{ previous_status: "pending", status: "pending", call_response: "interested", remark: "Will visit Saturday", updated_by: user }] }); } finally { await database.exec("RESET ROLE"); }
+  });
+
+  it("keeps follow-ups globally readable but restricts writes to the originating branch and super admin", async () => {
+    const branchA = "10000000-0000-4000-8000-000000000405", branchB = "10000000-0000-4000-8000-000000000406", userA = "30000000-0000-4000-8000-000000000405", userB = "30000000-0000-4000-8000-000000000406", admin = "30000000-0000-4000-8000-000000000407", client = "20000000-0000-4000-8000-000000000405";
+    try { await createNotBoughtVisit(branchA, userA, client, "405"); const followup = await database.query<{ id: string }>(`SELECT id FROM not_bought_followups WHERE client_id=$1`, [client]); await database.exec("RESET ROLE"); await database.query(`INSERT INTO branches (id,name) VALUES ($1,'Followup Branch B')`, [branchB]); await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,'Other Branch','followup-406@example.com','salesperson',$2),($3,'Followup Admin','followup-admin@example.com','super_admin',NULL)`, [userB, branchB, admin]); await database.exec("SET ROLE authenticated"); await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [userB]); await expect(database.query(`SELECT id FROM not_bought_followups WHERE id=$1`, [followup.rows[0]!.id])).resolves.toMatchObject({ rows: [{ id: followup.rows[0]!.id }] }); await expect(database.query(`SELECT update_not_bought_followup($1,'no_response',NULL,NULL)`, [followup.rows[0]!.id])).rejects.toThrow(/own branch|privilege/i); await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [userA]); await expect(database.query(`SELECT update_not_bought_followup($1,'no_response',NULL,NULL)`, [followup.rows[0]!.id])).resolves.toBeDefined(); await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [admin]); await expect(database.query(`SELECT update_not_bought_followup($1,'converted',NULL,NULL)`, [followup.rows[0]!.id])).resolves.toBeDefined(); } finally { await database.exec("RESET ROLE"); }
+  });
+
+  it("identifies an open follow-up as overdue when its next follow-up date has passed", async () => {
+    const branch = "10000000-0000-4000-8000-000000000407", user = "30000000-0000-4000-8000-000000000408", client = "20000000-0000-4000-8000-000000000407";
+    try { await createNotBoughtVisit(branch, user, client, "407", "2020-01-01T10:00:00Z"); await expect(database.query(`SELECT next_followup_date < CURRENT_DATE AND status NOT IN ('closed','converted') AS overdue FROM not_bought_followups WHERE client_id=$1`, [client])).resolves.toMatchObject({ rows: [{ overdue: true }] }); } finally { await database.exec("RESET ROLE"); }
   });
 });

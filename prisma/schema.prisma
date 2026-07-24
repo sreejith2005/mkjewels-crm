@@ -20,6 +20,7 @@ model Branch {
   crmDailyAvailability CrmDailyAvailability[]
   entryQueueItems      EntryQueue[]
   users                User[]
+  notBoughtFollowups   NotBoughtFollowup[]
 
   @@map("branches")
 }
@@ -40,6 +41,7 @@ model User {
   updatedClients         Client[]            @relation("ClientProfileUpdatedBy")
   uploadedDocuments      Document[]
   enteredFollowups       NotBoughtFollowup[]
+  followupUpdates        NotBoughtHistory[] @relation("NotBoughtHistoryUpdatedBy")
   referrals              Referral[]
   branch                 Branch?             @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -145,6 +147,7 @@ model ClientTimeline {
   salesperson        User?      @relation(fields: [salespersonId], references: [id])
   documents          Document[]
   visitForm          VisitForm?
+  sourceFollowups    NotBoughtFollowup[] @relation("NotBoughtFollowupSourceTimeline")
 
   @@unique([id, clientId])
   @@index([clientId, eventDate(sort: Desc)])
@@ -214,6 +217,7 @@ model VisitForm {
   createdAt               DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt               DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   clientTimeline          ClientTimeline @relation(fields: [clientTimelineId], references: [id], onDelete: Cascade)
+  sourceFollowups         NotBoughtFollowup[] @relation("NotBoughtFollowupSourceVisitForm")
 
   @@index([clientType])
   @@index([didBuy])
@@ -297,15 +301,24 @@ model NotBoughtFollowup {
   callResponse     String?            @map("call_response")
   remark           String?
   enteredById      String             @map("entered_by") @db.Uuid
+  branchId         String?            @map("branch_id") @db.Uuid
+  sourceTimelineId String?            @map("source_timeline_id") @db.Uuid
+  sourceVisitFormId String?           @map("source_visit_form_id") @db.Uuid
   createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   client           Client             @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
   enteredBy        User               @relation(fields: [enteredById], references: [id])
+  branch           Branch?            @relation(fields: [branchId], references: [id])
+  sourceTimeline   ClientTimeline?    @relation("NotBoughtFollowupSourceTimeline", fields: [sourceTimelineId], references: [id])
+  sourceVisitForm  VisitForm?         @relation("NotBoughtFollowupSourceVisitForm", fields: [sourceVisitFormId], references: [id])
   history          NotBoughtHistory[]
 
   @@index([clientId, createdAt(sort: Desc)])
   @@index([status, nextFollowupDate])
   @@index([enteredById])
   @@index([referenceNumber])
+  @@index([branchId, status, nextFollowupDate])
+  @@index([sourceTimelineId])
+  @@index([sourceVisitFormId])
   @@map("not_bought_followups")
 }
 
@@ -313,11 +326,16 @@ model NotBoughtHistory {
   id         String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   followupId String            @map("followup_id") @db.Uuid
   status     String            @db.VarChar(80)
+  previousStatus String?       @map("previous_status") @db.VarChar(80)
   remark     String?
+  callResponse String?         @map("call_response") @db.VarChar(40)
+  updatedById String?          @map("updated_by") @db.Uuid
   createdAt  DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
   followup   NotBoughtFollowup @relation(fields: [followupId], references: [id], onDelete: Cascade)
+  updatedBy  User?             @relation("NotBoughtHistoryUpdatedBy", fields: [updatedById], references: [id])
 
   @@index([followupId, createdAt(sort: Desc)])
+  @@index([updatedById])
   @@map("not_bought_history")
 }
 
