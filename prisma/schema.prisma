@@ -45,6 +45,8 @@ model User {
   followupUpdates        NotBoughtHistory[] @relation("NotBoughtHistoryUpdatedBy")
   referrals              Referral[]
   referralCallUpdates    ReferralCallingHistory[] @relation("ReferralCallingHistoryUpdatedBy")
+  campaignsCreated       Campaign[]              @relation("CampaignCreatedBy")
+  campaignTagsApplied    ClientCampaignTag[]     @relation("ClientCampaignTagTaggedBy")
   branch                 Branch?             @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
   @@index([branchId])
@@ -110,6 +112,7 @@ model Client {
   entryQueueItems         EntryQueue[]
   notBoughtFollowups      NotBoughtFollowup[]
   referralsGiven          Referral[]
+  campaignTags            ClientCampaignTag[]
 
   @@index([primaryPhone])
   @@index([lastBranchId, lastVisitDate])
@@ -117,6 +120,37 @@ model Client {
   @@index([profileUpdatedById])
   @@index([nextVisitDate])
   @@map("clients")
+}
+
+model Campaign {
+  id          String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String              @unique @db.VarChar(200)
+  description String?
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?             @map("created_by") @db.Uuid
+  createdBy   User?               @relation("CampaignCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  clientTags  ClientCampaignTag[]
+
+  @@index([createdAt(sort: Desc)])
+  @@index([createdById])
+  @@map("campaigns")
+}
+
+model ClientCampaignTag {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clientId   String   @map("client_id") @db.Uuid
+  campaignId String   @map("campaign_id") @db.Uuid
+  taggedAt   DateTime @default(now()) @map("tagged_at") @db.Timestamptz(6)
+  taggedById String?  @map("tagged_by") @db.Uuid
+  note       String?
+  client     Client   @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  taggedBy   User?    @relation("ClientCampaignTagTaggedBy", fields: [taggedById], references: [id], onDelete: SetNull)
+
+  @@unique([clientId, campaignId])
+  @@index([campaignId, taggedAt(sort: Desc)])
+  @@index([taggedById])
+  @@map("client_campaign_tags")
 }
 
 model ClientPhoneIndex {
