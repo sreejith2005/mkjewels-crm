@@ -20,7 +20,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
-    "migration:dry-run": "tsx scripts/migration-dry-run.ts"
+    "migration:dry-run": "tsx scripts/migration-dry-run.ts",
+    "migration:import": "tsx scripts/migration-import.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

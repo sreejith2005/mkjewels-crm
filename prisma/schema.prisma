@@ -176,7 +176,7 @@ model ClientTimeline {
   orderCategories    String[]   @default([]) @map("order_categories")
   productRequirement String?    @map("product_requirement")
   remark             String?
-  referenceNumber    String?    @unique @map("reference_number") @db.VarChar(100)
+  referenceNumber    String?    @map("reference_number") @db.VarChar(100)
   createdAt          DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   branch             Branch     @relation(fields: [branchId], references: [id])
   client             Client     @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
