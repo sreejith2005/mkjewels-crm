@@ -12,6 +12,7 @@ type Row = Record<string, unknown>;
 type Issue = { row: number; reason: string };
 type SheetReport = { source: string; sheet: string; rowsRead: number; mapsCleanly: number; skipped: Issue[]; flagged: Issue[] };
 type SourceSheet = { source: string; sheet: string; rows: Array<{ row: number; values: Row }> };
+type SourceRow = { row: number; values: Row };
 
 const REQUIRED_SHEETS = [
   ["master", "CLIENT DATABASE MASTER"], ["timeline", "CLIENT TIMELINE"], ["editLog", "CLIENT PROFILE EDIT LOG"],
@@ -35,6 +36,9 @@ function dateValue(value: unknown) {
 function key(phone: string, date: string, reference: string) { return `${phone}|${date}|${reference.trim().toLowerCase()}`; }
 function splitValues(value: unknown) {
   return text(value).split(/[;,|\n]+/).map((part) => part.trim()).filter(Boolean);
+}
+function details(item: SourceRow, fields: string[]) {
+  return { row: item.row, ...Object.fromEntries(fields.map((field) => [field, text(item.values[field])])) };
 }
 
 async function loadWorkbook(filePath: string, source: string) {
@@ -60,18 +64,19 @@ export function planMigration(sheets: Record<string, SourceSheet>) {
   const reports: Record<string, SheetReport> = {};
   const makeReport = (kind: string): SheetReport => (reports[kind] = { source: sheets[kind].source, sheet: sheets[kind].sheet, rowsRead: sheets[kind].rows.length, mapsCleanly: 0, skipped: [], flagged: [] });
   const masterReport = makeReport("master");
-  const masterByPhone = new Map<string, { row: number; values: Row }>();
-  const masterById = new Map<string, string>();
+  const masterByPhone = new Map<string, SourceRow>();
+  const legacyClientIdToPhone = new Map<string, string>();
+  const legacyClientIdConflicts = new Set<string>();
   for (const item of sheets.master.rows) {
     const phone = normalisePhone(value(item.values, "PHONE KEY", "PRIMARY PHONE"));
     const clientId = text(item.values["CLIENT ID"]);
     if (!clientId || !phone) { masterReport.skipped.push({ row: item.row, reason: !clientId ? "missing CLIENT ID" : "malformed or missing PHONE KEY/PRIMARY PHONE" }); continue; }
     if (masterByPhone.has(phone)) { masterReport.flagged.push({ row: item.row, reason: `duplicate canonical PHONE KEY ${phone}` }); continue; }
-    masterByPhone.set(phone, item); masterById.set(clientId, phone); masterReport.mapsCleanly++;
+    masterByPhone.set(phone, item); legacyClientIdToPhone.set(clientId, phone); masterReport.mapsCleanly++;
   }
 
   const walkinReport = makeReport("walkin");
-  const walkinByPhone = new Map<string, Array<{ row: number; values: Row }>>();
+  const walkinByPhone = new Map<string, SourceRow[]>();
   const enrichableFields = ["GENDER", "BILLING PHONE", "COUNTRY", "STATE", "CITY", "CITY (OTHER)", "PINCODE", "ADDRESS", "COMMUNITY", "COMMUNITY (OTHER)", "DOB", "ANNIVERSARY"];
   let timelineFromWalkins = 0; let visitForms = 0;
   for (const item of sheets.walkin.rows) {
@@ -81,13 +86,33 @@ export function planMigration(sheets: Record<string, SourceSheet>) {
     if (!phone || !name) { walkinReport.skipped.push({ row: item.row, reason: !phone ? "malformed or missing CLIENT PHONE" : "missing CLIENT NAME" }); continue; }
     if (!date) walkinReport.flagged.push({ row: item.row, reason: "unparseable CLIENT VISIT DATE; profile may merge but visit cannot be created" });
     else { timelineFromWalkins++; visitForms++; }
-    walkinByPhone.set(phone, [...(walkinByPhone.get(phone) ?? []), item]); walkinReport.mapsCleanly++;
+    walkinByPhone.set(phone, [...(walkinByPhone.get(phone) ?? []), item]);
+    const legacyId = text(value(item.values, "CRM CLIENT ID", "CLIENT ID"));
+    if (legacyId) {
+      const existing = legacyClientIdToPhone.get(legacyId);
+      if (existing && existing !== phone) legacyClientIdConflicts.add(legacyId);
+      else legacyClientIdToPhone.set(legacyId, phone);
+    }
+    walkinReport.mapsCleanly++;
   }
-  const ambiguousWalkinPhones: Array<{ phone: string; rows: number[]; names: string[] }> = [];
+  const ambiguousWalkinPhones: Array<{ phone: string; rows: number[]; names: string[]; master: Record<string, string | number> | null; walkins: Array<Record<string, string | number>> }> = [];
   for (const [phone, items] of walkinByPhone) {
     const names = [...new Set(items.map((item) => text(value(item.values, "CLIENT NAME")).toLowerCase()).filter(Boolean))];
-    if (names.length >= 3) { ambiguousWalkinPhones.push({ phone, rows: items.map((item) => item.row), names }); for (const item of items) walkinReport.flagged.push({ row: item.row, reason: `ambiguous phone identity: ${names.length} different client names` }); }
+    if (names.length >= 3) {
+      ambiguousWalkinPhones.push({
+        phone, rows: items.map((item) => item.row), names,
+        master: masterByPhone.has(phone) ? details(masterByPhone.get(phone)!, ["CLIENT ID", "PRIMARY NAME", "OTHER NAMES", "PRIMARY PHONE", "BILLING PHONE", "CITY", "STATE", "ADDRESS"]) : null,
+        walkins: items.map((item) => details(item, ["CRM CLIENT ID", "CLIENT NAME", "CLIENT PHONE", "BILLING PHONE", "CLIENT VISIT DATE", "BRANCH", "CITY", "STATE", "ADDRESS", "GENDER"])),
+      });
+      for (const item of items) walkinReport.flagged.push({ row: item.row, reason: `ambiguous phone identity: ${names.length} different client names` });
+    }
   }
+  // This is the full client universe that Phase 7b will materialise.  Every
+  // legacy ID seen in a valid walk-in now resolves before secondary sheets run.
+  const fullClientByPhone = new Map<string, { source: "master" | "walkin"; row: number; values: Row }>();
+  for (const [phone, item] of masterByPhone) fullClientByPhone.set(phone, { source: "master", ...item });
+  for (const [phone, items] of walkinByPhone) if (!fullClientByPhone.has(phone)) fullClientByPhone.set(phone, { source: "walkin", ...items[0] });
+  const resolveLegacyClientId = (legacyId: string) => legacyClientIdConflicts.has(legacyId) ? null : legacyClientIdToPhone.get(legacyId) ?? null;
   let unchanged = 0, enriched = 0, newClients = 0;
   for (const [phone, items] of walkinByPhone) {
     const master = masterByPhone.get(phone);
@@ -97,26 +122,26 @@ export function planMigration(sheets: Record<string, SourceSheet>) {
   }
 
   const timelineReport = makeReport("timeline");
-  const timelineKeys = new Map<string, number[]>(); let timelineCreates = 0;
+  const timelineKeys = new Map<string, SourceRow[]>(); let timelineCreates = 0;
   for (const item of sheets.timeline.rows) {
-    const phone = masterById.get(text(item.values["CLIENT ID"]));
+    const legacyId = text(item.values["CLIENT ID"]); const phone = resolveLegacyClientId(legacyId);
     const date = dateValue(item.values["EVENT DATE"]); const branch = text(item.values["BRANCH"]);
-    if (!phone || !date || !branch) { timelineReport.skipped.push({ row: item.row, reason: !phone ? "CLIENT ID does not resolve to authoritative master phone" : !date ? "unparseable EVENT DATE" : "missing BRANCH" }); continue; }
+    if (!phone || !date || !branch) { timelineReport.skipped.push({ row: item.row, reason: !phone ? legacyClientIdConflicts.has(legacyId) ? "CLIENT ID resolves to conflicting walk-in phones" : "CLIENT ID does not resolve in the full merged client universe" : !date ? "unparseable EVENT DATE" : "missing BRANCH" }); continue; }
     timelineCreates++; timelineReport.mapsCleanly++;
-    const reference = text(item.values["REFERENCE NUMBER"]); if (reference) timelineKeys.set(key(phone, date, reference), [...(timelineKeys.get(key(phone, date, reference)) ?? []), item.row]);
+    const reference = text(item.values["REFERENCE NUMBER"]); if (reference) timelineKeys.set(key(phone, date, reference), [...(timelineKeys.get(key(phone, date, reference)) ?? []), item]);
   }
 
   const editReport = makeReport("editLog"); let editCreates = 0;
   for (const item of sheets.editLog.rows) {
     const clientId = text(item.values["CLIENT ID"]); const timestamp = dateValue(item.values["TIMESTAMP"]); const field = text(item.values["FIELD NAME"]);
-    if (!masterById.has(clientId) || !timestamp || !field) { editReport.skipped.push({ row: item.row, reason: !masterById.has(clientId) ? "CLIENT ID does not resolve to authoritative master" : !timestamp ? "unparseable TIMESTAMP" : "missing FIELD NAME" }); continue; }
+    if (!resolveLegacyClientId(clientId) || !timestamp || !field) { editReport.skipped.push({ row: item.row, reason: !resolveLegacyClientId(clientId) ? legacyClientIdConflicts.has(clientId) ? "CLIENT ID resolves to conflicting walk-in phones" : "CLIENT ID does not resolve in the full merged client universe" : !timestamp ? "unparseable TIMESTAMP" : "missing FIELD NAME" }); continue; }
     editCreates++; editReport.mapsCleanly++;
   }
 
-  const potentialDuplicates: Array<{ walkinRow: number; timelineRows: number[] }> = [];
+  const potentialDuplicates: Array<{ phone: string; walkin: SourceRow; timeline: SourceRow }> = [];
   for (const [phone, items] of walkinByPhone) for (const item of items) {
     const date = dateValue(value(item.values, "CLIENT VISIT DATE", "TIMESTAMP")); const reference = text(item.values["REFERENCE NUMBER"]);
-    if (!date || !reference) continue; const matches = timelineKeys.get(key(phone, date, reference)); if (matches) potentialDuplicates.push({ walkinRow: item.row, timelineRows: matches });
+    if (!date || !reference) continue; const matches = timelineKeys.get(key(phone, date, reference)); if (matches) for (const timeline of matches) potentialDuplicates.push({ phone, walkin: item, timeline });
   }
 
   const broadcastReport = makeReport("broadcast"); const campaigns = new Set<string>(); const campaignTags = new Set<string>();
@@ -144,16 +169,15 @@ export function planMigration(sheets: Record<string, SourceSheet>) {
   const aprilReport = makeReport("april"); const aprilCopyReport = makeReport("aprilCopy"); let followups = 0, followupHistory = 0; const aprilTagPhones = new Set<string>();
   for (const [report, source] of [[aprilReport, sheets.april], [aprilCopyReport, sheets.aprilCopy]] as const) for (const item of source.rows) {
     const phone = normalisePhone(value(item.values, "PHONE NUMBER")); const name = text(item.values["CLIENT NAME"]); const status = text(value(item.values, "STATUS", "APRIL STATUS", "REVISIT STATUS"));
-    if (!phone || !name || !status) { report.skipped.push({ row: item.row, reason: !phone ? "malformed PHONE NUMBER" : !name ? "missing CLIENT NAME" : "missing status" }); continue; }
+    if (!phone || !name || !status || !fullClientByPhone.has(phone)) { report.skipped.push({ row: item.row, reason: !phone ? "malformed PHONE NUMBER" : !name ? "missing CLIENT NAME" : !status ? "missing status" : "phone does not resolve in the full merged client universe" }); continue; }
     report.mapsCleanly++; followups++; followupHistory++; aprilTagPhones.add(phone);
   }
   campaigns.add("April Not Bought Outreach"); for (const phone of aprilTagPhones) campaignTags.add(`${phone}|april not bought outreach`);
 
   const pincodeReport = makeReport("pincode"); const formReport = makeReport("formData");
   const lookup = { cities: new Set<string>(), productCategories: new Set<string>(), beverages: new Set<string>(), snacks: new Set<string>(), gifts: new Set<string>(), communities: new Set<string>(), notBoughtReasons: new Set<string>(), pincodes: new Set<string>() };
-  for (const item of sheets.pincode.rows) { const city = text(item.values["CITY"]); const pincode = text(item.values["PINCODE"]); if (!city && !pincode) { pincodeReport.skipped.push({ row: item.row, reason: "no CITY or PINCODE" }); continue; } if (city) lookup.cities.add(city); if (pincode) lookup.pincodes.add(pincode); pincodeReport.mapsCleanly++; }
+  for (const item of sheets.pincode.rows) { const city = text(item.values["CITY"]); const pincode = text(item.values["PINCODE"]); if (!pincode) { pincodeReport.skipped.push({ row: item.row, reason: "missing PINCODE" }); continue; } if (city) lookup.cities.add(city); lookup.pincodes.add(pincode); pincodeReport.mapsCleanly++; }
   for (const item of sheets.formData.rows) { const fields: Array<[keyof typeof lookup, string]> = [["productCategories", "PRODUCT CATEGORIES"], ["beverages", "BEVERAGES"], ["snacks", "SNACK OPTION"], ["gifts", "GIFT OPTION"], ["communities", "CASTE"], ["notBoughtReasons", "REASON FOR NOT BOUGHT"]]; let found = false; for (const [target, field] of fields) for (const label of splitValues(item.values[field])) { lookup[target].add(label); found = true; } if (!found) formReport.skipped.push({ row: item.row, reason: "no supported lookup values" }); else formReport.mapsCleanly++; }
-  if (lookup.pincodes.size) pincodeReport.flagged.push({ row: 0, reason: `${lookup.pincodes.size} unique pincodes cannot be seeded: the current schema has no pincode lookup table` });
 
   const targetCounts = {
     clients: masterReport.mapsCleanly + newClients, client_phone_index: masterReport.mapsCleanly + newClients,
@@ -162,9 +186,19 @@ export function planMigration(sheets: Record<string, SourceSheet>) {
     not_bought_followups: followups, not_bought_history: followupHistory, campaigns: campaigns.size,
     client_campaign_tags: campaignTags.size, lookup_cities: lookup.cities.size, lookup_product_categories: lookup.productCategories.size,
     lookup_beverages: lookup.beverages.size, lookup_snacks: lookup.snacks.size, lookup_gifts: lookup.gifts.size,
-    lookup_communities: lookup.communities.size, lookup_not_bought_reasons: lookup.notBoughtReasons.size,
+    lookup_communities: lookup.communities.size, lookup_not_bought_reasons: lookup.notBoughtReasons.size, lookup_pincodes: lookup.pincodes.size,
   };
-  return { generatedAt: new Date().toISOString(), mode: "dry-run", databaseWrites: false, sourceSheets: reports, clientMergePreview: { canonicalMasterClients: masterReport.mapsCleanly, unchangedWithWalkins: unchanged, enrichedFromWalkins: enriched, newClientsFromWalkins: newClients, conflictingWalkinPhones: ambiguousWalkinPhones }, reconciliation: { potentialTimelineWalkinDuplicates: potentialDuplicates }, targetCounts, blockers: lookup.pincodes.size ? ["Pincode source data exists, but no existing pincode lookup table is present in Prisma. Phase 7b needs a schema decision before these rows can be written."] : [] };
+  const walkinRowsByNumber = new Map(sheets.walkin.rows.map((item) => [item.row, item]));
+  const flaggedWalkins = Object.entries(Object.groupBy(walkinReport.flagged, (issue) => issue.reason)).map(([reason, issues]) => ({
+    reason, count: issues!.length,
+    samples: issues!.slice(0, 15).map((issue) => details(walkinRowsByNumber.get(issue.row)!, ["CRM CLIENT ID", "CLIENT NAME", "CLIENT PHONE", "BILLING PHONE", "CLIENT VISIT DATE", "BRANCH", "CRM NAME", "SALESPERSON", "CITY", "STATE", "ADDRESS"])),
+  }));
+  const duplicateReview = potentialDuplicates.map(({ phone, walkin, timeline }) => ({
+    phone,
+    walkin: details(walkin, ["CRM CLIENT ID", "CLIENT VISIT DATE", "CLIENT NAME", "CLIENT PHONE", "BRANCH", "CRM NAME", "REFERENCE NUMBER", "CLIENT TYPE"]),
+    timeline: details(timeline, ["CLIENT ID", "EVENT DATE", "BRANCH", "CRM NAME", "REFERENCE NUMBER", "BUY STATUS", "REMARK"]),
+  }));
+  return { generatedAt: new Date().toISOString(), mode: "dry-run", databaseWrites: false, sourceSheets: reports, clientMergePreview: { canonicalMasterClients: masterReport.mapsCleanly, unchangedWithWalkins: unchanged, enrichedFromWalkins: enriched, newClientsFromWalkins: newClients, conflictingWalkinPhones: ambiguousWalkinPhones }, reconciliation: { potentialTimelineWalkinDuplicates: potentialDuplicates }, humanReview: { conflictingPhoneIdentities: ambiguousWalkinPhones, flaggedWalkins, potentialTimelineWalkinDuplicates: duplicateReview }, targetCounts, fullClientUniverse: { clients: fullClientByPhone.size, legacyIds: legacyClientIdToPhone.size, conflictingLegacyIds: [...legacyClientIdConflicts] }, blockers: [] };
 }
 
 function markdown(report: ReturnType<typeof planMigration>) {
@@ -180,6 +214,26 @@ function markdown(report: ReturnType<typeof planMigration>) {
   return `${lines.join("\n")}\n`;
 }
 
+function cell(value: unknown) { return text(value).replaceAll("|", "\\|").replaceAll("\n", " "); }
+function table(rows: Array<Record<string, string | number>>) {
+  if (!rows.length) return "_None._\n";
+  const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))];
+  return `| ${columns.join(" | ")} |\n| ${columns.map(() => "---").join(" | ")} |\n${rows.map((row) => `| ${columns.map((column) => cell(row[column])).join(" | ")} |`).join("\n")}\n`;
+}
+
+function humanReviewMarkdown(report: ReturnType<typeof planMigration>) {
+  const review = report.humanReview;
+  const lines = ["# Phase 7a — needs human review", "", `Generated: ${report.generatedAt}`, "", "This is a dry-run review artifact. No decision in this document changes the import plan or writes to a database.", "", "## 1. Conflicting phone identities", ""];
+  for (const conflict of review.conflictingPhoneIdentities) {
+    lines.push(`### ${conflict.phone}`, "", `Name variants: ${conflict.names.join("; ")}`, "", "Authoritative master row:", "", table(conflict.master ? [conflict.master] : []), "Walk-in source rows:", "", table(conflict.walkins));
+  }
+  lines.push("## 2. Flagged walk-in rows", "");
+  for (const group of review.flaggedWalkins) lines.push(`### ${group.reason} (${group.count})`, "", "Representative rows (first 15):", "", table(group.samples));
+  lines.push("## 3. Potential timeline / walk-in duplicates", "", `Showing ${Math.min(50, review.potentialTimelineWalkinDuplicates.length)} of ${review.potentialTimelineWalkinDuplicates.length}. Match key: normalized phone + date + reference number.`, "");
+  for (const duplicate of review.potentialTimelineWalkinDuplicates.slice(0, 50)) lines.push(`### ${duplicate.phone}`, "", "Walk-in:", "", table([duplicate.walkin]), "Timeline:", "", table([duplicate.timeline]));
+  return `${lines.join("\n")}\n`;
+}
+
 async function main() {
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   const [clientSheets, walkinSheets] = await Promise.all([loadWorkbook(path.join(root, "01 CLIENT DATABASE.xlsx"), "client"), loadWorkbook(path.join(root, "01 WALKIN DATA.xlsx"), "walkin")]);
@@ -187,6 +241,7 @@ async function main() {
   const report = planMigration(sheets); const output = path.join(root, "migration-reports"); await fs.mkdir(output, { recursive: true });
   await fs.writeFile(path.join(output, "migration-dry-run-report.json"), `${JSON.stringify(report, null, 2)}\n`);
   await fs.writeFile(path.join(output, "migration-dry-run-summary.md"), markdown(report));
+  await fs.writeFile(path.join(output, "needs-human-review.md"), humanReviewMarkdown(report));
   console.log(markdown(report)); console.log(`Reports written to ${output}`);
 }
 

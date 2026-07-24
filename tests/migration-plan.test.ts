@@ -16,4 +16,14 @@ describe("Phase 7 migration planner", () => {
     expect(plan.clientMergePreview.newClientsFromWalkins).toBe(1);
     expect(plan.clientMergePreview.conflictingWalkinPhones).toHaveLength(1);
   });
+
+  it("resolves secondary-sheet legacy IDs after valid walk-ins expand the client universe", () => {
+    const empty = sheet([]);
+    const plan = planMigration({ master: sheet([{ "CLIENT ID": "master-1", "PHONE KEY": "9999999999", "PRIMARY NAME": "Known" }]), walkin: sheet([
+      { "CRM CLIENT ID": "walkin-client-2", "CLIENT PHONE": "88888 88888", "CLIENT NAME": "New", "CLIENT VISIT DATE": "2026-01-01" },
+    ]), timeline: sheet([{ "CLIENT ID": "walkin-client-2", "EVENT DATE": "2026-01-01", BRANCH: "Branch A" }]), editLog: sheet([{ "CLIENT ID": "walkin-client-2", TIMESTAMP: "2026-01-01", "FIELD NAME": "CITY" }]), broadcast: empty, entryQueue: empty, referrals: empty, april: empty, aprilCopy: empty, pincode: empty, formData: empty });
+    expect(plan.sourceSheets.timeline.mapsCleanly).toBe(1);
+    expect(plan.sourceSheets.editLog.mapsCleanly).toBe(1);
+    expect(plan.fullClientUniverse.clients).toBe(2);
+  });
 });

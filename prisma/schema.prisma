@@ -446,6 +446,19 @@ model LookupCity {
   @@map("lookup_cities")
 }
 
+model LookupPincode {
+  id      String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pincode String  @unique @db.VarChar(12)
+  city    String? @db.VarChar(160)
+  state   String? @db.VarChar(100)
+  country String? @db.VarChar(100)
+  active  Boolean @default(true)
+
+  @@index([active, pincode])
+  @@index([city])
+  @@map("lookup_pincodes")
+}
+
 model LookupCommunity {
   id     String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   label  String  @unique @db.VarChar(160)
