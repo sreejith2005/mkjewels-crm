@@ -1005,6 +1005,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_entry_queue: {
+        Args: { p_assigned_crm_name?: string; p_branch_id?: string; p_client_name: string; p_mobile: string }
+        Returns: { token: string; client_id: string | null; client_type: string }[]
+      }
       create_client_with_phone: {
         Args: {
           p_branch_id?: string
@@ -1044,6 +1048,10 @@ export type Database = {
           primary_name: string
           primary_phone: string
         }[]
+      }
+      submit_walkin_visit: {
+        Args: { p_payload: Json }
+        Returns: { client_id: string; timeline_id: string; reference_number: string }[]
       }
     }
     Enums: {

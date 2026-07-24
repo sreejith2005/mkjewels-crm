@@ -8,91 +8,40 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum UserRole {
-  super_admin
-  branch_manager
-  salesperson
-
-  @@map("user_role")
-}
-
-enum BuyStatus {
-  ORDER_PLACED
-  ORDER_PICKUP
-  REPAIR_PLACED
-  REPAIR_PICKUP
-  PRODUCT_RETURN
-  PRODUCT_EXCHANGE
-  STORE_VISIT
-  PRICE_CALCULATION
-  YES
-  NO
-  YES_AND_ORDER_PLACED
-  ORDER_PLACED_AND_BUYING_NEW_PRODUCT
-  ORDER_PLACED_AND_MAKING_NEW_ORDER
-  ORDER_PICKUP_AND_BUYING_NEW_PRODUCT
-  ORDER_PICKUP_AND_MAKING_NEW_ORDER
-  REPAIR_PLACED_AND_BUYING_NEW_PRODUCT
-  REPAIR_PLACED_AND_MAKING_NEW_ORDER
-  REPAIR_PICKUP_AND_BUYING_NEW_PRODUCT
-  REPAIR_PICKUP_AND_MAKING_NEW_ORDER
-
-  @@map("buy_status")
-}
-
-enum EventType {
-  UPSALE_VISIT
-  READY_PRODUCT_PURCHASE
-  ORDER_PLACED_VISIT
-  ORDER_PICKUP_VISIT
-  REPAIR_PLACED_VISIT
-  REPAIR_PICKUP_VISIT
-  PRODUCT_RETURN_VISIT
-  PRODUCT_EXCHANGE_VISIT
-  NON_PURCHASE_VISIT
-  STORE_VISIT
-  PRICE_CALCULATION_VISIT
-  VISIT
-
-  @@map("event_type")
-}
-
 model Branch {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name      String   @unique @db.VarChar(120)
-  address   String?
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  users                User[]
-  clientsLastVisited   Client[]               @relation("ClientLastBranch")
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                 String                 @unique @db.VarChar(120)
+  address              String?
+  active               Boolean                @default(true)
+  createdAt            DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
   timelineEvents       ClientTimeline[]
-  entryQueueItems      EntryQueue[]
+  clientsLastVisited   Client[]               @relation("ClientLastBranch")
   crmAllocations       CrmAllocation[]
   crmDailyAvailability CrmDailyAvailability[]
+  entryQueueItems      EntryQueue[]
+  users                User[]
 
   @@map("branches")
 }
 
 model User {
   /// Must equal the corresponding Supabase auth.users.id.
-  id        String   @id @db.Uuid
-  name      String   @db.VarChar(160)
-  phone     String?  @db.VarChar(30)
-  email     String   @unique @db.VarChar(320)
-  role      UserRole
-  branchId  String?  @map("branch_id") @db.Uuid
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  branch                 Branch?             @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  id                     String              @id @db.Uuid
+  name                   String              @db.VarChar(160)
+  phone                  String?             @db.VarChar(30)
+  email                  String              @unique @db.VarChar(320)
+  role                   UserRole
+  branchId               String?             @map("branch_id") @db.Uuid
+  active                 Boolean             @default(true)
+  createdAt              DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  clientEdits            ClientEditLog[]
+  timelineEvents         ClientTimeline[]
   lastSalespersonClients Client[]            @relation("ClientLastSalesperson")
   updatedClients         Client[]            @relation("ClientProfileUpdatedBy")
-  timelineEvents         ClientTimeline[]
-  clientEdits            ClientEditLog[]
+  uploadedDocuments      Document[]
   enteredFollowups       NotBoughtFollowup[]
   referrals              Referral[]
-  uploadedDocuments      Document[]
+  branch                 Branch?             @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
   @@index([branchId])
   @@index([role, active])
@@ -100,66 +49,63 @@ model User {
 }
 
 model Client {
-  clientId         String    @id @default(dbgenerated("gen_random_uuid()")) @map("client_id") @db.Uuid
-  primaryName      String    @map("primary_name") @db.VarChar(160)
-  otherNames       String[]  @default([]) @map("other_names")
-  primaryPhone     String    @map("primary_phone") @db.VarChar(30)
-  secondaryPhone   String?   @map("secondary_phone") @db.VarChar(30)
-  billingPhone     String?   @map("billing_phone") @db.VarChar(30)
-  otherKnownPhones String[]  @default([]) @map("other_known_phones")
-  gender           String?   @db.VarChar(40)
-  country          String?   @db.VarChar(100)
-  state            String?   @db.VarChar(100)
-  city             String?   @db.VarChar(120)
-  cityOther        String?   @map("city_other") @db.VarChar(120)
-  pincode          String?   @db.VarChar(12)
-  address          String?
-  community        String?   @db.VarChar(120)
-  communityOther   String?   @map("community_other") @db.VarChar(120)
-  dob              DateTime? @db.Date
-  anniversary      DateTime? @db.Date
-  beverage         String?   @db.VarChar(100)
-  sugar            String?   @db.VarChar(60)
-  snack            String?   @db.VarChar(100)
-  giftHistory      Json?     @map("gift_history") @db.JsonB
-
-  totalVisits            Int        @default(0) @map("total_visits")
-  totalPurchaseVisits    Int        @default(0) @map("total_purchase_visits")
-  totalNonPurchaseVisits Int        @default(0) @map("total_non_purchase_visits")
-  totalRepairVisits      Int        @default(0) @map("total_repair_visits")
-  totalOrderVisits       Int        @default(0) @map("total_order_visits")
-  firstVisitDate         DateTime?  @map("first_visit_date") @db.Timestamptz(6)
-  lastVisitDate          DateTime?  @map("last_visit_date") @db.Timestamptz(6)
-  lastBuyStatus          BuyStatus? @map("last_buy_status")
-  lastBranchId           String?    @map("last_branch_id") @db.Uuid
-  lastCrmName            String?    @map("last_crm_name") @db.VarChar(160)
-  lastSalespersonId      String?    @map("last_salesperson_id") @db.Uuid
-  lastRemark             String?    @map("last_remark")
-  lastProductRequirement String?    @map("last_product_requirement")
-  lastSeenCategories     String[]   @default([]) @map("last_seen_categories")
-  lastBoughtCategories   String[]   @default([]) @map("last_bought_categories")
-  lastOrderCategories    String[]   @default([]) @map("last_order_categories")
-
-  clientPotentialCategory String?   @map("client_potential_category") @db.VarChar(120)
-  highPotentialReason     String?   @map("high_potential_reason")
-  instagramStatus         String?   @map("instagram_status") @db.VarChar(80)
-  googleReviewStatus      String?   @map("google_review_status") @db.VarChar(80)
-  testimonialStatus       String?   @map("testimonial_status") @db.VarChar(80)
-  referralStatus          String?   @map("referral_status") @db.VarChar(80)
-  nextVisitDate           DateTime? @map("next_visit_date") @db.Date
-  profileUpdatedAt        DateTime  @default(now()) @updatedAt @map("profile_updated_at") @db.Timestamptz(6)
-  profileUpdatedById      String?   @map("profile_updated_by") @db.Uuid
-
-  lastBranch         Branch?             @relation("ClientLastBranch", fields: [lastBranchId], references: [id], onDelete: SetNull)
-  lastSalesperson    User?               @relation("ClientLastSalesperson", fields: [lastSalespersonId], references: [id], onDelete: SetNull)
-  profileUpdatedBy   User?               @relation("ClientProfileUpdatedBy", fields: [profileUpdatedById], references: [id], onDelete: SetNull)
-  phoneIndex         ClientPhoneIndex[]
-  timeline           ClientTimeline[]
-  editLog            ClientEditLog[]
-  entryQueueItems    EntryQueue[]
-  notBoughtFollowups NotBoughtFollowup[]
-  referralsGiven     Referral[]
-  documents          Document[]
+  clientId                String              @id @default(dbgenerated("gen_random_uuid()")) @map("client_id") @db.Uuid
+  primaryName             String              @map("primary_name") @db.VarChar(160)
+  otherNames              String[]            @default([]) @map("other_names")
+  primaryPhone            String              @map("primary_phone") @db.VarChar(30)
+  secondaryPhone          String?             @map("secondary_phone") @db.VarChar(30)
+  billingPhone            String?             @map("billing_phone") @db.VarChar(30)
+  otherKnownPhones        String[]            @default([]) @map("other_known_phones")
+  gender                  String?             @db.VarChar(40)
+  country                 String?             @db.VarChar(100)
+  state                   String?             @db.VarChar(100)
+  city                    String?             @db.VarChar(120)
+  cityOther               String?             @map("city_other") @db.VarChar(120)
+  pincode                 String?             @db.VarChar(12)
+  address                 String?
+  community               String?             @db.VarChar(120)
+  communityOther          String?             @map("community_other") @db.VarChar(120)
+  dob                     DateTime?           @db.Date
+  anniversary             DateTime?           @db.Date
+  beverage                String?             @db.VarChar(100)
+  sugar                   String?             @db.VarChar(60)
+  snack                   String?             @db.VarChar(100)
+  giftHistory             Json?               @map("gift_history")
+  totalVisits             Int                 @default(0) @map("total_visits")
+  totalPurchaseVisits     Int                 @default(0) @map("total_purchase_visits")
+  totalNonPurchaseVisits  Int                 @default(0) @map("total_non_purchase_visits")
+  totalRepairVisits       Int                 @default(0) @map("total_repair_visits")
+  totalOrderVisits        Int                 @default(0) @map("total_order_visits")
+  firstVisitDate          DateTime?           @map("first_visit_date") @db.Timestamptz(6)
+  lastVisitDate           DateTime?           @map("last_visit_date") @db.Timestamptz(6)
+  lastBuyStatus           BuyStatus?          @map("last_buy_status")
+  lastBranchId            String?             @map("last_branch_id") @db.Uuid
+  lastCrmName             String?             @map("last_crm_name") @db.VarChar(160)
+  lastSalespersonId       String?             @map("last_salesperson_id") @db.Uuid
+  lastRemark              String?             @map("last_remark")
+  lastProductRequirement  String?             @map("last_product_requirement")
+  lastSeenCategories      String[]            @default([]) @map("last_seen_categories")
+  lastBoughtCategories    String[]            @default([]) @map("last_bought_categories")
+  lastOrderCategories     String[]            @default([]) @map("last_order_categories")
+  clientPotentialCategory String?             @map("client_potential_category") @db.VarChar(120)
+  highPotentialReason     String?             @map("high_potential_reason")
+  instagramStatus         String?             @map("instagram_status") @db.VarChar(80)
+  googleReviewStatus      String?             @map("google_review_status") @db.VarChar(80)
+  testimonialStatus       String?             @map("testimonial_status") @db.VarChar(80)
+  referralStatus          String?             @map("referral_status") @db.VarChar(80)
+  nextVisitDate           DateTime?           @map("next_visit_date") @db.Date
+  profileUpdatedAt        DateTime            @default(now()) @updatedAt @map("profile_updated_at") @db.Timestamptz(6)
+  profileUpdatedById      String?             @map("profile_updated_by") @db.Uuid
+  editLog                 ClientEditLog[]
+  phoneIndex              ClientPhoneIndex[]
+  timeline                ClientTimeline[]
+  lastBranch              Branch?             @relation("ClientLastBranch", fields: [lastBranchId], references: [id])
+  lastSalesperson         User?               @relation("ClientLastSalesperson", fields: [lastSalespersonId], references: [id])
+  profileUpdatedBy        User?               @relation("ClientProfileUpdatedBy", fields: [profileUpdatedById], references: [id])
+  documents               Document[]
+  entryQueueItems         EntryQueue[]
+  notBoughtFollowups      NotBoughtFollowup[]
+  referralsGiven          Referral[]
 
   @@index([primaryPhone])
   @@index([lastBranchId, lastVisitDate])
@@ -172,8 +118,7 @@ model Client {
 model ClientPhoneIndex {
   phone    String @id @db.VarChar(30)
   clientId String @map("client_id") @db.Uuid
-
-  client Client @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+  client   Client @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
 
   @@index([clientId])
   @@map("client_phone_index")
@@ -193,14 +138,13 @@ model ClientTimeline {
   orderCategories    String[]   @default([]) @map("order_categories")
   productRequirement String?    @map("product_requirement")
   remark             String?
-  referenceNumber    String?    @map("reference_number") @db.VarChar(100)
+  referenceNumber    String?    @unique @map("reference_number") @db.VarChar(100)
   createdAt          DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  client      Client     @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
-  branch      Branch     @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  salesperson User?      @relation(fields: [salespersonId], references: [id], onDelete: SetNull)
-  visitForm   VisitForm?
-  documents   Document[]
+  branch             Branch     @relation(fields: [branchId], references: [id])
+  client             Client     @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+  salesperson        User?      @relation(fields: [salespersonId], references: [id])
+  documents          Document[]
+  visitForm          VisitForm?
 
   @@unique([id, clientId])
   @@index([clientId, eventDate(sort: Desc)])
@@ -216,12 +160,11 @@ model ClientEditLog {
   editedById String?  @map("edited_by") @db.Uuid
   source     String   @default("database_trigger") @db.VarChar(100)
   fieldName  String   @map("field_name") @db.VarChar(120)
-  oldValue   Json?    @map("old_value") @db.JsonB
-  newValue   Json?    @map("new_value") @db.JsonB
+  oldValue   Json?    @map("old_value")
+  newValue   Json?    @map("new_value")
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  client   Client @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
-  editedBy User?  @relation(fields: [editedById], references: [id], onDelete: SetNull)
+  client     Client   @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+  editedBy   User?    @relation(fields: [editedById], references: [id])
 
   @@index([clientId, createdAt(sort: Desc)])
   @@index([editedById])
@@ -229,58 +172,68 @@ model ClientEditLog {
 }
 
 model VisitForm {
-  id               String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  clientTimelineId String @unique @map("client_timeline_id") @db.Uuid
+  id                      String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clientTimelineId        String         @unique @map("client_timeline_id") @db.Uuid
+  companions              Json           @default("[]")
+  categoryDetails         Json           @default("{}") @map("category_details")
+  occupation              String?        @db.VarChar(120)
+  occupationOther         String?        @map("occupation_other") @db.VarChar(160)
+  bridalOrNonBridal       String?        @map("bridal_or_non_bridal") @db.VarChar(40)
+  weddingMonth            Int?           @map("wedding_month") @db.SmallInt
+  weddingYear             Int?           @map("wedding_year") @db.SmallInt
+  communicationPreference String?        @map("communication_preference") @db.VarChar(80)
+  sourceOfLead            String?        @map("source_of_lead") @db.VarChar(120)
+  sourceOfLeadOther       String?        @map("source_of_lead_other") @db.VarChar(160)
+  referenceName           String?        @map("reference_name") @db.VarChar(160)
+  referencePhone          String?        @map("reference_phone") @db.VarChar(30)
+  clientType              String?        @map("client_type") @db.VarChar(20)
+  didBuy                  Boolean?       @map("did_buy")
+  notBoughtReasons        String[]       @default([]) @map("not_bought_reasons")
+  notBoughtOther          String?        @map("not_bought_other")
+  repairOrOrderApproach   String?        @map("repair_or_order_approach")
+  marketingMessageSent    String?        @map("marketing_message_sent")
+  feedbackFormAsked       Boolean?       @map("feedback_form_asked")
+  feedbackFormNoReason    String?        @map("feedback_form_no_reason")
+  feedbackFormProofUrl    String?        @map("feedback_form_proof_url")
+  instagramAsked          Boolean?       @map("instagram_asked")
+  instagramNoReason       String?        @map("instagram_no_reason")
+  instagramProofUrl       String?        @map("instagram_proof_url")
+  googleReviewAsked       Boolean?       @map("google_review_asked")
+  googleReviewNoReason    String?        @map("google_review_no_reason")
+  googleReviewProofUrl    String?        @map("google_review_proof_url")
+  testimonialAsked        Boolean?       @map("testimonial_asked")
+  testimonialNoReason     String?        @map("testimonial_no_reason")
+  testimonialProofUrl     String?        @map("testimonial_proof_url")
+  thankYouNoteAsked       Boolean?       @map("thank_you_note_asked")
+  thankYouNoteNoReason    String?        @map("thank_you_note_no_reason")
+  thankYouNoteProofUrl    String?        @map("thank_you_note_proof_url")
+  referralsAsked          Boolean?       @map("referrals_asked")
+  referralsNoReason       String?        @map("referrals_no_reason")
+  referralsProofUrl       String?        @map("referrals_proof_url")
+  additionalFields        Json           @default("{}") @map("additional_fields")
+  createdAt               DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  clientTimeline          ClientTimeline @relation(fields: [clientTimelineId], references: [id], onDelete: Cascade)
 
-  companions              Json    @default("[]") @db.JsonB
-  categoryDetails         Json    @default("{}") @map("category_details") @db.JsonB
-  occupation              String? @db.VarChar(120)
-  occupationOther         String? @map("occupation_other") @db.VarChar(160)
-  bridalOrNonBridal       String? @map("bridal_or_non_bridal") @db.VarChar(40)
-  weddingMonth            Int?    @map("wedding_month") @db.SmallInt
-  weddingYear             Int?    @map("wedding_year") @db.SmallInt
-  communicationPreference String? @map("communication_preference") @db.VarChar(80)
-
-  instagramAsked       Boolean? @map("instagram_asked")
-  instagramNoReason    String?  @map("instagram_no_reason")
-  instagramProofUrl    String?  @map("instagram_proof_url")
-  googleReviewAsked    Boolean? @map("google_review_asked")
-  googleReviewNoReason String?  @map("google_review_no_reason")
-  googleReviewProofUrl String?  @map("google_review_proof_url")
-  testimonialAsked     Boolean? @map("testimonial_asked")
-  testimonialNoReason  String?  @map("testimonial_no_reason")
-  testimonialProofUrl  String?  @map("testimonial_proof_url")
-  thankYouNoteAsked    Boolean? @map("thank_you_note_asked")
-  thankYouNoteNoReason String?  @map("thank_you_note_no_reason")
-  thankYouNoteProofUrl String?  @map("thank_you_note_proof_url")
-  referralsAsked       Boolean? @map("referrals_asked")
-  referralsNoReason    String?  @map("referrals_no_reason")
-  referralsProofUrl    String?  @map("referrals_proof_url")
-
-  additionalFields Json     @default("{}") @map("additional_fields") @db.JsonB
-  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-
-  clientTimeline ClientTimeline @relation(fields: [clientTimelineId], references: [id], onDelete: Cascade)
-
+  @@index([clientType])
+  @@index([didBuy])
   @@index([occupation])
   @@index([bridalOrNonBridal, weddingYear, weddingMonth])
   @@map("visit_forms")
 }
 
 model Document {
-  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  clientId         String   @map("client_id") @db.Uuid
-  clientTimelineId String?  @map("client_timeline_id") @db.Uuid
-  uploadedById     String   @map("uploaded_by") @db.Uuid
-  fileName         String   @map("file_name")
-  storagePath      String   @unique @map("storage_path")
-  mimeType         String   @map("mime_type") @db.VarChar(255)
-  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  client         Client          @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
-  clientTimeline ClientTimeline? @relation(fields: [clientTimelineId, clientId], references: [id, clientId], onDelete: Restrict)
-  uploadedBy     User            @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clientId         String          @map("client_id") @db.Uuid
+  clientTimelineId String?         @map("client_timeline_id") @db.Uuid
+  uploadedById     String          @map("uploaded_by") @db.Uuid
+  fileName         String          @map("file_name")
+  storagePath      String          @unique @map("storage_path")
+  mimeType         String          @map("mime_type") @db.VarChar(255)
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  client           Client          @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+  clientTimeline   ClientTimeline? @relation(fields: [clientTimelineId, clientId], references: [id, clientId])
+  uploadedBy       User            @relation(fields: [uploadedById], references: [id])
 
   @@index([clientId, createdAt(sort: Desc)])
   @@index([clientTimelineId])
@@ -300,9 +253,8 @@ model EntryQueue {
   clientId          String?   @map("client_id") @db.Uuid
   remark            String?
   createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  branch Branch  @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  client Client? @relation(fields: [clientId], references: [clientId], onDelete: SetNull)
+  branch            Branch    @relation(fields: [branchId], references: [id])
+  client            Client?   @relation(fields: [clientId], references: [clientId])
 
   @@index([branchId, status, createdAt])
   @@index([clientId])
@@ -315,8 +267,7 @@ model CrmAllocation {
   crmName   String   @map("crm_name") @db.VarChar(160)
   active    Boolean  @default(true)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   @@unique([branchId, crmName])
   @@index([branchId, active])
@@ -330,8 +281,7 @@ model CrmDailyAvailability {
   date        DateTime @db.Date
   isAvailable Boolean  @default(true) @map("is_available")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   @@unique([branchId, crmName, date])
   @@index([branchId, date, isAvailable])
@@ -339,19 +289,18 @@ model CrmDailyAvailability {
 }
 
 model NotBoughtFollowup {
-  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  clientId         String    @map("client_id") @db.Uuid
-  referenceNumber  String?   @map("reference_number") @db.VarChar(100)
-  status           String    @db.VarChar(80)
-  nextFollowupDate DateTime? @map("next_followup_date") @db.Date
-  callResponse     String?   @map("call_response")
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clientId         String             @map("client_id") @db.Uuid
+  referenceNumber  String?            @map("reference_number") @db.VarChar(100)
+  status           String             @db.VarChar(80)
+  nextFollowupDate DateTime?          @map("next_followup_date") @db.Date
+  callResponse     String?            @map("call_response")
   remark           String?
-  enteredById      String    @map("entered_by") @db.Uuid
-  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  client    Client             @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
-  enteredBy User               @relation(fields: [enteredById], references: [id], onDelete: Restrict)
-  history   NotBoughtHistory[]
+  enteredById      String             @map("entered_by") @db.Uuid
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  client           Client             @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+  enteredBy        User               @relation(fields: [enteredById], references: [id])
+  history          NotBoughtHistory[]
 
   @@index([clientId, createdAt(sort: Desc)])
   @@index([status, nextFollowupDate])
@@ -361,30 +310,28 @@ model NotBoughtFollowup {
 }
 
 model NotBoughtHistory {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  followupId String   @map("followup_id") @db.Uuid
-  status     String   @db.VarChar(80)
+  id         String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  followupId String            @map("followup_id") @db.Uuid
+  status     String            @db.VarChar(80)
   remark     String?
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  followup NotBoughtFollowup @relation(fields: [followupId], references: [id], onDelete: Cascade)
+  createdAt  DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  followup   NotBoughtFollowup @relation(fields: [followupId], references: [id], onDelete: Cascade)
 
   @@index([followupId, createdAt(sort: Desc)])
   @@map("not_bought_history")
 }
 
 model Referral {
-  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  crmName         String?  @map("crm_name") @db.VarChar(160)
-  salespersonId   String   @map("salesperson_id") @db.Uuid
-  givenByClientId String   @map("given_by_client_id") @db.Uuid
-  referralName    String   @map("referral_name") @db.VarChar(160)
-  referralNumber  String   @map("referral_number") @db.VarChar(30)
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  salesperson   User              @relation(fields: [salespersonId], references: [id], onDelete: Restrict)
-  givenByClient Client            @relation(fields: [givenByClientId], references: [clientId], onDelete: Cascade)
-  calling       ReferralCalling[]
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  crmName         String?           @map("crm_name") @db.VarChar(160)
+  salespersonId   String            @map("salesperson_id") @db.Uuid
+  givenByClientId String            @map("given_by_client_id") @db.Uuid
+  referralName    String            @map("referral_name") @db.VarChar(160)
+  referralNumber  String            @map("referral_number") @db.VarChar(30)
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  calling         ReferralCalling[]
+  givenByClient   Client            @relation(fields: [givenByClientId], references: [clientId], onDelete: Cascade)
+  salesperson     User              @relation(fields: [salespersonId], references: [id])
 
   @@index([salespersonId, createdAt(sort: Desc)])
   @@index([givenByClientId])
@@ -399,8 +346,7 @@ model ReferralCalling {
   remark           String?
   nextFollowupDate DateTime? @map("next_followup_date") @db.Date
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  referral Referral @relation(fields: [referralId], references: [id], onDelete: Cascade)
+  referral         Referral  @relation(fields: [referralId], references: [id], onDelete: Cascade)
 
   @@index([referralId, createdAt(sort: Desc)])
   @@index([status, nextFollowupDate])
@@ -468,4 +414,53 @@ model LookupNotBoughtReason {
 
   @@index([active, label])
   @@map("lookup_not_bought_reasons")
+}
+
+enum UserRole {
+  super_admin
+  branch_manager
+  salesperson
+
+  @@map("user_role")
+}
+
+enum BuyStatus {
+  ORDER_PLACED
+  ORDER_PICKUP
+  REPAIR_PLACED
+  REPAIR_PICKUP
+  PRODUCT_RETURN
+  PRODUCT_EXCHANGE
+  STORE_VISIT
+  PRICE_CALCULATION
+  YES
+  NO
+  YES_AND_ORDER_PLACED
+  ORDER_PLACED_AND_BUYING_NEW_PRODUCT
+  ORDER_PLACED_AND_MAKING_NEW_ORDER
+  ORDER_PICKUP_AND_BUYING_NEW_PRODUCT
+  ORDER_PICKUP_AND_MAKING_NEW_ORDER
+  REPAIR_PLACED_AND_BUYING_NEW_PRODUCT
+  REPAIR_PLACED_AND_MAKING_NEW_ORDER
+  REPAIR_PICKUP_AND_BUYING_NEW_PRODUCT
+  REPAIR_PICKUP_AND_MAKING_NEW_ORDER
+
+  @@map("buy_status")
+}
+
+enum EventType {
+  UPSALE_VISIT
+  READY_PRODUCT_PURCHASE
+  ORDER_PLACED_VISIT
+  ORDER_PICKUP_VISIT
+  REPAIR_PLACED_VISIT
+  REPAIR_PICKUP_VISIT
+  PRODUCT_RETURN_VISIT
+  PRODUCT_EXCHANGE_VISIT
+  NON_PURCHASE_VISIT
+  STORE_VISIT
+  PRICE_CALCULATION_VISIT
+  VISIT
+
+  @@map("event_type")
 }

@@ -16,6 +16,9 @@ const phaseOneMigrationPath = fileURLToPath(
     import.meta.url,
   ),
 );
+const phaseTwoMigrationPath = fileURLToPath(
+  new URL("../prisma/migrations/20260724010000_phase_2_visit_intake/migration.sql", import.meta.url),
+);
 
 let database: PGlite;
 
@@ -55,6 +58,7 @@ beforeAll(async () => {
   const migration = await readFile(migrationPath, "utf8");
   await database.exec(migration);
   await database.exec(await readFile(phaseOneMigrationPath, "utf8"));
+  await database.exec(await readFile(phaseTwoMigrationPath, "utf8"));
 });
 
 afterAll(async () => {
@@ -409,6 +413,45 @@ describe("Phase 1 client CRM database guarantees", () => {
       await database.query(`UPDATE clients SET primary_name = $1 WHERE client_id = $2`, ["After", clientId]);
       const rows = await database.query<{ field_name: string; old_value: string; new_value: string; edited_by: string }>(`SELECT field_name, old_value::text, new_value::text, edited_by::text FROM client_edit_log WHERE client_id = $1`, [clientId]);
       expect(rows.rows).toEqual([{ field_name: "primary_name", old_value: '"Before"', new_value: '"After"', edited_by: salesperson }]);
+    } finally { await database.exec("RESET ROLE"); }
+  });
+});
+
+describe("Phase 2 visit intake guarantees", () => {
+  it("creates a new client, phone index, timeline, and visit form atomically", async () => {
+    const branch = "10000000-0000-4000-8000-000000000201";
+    const user = "30000000-0000-4000-8000-000000000201";
+    await database.query(`INSERT INTO branches (id,name) VALUES ($1,'Phase Two Branch')`, [branch]);
+    await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,'Visit User','visit@example.com','salesperson',$2)`, [user, branch]);
+    await database.exec("SET ROLE authenticated");
+    await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [user]);
+    try {
+      const result = await database.query<{ client_id: string; timeline_id: string; reference_number: string }>(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ branch_id: branch, primary_name: "Walk In", primary_phone: "+91 90123 45999", did_buy: true, seen_categories: ["Ring"] })]);
+      expect(result.rows[0]?.reference_number).toMatch(/^PHA-\d{6}-\d{4}$/);
+      await expect(database.query(`SELECT phone FROM client_phone_index WHERE client_id = $1`, [result.rows[0]!.client_id])).resolves.toMatchObject({ rows: [{ phone: "9012345999" }] });
+      await expect(database.query(`SELECT client_timeline_id FROM visit_forms WHERE client_timeline_id = $1`, [result.rows[0]!.timeline_id])).resolves.toMatchObject({ rows: [{ client_timeline_id: result.rows[0]!.timeline_id }] });
+    } finally { await database.exec("RESET ROLE"); }
+  });
+
+  it("updates an existing client without duplication and leaves Phase 4 followups empty", async () => {
+    const branch = "10000000-0000-4000-8000-000000000202"; const user = "30000000-0000-4000-8000-000000000202"; const client = "20000000-0000-4000-8000-000000000202";
+    await database.query(`INSERT INTO branches (id,name) VALUES ($1,'Existing Branch')`, [branch]); await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,'Existing User','existing@example.com','salesperson',$2)`, [user, branch]); await database.query(`INSERT INTO clients (client_id,primary_name,primary_phone) VALUES ($1,'Existing','9000000202')`, [client]);
+    await database.exec("SET ROLE authenticated"); await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [user]);
+    try {
+      await database.query(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ client_id: client, branch_id: branch, primary_name: "Existing Updated", primary_phone: "9000000202", did_buy: false, not_bought_reasons: ["Price"], next_visit_date: "2026-08-01", client_potential_category: "High" })]);
+      await expect(database.query(`SELECT primary_name, client_potential_category, next_visit_date::text FROM clients WHERE client_id = $1`, [client])).resolves.toMatchObject({ rows: [{ primary_name: "Existing Updated", client_potential_category: "High", next_visit_date: "2026-08-01" }] });
+      await expect(database.query(`SELECT * FROM not_bought_followups WHERE client_id = $1`, [client])).resolves.toMatchObject({ rows: [] });
+    } finally { await database.exec("RESET ROLE"); }
+  });
+
+  it("marks a queue entry complete and rejects a false branch", async () => {
+    const branch = "10000000-0000-4000-8000-000000000203"; const other = "10000000-0000-4000-8000-000000000204"; const user = "30000000-0000-4000-8000-000000000203";
+    await database.query(`INSERT INTO branches (id,name) VALUES ($1,'Queue Branch'),($2,'Other Queue Branch')`, [branch, other]); await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,'Queue User','queue@example.com','salesperson',$2)`, [user, branch]); await database.exec("SET ROLE authenticated"); await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [user]);
+    try {
+      const queue = await database.query<{ token: string }>(`SELECT * FROM create_entry_queue($1,$2,$3,$4)`, ["Queued", "9000000203", branch, null]); const entry = await database.query<{ id: string }>(`SELECT id FROM entry_queue WHERE token = $1`, [queue.rows[0]!.token]);
+      await database.query(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ entry_queue_id: entry.rows[0]!.id, branch_id: branch, primary_name: "Queued", primary_phone: "9000000203", did_buy: true })]);
+      await expect(database.query(`SELECT status FROM entry_queue WHERE id = $1`, [entry.rows[0]!.id])).resolves.toMatchObject({ rows: [{ status: "complete" }] });
+      await expect(database.query(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ branch_id: other, primary_name: "Forbidden", primary_phone: "9000000204", did_buy: true })])).rejects.toThrow(/own branch|privilege/i);
     } finally { await database.exec("RESET ROLE"); }
   });
 });
