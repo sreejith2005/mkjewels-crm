@@ -488,17 +488,25 @@ describe("Phase 3 roster and availability guarantees", () => {
     } finally { await database.exec("RESET ROLE"); }
   });
 
-  it("excludes only explicit daily unavailability from the assigned-CRM roster and retains history after deactivation", async () => {
+  it("excludes an explicitly unavailable CRM from today's assigned-CRM dropdown but not another date", async () => {
     const branch = "10000000-0000-4000-8000-000000000303"; const user = "30000000-0000-4000-8000-000000000304"; const client = "20000000-0000-4000-8000-000000000303";
-    await database.query(`INSERT INTO branches (id,name) VALUES ($1,'Availability Branch')`, [branch]); await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,'Availability Manager','availability@example.com','branch_manager',$2)`, [user, branch]); await database.query(`INSERT INTO clients (client_id,primary_name,primary_phone) VALUES ($1,'Historical Client','9000000303')`, [client]); await database.query(`INSERT INTO crm_allocation (branch_id,crm_name) VALUES ($1,'Available CRM'),($1,'Unavailable CRM')`, [branch]); await database.query(`INSERT INTO client_timeline (client_id,event_date,buy_status,branch_id,crm_name) VALUES ($1,'2026-07-23T10:00:00Z','YES',$2,'Unavailable CRM')`, [client, branch]);
+    await database.query(`INSERT INTO branches (id,name) VALUES ($1,'Availability Branch')`, [branch]); await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,'Availability Manager','availability@example.com','branch_manager',$2)`, [user, branch]); await database.query(`INSERT INTO clients (client_id,primary_name,primary_phone) VALUES ($1,'Historical Client','9000000303')`, [client]); await database.query(`INSERT INTO crm_allocation (branch_id,crm_name) VALUES ($1,'Available CRM'),($1,'Unavailable CRM')`, [branch]);
     await database.exec("SET ROLE authenticated"); await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [user]);
     try {
       await database.query(`INSERT INTO crm_daily_availability (branch_id,crm_name,date,is_available) VALUES ($1,'Unavailable CRM','2026-07-24',false)`, [branch]);
       const today = await database.query<{ crm_name: string }>(`SELECT a.crm_name FROM crm_allocation a LEFT JOIN crm_daily_availability d ON d.branch_id=a.branch_id AND d.crm_name=a.crm_name AND d.date='2026-07-24' WHERE a.branch_id=$1 AND a.active AND COALESCE(d.is_available,true) ORDER BY a.crm_name`, [branch]);
       const otherDay = await database.query<{ crm_name: string }>(`SELECT a.crm_name FROM crm_allocation a LEFT JOIN crm_daily_availability d ON d.branch_id=a.branch_id AND d.crm_name=a.crm_name AND d.date='2026-07-25' WHERE a.branch_id=$1 AND a.active AND COALESCE(d.is_available,true) ORDER BY a.crm_name`, [branch]);
       expect(today.rows.map((row) => row.crm_name)).toEqual(["Available CRM"]); expect(otherDay.rows.map((row) => row.crm_name)).toEqual(["Available CRM", "Unavailable CRM"]);
-      await database.query(`UPDATE crm_allocation SET active=false WHERE branch_id=$1 AND crm_name='Unavailable CRM'`, [branch]);
-      await expect(database.query(`SELECT crm_name FROM client_timeline WHERE client_id=$1`, [client])).resolves.toMatchObject({ rows: [{ crm_name: "Unavailable CRM" }] });
+    } finally { await database.exec("RESET ROLE"); }
+  });
+
+  it("retains historical timeline and visit-form records after a CRM roster entry is deactivated", async () => {
+    const branch = "10000000-0000-4000-8000-000000000304"; const user = "30000000-0000-4000-8000-000000000305"; const client = "20000000-0000-4000-8000-000000000304"; const timeline = "40000000-0000-4000-8000-000000000304";
+    await database.query(`INSERT INTO branches (id,name) VALUES ($1,'History Branch')`, [branch]); await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,'History Manager','history@example.com','branch_manager',$2)`, [user, branch]); await database.query(`INSERT INTO clients (client_id,primary_name,primary_phone) VALUES ($1,'Historical Client','9000000304')`, [client]); await database.query(`INSERT INTO crm_allocation (branch_id,crm_name) VALUES ($1,'Historical CRM')`, [branch]); await database.query(`INSERT INTO client_timeline (id,client_id,event_date,buy_status,branch_id,crm_name) VALUES ($1,$2,'2026-07-23T10:00:00Z','YES',$3,'Historical CRM')`, [timeline, client, branch]); await database.query(`INSERT INTO visit_forms (client_timeline_id) VALUES ($1)`, [timeline]);
+    await database.exec("SET ROLE authenticated"); await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [user]);
+    try {
+      await database.query(`UPDATE crm_allocation SET active=false WHERE branch_id=$1 AND crm_name='Historical CRM'`, [branch]);
+      await expect(database.query(`SELECT t.crm_name, v.client_timeline_id FROM client_timeline t JOIN visit_forms v ON v.client_timeline_id=t.id WHERE t.id=$1`, [timeline])).resolves.toMatchObject({ rows: [{ crm_name: "Historical CRM", client_timeline_id: timeline }] });
     } finally { await database.exec("RESET ROLE"); }
   });
 });
