@@ -10,6 +10,12 @@ const migrationPath = fileURLToPath(
     import.meta.url,
   ),
 );
+const phaseOneMigrationPath = fileURLToPath(
+  new URL(
+    "../prisma/migrations/20260724000000_phase_1_client_crm/migration.sql",
+    import.meta.url,
+  ),
+);
 
 let database: PGlite;
 
@@ -48,6 +54,7 @@ beforeAll(async () => {
 
   const migration = await readFile(migrationPath, "utf8");
   await database.exec(migration);
+  await database.exec(await readFile(phaseOneMigrationPath, "utf8"));
 });
 
 afterAll(async () => {
@@ -67,12 +74,8 @@ describe("Phase 0 database guarantees", () => {
     await database.query(
       `INSERT INTO clients (client_id, primary_name, primary_phone, last_branch_id)
        VALUES ($1, 'Client A', '9876543210', $3),
-              ($2, 'Client B', '9876543210', $3)`,
+              ($2, 'Client B', '9876543211', $3)`,
       [clientA, clientB, branchId],
-    );
-    await database.query(
-      `INSERT INTO client_phone_index (phone, client_id) VALUES ($1, $2)`,
-      ["+91 98765-43210", clientA],
     );
 
     await expect(
@@ -370,5 +373,42 @@ describe("Phase 0 database guarantees", () => {
     } finally {
       await database.exec("RESET ROLE");
     }
+  });
+});
+
+describe("Phase 1 client CRM database guarantees", () => {
+  it("keeps a salesperson's created client on their own branch and rejects duplicate phones", async () => {
+    const branch = "10000000-0000-4000-8000-000000000101";
+    const salesperson = "30000000-0000-4000-8000-000000000101";
+    await database.query(`INSERT INTO branches (id, name) VALUES ($1, 'Phase 1 branch')`, [branch]);
+    await database.query(`INSERT INTO users (id, name, email, role, branch_id) VALUES ($1, 'Phase 1 salesperson', 'phase1@example.com', 'salesperson', $2)`, [salesperson, branch]);
+    await database.exec("SET ROLE authenticated");
+    await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [salesperson]);
+    try {
+      const created = await database.query<{ create_client_with_phone: string }>(`SELECT create_client_with_phone($1, $2, NULL, NULL)`, ["New Client", "+91 90123-45678"]);
+      const clientId = created.rows[0]?.create_client_with_phone;
+      expect(clientId).toBeTruthy();
+      const client = await database.query<{ last_branch_id: string; primary_phone: string }>(`SELECT last_branch_id, primary_phone FROM clients WHERE client_id = $1`, [clientId]);
+      expect(client.rows[0]).toEqual({ last_branch_id: branch, primary_phone: "9012345678" });
+      await expect(database.query(`SELECT client_id FROM search_clients($1, 8)`, ["9012345678"])).resolves.toMatchObject({ rows: [{ client_id: clientId }] });
+      await expect(database.query(`SELECT client_id FROM search_clients($1, 8)`, ["3456"])).resolves.toMatchObject({ rows: [{ client_id: clientId }] });
+      await expect(database.query(`SELECT create_client_with_phone($1, $2, NULL, NULL)`, ["Duplicate", "9012345678"])).rejects.toThrow(/unique|duplicate/i);
+    } finally { await database.exec("RESET ROLE"); }
+  });
+
+  it("writes exactly one field-level audit row under the authenticated actor", async () => {
+    const branch = "10000000-0000-4000-8000-000000000102";
+    const salesperson = "30000000-0000-4000-8000-000000000102";
+    const clientId = "20000000-0000-4000-8000-000000000102";
+    await database.query(`INSERT INTO branches (id, name) VALUES ($1, 'Audit branch')`, [branch]);
+    await database.query(`INSERT INTO users (id, name, email, role, branch_id) VALUES ($1, 'Audit salesperson', 'audit@example.com', 'salesperson', $2)`, [salesperson, branch]);
+    await database.query(`INSERT INTO clients (client_id, primary_name, primary_phone, last_branch_id) VALUES ($1, 'Before', '9000000102', $2)`, [clientId, branch]);
+    await database.exec("SET ROLE authenticated");
+    await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [salesperson]);
+    try {
+      await database.query(`UPDATE clients SET primary_name = $1 WHERE client_id = $2`, ["After", clientId]);
+      const rows = await database.query<{ field_name: string; old_value: string; new_value: string; edited_by: string }>(`SELECT field_name, old_value::text, new_value::text, edited_by::text FROM client_edit_log WHERE client_id = $1`, [clientId]);
+      expect(rows.rows).toEqual([{ field_name: "primary_name", old_value: '"Before"', new_value: '"After"', edited_by: salesperson }]);
+    } finally { await database.exec("RESET ROLE"); }
   });
 });
