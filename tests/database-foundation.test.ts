@@ -31,6 +31,9 @@ const phaseFourMigrationPath = fileURLToPath(
 const phaseFiveMigrationPath = fileURLToPath(
   new URL("../prisma/migrations/20260724050000_phase_5_referral_calling/migration.sql", import.meta.url),
 );
+const phaseSixMigrationPath = fileURLToPath(
+  new URL("../prisma/migrations/20260724060000_phase_6_dashboard_indexes/migration.sql", import.meta.url),
+);
 
 let database: PGlite;
 
@@ -75,6 +78,7 @@ beforeAll(async () => {
   await database.exec(await readFile(phaseThreeMigrationPath, "utf8"));
   await database.exec(await readFile(phaseFourMigrationPath, "utf8"));
   await database.exec(await readFile(phaseFiveMigrationPath, "utf8"));
+  await database.exec(await readFile(phaseSixMigrationPath, "utf8"));
 });
 
 afterAll(async () => {
@@ -597,5 +601,22 @@ describe("Phase 5 referral calling guarantees", () => {
   it("identifies an open referral calling record as overdue when its next follow-up date has passed", async () => {
     const branch = "10000000-0000-4000-8000-000000000508", user = "30000000-0000-4000-8000-000000000508", client = "20000000-0000-4000-8000-000000000508";
     try { await createReferralVisit(branch, user, client, "508", "2020-01-01T10:00:00Z"); await expect(database.query(`SELECT c.next_followup_date < CURRENT_DATE AND c.status NOT IN ('closed','converted') AS overdue FROM referral_calling c JOIN referrals r ON r.id=c.referral_id WHERE r.given_by_client_id=$1`, [client])).resolves.toMatchObject({ rows: [{ overdue: true }] }); } finally { await database.exec("RESET ROLE"); }
+  });
+});
+
+describe("Phase 6 dashboard global-read guarantee", () => {
+  it("returns the same timeline data to salesperson, branch manager, and super admin", async () => {
+    const branchA = "10000000-0000-4000-8000-000000000601", branchB = "10000000-0000-4000-8000-000000000602", client = "20000000-0000-4000-8000-000000000601";
+    const salesperson = "30000000-0000-4000-8000-000000000601", manager = "30000000-0000-4000-8000-000000000602", admin = "30000000-0000-4000-8000-000000000603";
+    await database.query(`INSERT INTO branches (id,name) VALUES ($1,'Dashboard A'),($2,'Dashboard B')`, [branchA, branchB]);
+    await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,'Dashboard Sales','dash-sales@example.com','salesperson',$4),($2,'Dashboard Manager','dash-manager@example.com','branch_manager',$5),($3,'Dashboard Admin','dash-admin@example.com','super_admin',NULL)`, [salesperson, manager, admin, branchA, branchB]);
+    await database.query(`INSERT INTO clients (client_id,primary_name,primary_phone) VALUES ($1,'Dashboard Client','9000000601')`, [client]);
+    await database.query(`INSERT INTO client_timeline (client_id,event_date,buy_status,branch_id) VALUES ($1,'2026-07-24T10:00:00Z','YES',$2),($1,'2026-07-24T11:00:00Z','NO',$3)`, [client, branchA, branchB]);
+    await database.exec("SET ROLE authenticated");
+    try {
+      const visibleCounts: number[] = [];
+      for (const user of [salesperson, manager, admin]) { await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [user]); const result = await database.query<{ count: number }>(`SELECT count(*)::int AS count FROM client_timeline WHERE client_id = $1 AND event_date >= '2026-07-24' AND event_date < '2026-07-25'`, [client]); visibleCounts.push(result.rows[0]!.count); }
+      expect(visibleCounts).toEqual([2, 2, 2]);
+    } finally { await database.exec("RESET ROLE"); }
   });
 });
