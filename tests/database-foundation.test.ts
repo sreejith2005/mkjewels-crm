@@ -22,6 +22,9 @@ const phaseTwoMigrationPath = fileURLToPath(
 const phaseTwoDocumentsMigrationPath = fileURLToPath(
   new URL("../prisma/migrations/20260724020000_phase_2_documents_support/migration.sql", import.meta.url),
 );
+const phaseThreeMigrationPath = fileURLToPath(
+  new URL("../prisma/migrations/20260724030000_phase_3_allocation_access/migration.sql", import.meta.url),
+);
 
 let database: PGlite;
 
@@ -63,6 +66,7 @@ beforeAll(async () => {
   await database.exec(await readFile(phaseOneMigrationPath, "utf8"));
   await database.exec(await readFile(phaseTwoMigrationPath, "utf8"));
   await database.exec(await readFile(phaseTwoDocumentsMigrationPath, "utf8"));
+  await database.exec(await readFile(phaseThreeMigrationPath, "utf8"));
 });
 
 afterAll(async () => {
@@ -460,6 +464,41 @@ describe("Phase 2 visit intake guarantees", () => {
       await database.query(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ entry_queue_id: entry.rows[0]!.id, branch_id: branch, primary_name: "Queued", primary_phone: "9000000203", did_buy: true })]);
       await expect(database.query(`SELECT status FROM entry_queue WHERE id = $1`, [entry.rows[0]!.id])).resolves.toMatchObject({ rows: [{ status: "complete" }] });
       await expect(database.query(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ branch_id: other, primary_name: "Forbidden", primary_phone: "9000000204", did_buy: true })])).rejects.toThrow(/own branch|privilege/i);
+    } finally { await database.exec("RESET ROLE"); }
+  });
+});
+
+describe("Phase 3 roster and availability guarantees", () => {
+  it("makes the roster read-only for salespeople, branch-writable for managers, and global for super admins", async () => {
+    const branchA = "10000000-0000-4000-8000-000000000301"; const branchB = "10000000-0000-4000-8000-000000000302";
+    const salesperson = "30000000-0000-4000-8000-000000000301"; const manager = "30000000-0000-4000-8000-000000000302"; const admin = "30000000-0000-4000-8000-000000000303";
+    await database.query(`INSERT INTO branches (id,name) VALUES ($1,'Roster A'),($2,'Roster B')`, [branchA, branchB]);
+    await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,'Sales','sales301@example.com','salesperson',$4),($2,'Manager','manager302@example.com','branch_manager',$4),($3,'Admin','admin303@example.com','super_admin',NULL)`, [salesperson, manager, admin, branchA]);
+    await database.query(`INSERT INTO crm_allocation (branch_id,crm_name) VALUES ($1,'Anu')`, [branchA]);
+    await database.exec("SET ROLE authenticated");
+    try {
+      await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [salesperson]);
+      await expect(database.query(`SELECT crm_name FROM crm_allocation WHERE branch_id = $1`, [branchA])).resolves.toMatchObject({ rows: [{ crm_name: "Anu" }] });
+      await expect(database.query(`INSERT INTO crm_allocation (branch_id,crm_name) VALUES ($1,'Blocked')`, [branchA])).rejects.toThrow(/row-level security|policy/i);
+      await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [manager]);
+      await expect(database.query(`INSERT INTO crm_daily_availability (branch_id,crm_name,date,is_available) VALUES ($1,'Anu','2026-07-24',false)`, [branchA])).resolves.toBeDefined();
+      await expect(database.query(`INSERT INTO crm_allocation (branch_id,crm_name) VALUES ($1,'Wrong branch')`, [branchB])).rejects.toThrow(/row-level security|policy/i);
+      await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [admin]);
+      await expect(database.query(`INSERT INTO crm_allocation (branch_id,crm_name) VALUES ($1,'Admin can add')`, [branchB])).resolves.toBeDefined();
+    } finally { await database.exec("RESET ROLE"); }
+  });
+
+  it("excludes only explicit daily unavailability from the assigned-CRM roster and retains history after deactivation", async () => {
+    const branch = "10000000-0000-4000-8000-000000000303"; const user = "30000000-0000-4000-8000-000000000304"; const client = "20000000-0000-4000-8000-000000000303";
+    await database.query(`INSERT INTO branches (id,name) VALUES ($1,'Availability Branch')`, [branch]); await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,'Availability Manager','availability@example.com','branch_manager',$2)`, [user, branch]); await database.query(`INSERT INTO clients (client_id,primary_name,primary_phone) VALUES ($1,'Historical Client','9000000303')`, [client]); await database.query(`INSERT INTO crm_allocation (branch_id,crm_name) VALUES ($1,'Available CRM'),($1,'Unavailable CRM')`, [branch]); await database.query(`INSERT INTO client_timeline (client_id,event_date,buy_status,branch_id,crm_name) VALUES ($1,'2026-07-23T10:00:00Z','YES',$2,'Unavailable CRM')`, [client, branch]);
+    await database.exec("SET ROLE authenticated"); await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [user]);
+    try {
+      await database.query(`INSERT INTO crm_daily_availability (branch_id,crm_name,date,is_available) VALUES ($1,'Unavailable CRM','2026-07-24',false)`, [branch]);
+      const today = await database.query<{ crm_name: string }>(`SELECT a.crm_name FROM crm_allocation a LEFT JOIN crm_daily_availability d ON d.branch_id=a.branch_id AND d.crm_name=a.crm_name AND d.date='2026-07-24' WHERE a.branch_id=$1 AND a.active AND COALESCE(d.is_available,true) ORDER BY a.crm_name`, [branch]);
+      const otherDay = await database.query<{ crm_name: string }>(`SELECT a.crm_name FROM crm_allocation a LEFT JOIN crm_daily_availability d ON d.branch_id=a.branch_id AND d.crm_name=a.crm_name AND d.date='2026-07-25' WHERE a.branch_id=$1 AND a.active AND COALESCE(d.is_available,true) ORDER BY a.crm_name`, [branch]);
+      expect(today.rows.map((row) => row.crm_name)).toEqual(["Available CRM"]); expect(otherDay.rows.map((row) => row.crm_name)).toEqual(["Available CRM", "Unavailable CRM"]);
+      await database.query(`UPDATE crm_allocation SET active=false WHERE branch_id=$1 AND crm_name='Unavailable CRM'`, [branch]);
+      await expect(database.query(`SELECT crm_name FROM client_timeline WHERE client_id=$1`, [client])).resolves.toMatchObject({ rows: [{ crm_name: "Unavailable CRM" }] });
     } finally { await database.exec("RESET ROLE"); }
   });
 });
