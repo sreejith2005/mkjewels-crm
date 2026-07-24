@@ -28,6 +28,9 @@ const phaseThreeMigrationPath = fileURLToPath(
 const phaseFourMigrationPath = fileURLToPath(
   new URL("../prisma/migrations/20260724040000_phase_4_not_bought_followups/migration.sql", import.meta.url),
 );
+const phaseFiveMigrationPath = fileURLToPath(
+  new URL("../prisma/migrations/20260724050000_phase_5_referral_calling/migration.sql", import.meta.url),
+);
 
 let database: PGlite;
 
@@ -71,6 +74,7 @@ beforeAll(async () => {
   await database.exec(await readFile(phaseTwoDocumentsMigrationPath, "utf8"));
   await database.exec(await readFile(phaseThreeMigrationPath, "utf8"));
   await database.exec(await readFile(phaseFourMigrationPath, "utf8"));
+  await database.exec(await readFile(phaseFiveMigrationPath, "utf8"));
 });
 
 afterAll(async () => {
@@ -553,5 +557,45 @@ describe("Phase 4 not-bought follow-up guarantees", () => {
   it("identifies an open follow-up as overdue when its next follow-up date has passed", async () => {
     const branch = "10000000-0000-4000-8000-000000000407", user = "30000000-0000-4000-8000-000000000408", client = "20000000-0000-4000-8000-000000000407";
     try { await createNotBoughtVisit(branch, user, client, "407", "2020-01-01T10:00:00Z"); await expect(database.query(`SELECT next_followup_date < CURRENT_DATE AND status NOT IN ('closed','converted') AS overdue FROM not_bought_followups WHERE client_id=$1`, [client])).resolves.toMatchObject({ rows: [{ overdue: true }] }); } finally { await database.exec("RESET ROLE"); }
+  });
+});
+
+describe("Phase 5 referral calling guarantees", () => {
+  async function createReferralVisit(branch: string, user: string, client: string, suffix: string, eventDate = "2026-07-20T10:00:00Z") {
+    await database.query(`INSERT INTO branches (id,name) VALUES ($1,$2)`, [branch, `Referral Branch ${suffix}`]);
+    await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,$2,$3,'salesperson',$4)`, [user, `Referral User ${suffix}`, `referral-${suffix}@example.com`, branch]);
+    await database.query(`INSERT INTO clients (client_id,primary_name,primary_phone) VALUES ($1,$2,$3)`, [client, `Referral Client ${suffix}`, `9000005${suffix.padStart(3, "0")}`]);
+    await database.exec("SET ROLE authenticated"); await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [user]);
+    return database.query<{ timeline_id: string }>(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ client_id: client, branch_id: branch, primary_name: `Referral Client ${suffix}`, primary_phone: `9000005${suffix.padStart(3, "0")}`, did_buy: true, event_date: eventDate, reference_name: `Captured Referral ${suffix}`, reference_phone: `98765${suffix.padStart(5, "0")}`, engagement: { referrals: { asked: true } } })]);
+  }
+
+  it("auto-creates exactly one referral and pending call from a referral-captured visit", async () => {
+    const branch = "10000000-0000-4000-8000-000000000501", user = "30000000-0000-4000-8000-000000000501", client = "20000000-0000-4000-8000-000000000501";
+    try { const visit = await createReferralVisit(branch, user, client, "501"); await expect(database.query(`SELECT r.referral_name,r.referral_number,r.branch_id::text,r.source_timeline_id::text,r.source_visit_form_id,c.status,c.next_followup_date::text FROM referrals r JOIN referral_calling c ON c.referral_id=r.id WHERE r.given_by_client_id=$1`, [client])).resolves.toMatchObject({ rows: [{ referral_name: "Captured Referral 501", referral_number: "9876500501", branch_id: branch, source_timeline_id: visit.rows[0]!.timeline_id, source_visit_form_id: expect.any(String), status: "pending", next_followup_date: "2026-07-21" }] }); } finally { await database.exec("RESET ROLE"); }
+  });
+
+  it("creates a manual referral with null visit source fields and the same pending calling shape", async () => {
+    const branch = "10000000-0000-4000-8000-000000000502", user = "30000000-0000-4000-8000-000000000502", client = "20000000-0000-4000-8000-000000000502";
+    try { await createReferralVisit(branch, user, client, "502"); const result = await database.query<{ id: string }>(`SELECT id FROM create_manual_referral($1,'Manual Referral','91234 56789','CRM A',NULL)`, [client]); await expect(database.query(`SELECT r.source_timeline_id,r.source_visit_form_id,r.crm_name,c.status FROM referrals r JOIN referral_calling c ON c.referral_id=r.id WHERE r.id=$1`, [result.rows[0]!.id])).resolves.toMatchObject({ rows: [{ source_timeline_id: null, source_visit_form_id: null, crm_name: "CRM A", status: "pending" }] }); } finally { await database.exec("RESET ROLE"); }
+  });
+
+  it("does not create a second open calling record for the same normalized referral name and number", async () => {
+    const branch = "10000000-0000-4000-8000-000000000503", user = "30000000-0000-4000-8000-000000000503", client = "20000000-0000-4000-8000-000000000503";
+    try { await createReferralVisit(branch, user, client, "503"); await database.query(`SELECT create_manual_referral($1,'Duplicate Name','99887 76655',NULL,NULL)`, [client]); await database.query(`SELECT create_manual_referral($1,' duplicate name ','+91 99887 76655',NULL,NULL)`, [client]); await expect(database.query(`SELECT count(*)::int AS count FROM referral_calling c JOIN referrals r ON r.id=c.referral_id WHERE lower(trim(r.referral_name))='duplicate name' AND r.referral_number='9988776655'`, [])).resolves.toMatchObject({ rows: [{ count: 1 }] }); } finally { await database.exec("RESET ROLE"); }
+  });
+
+  it("logs each referral outcome with previous and new status plus the acting user", async () => {
+    const branch = "10000000-0000-4000-8000-000000000504", user = "30000000-0000-4000-8000-000000000504", client = "20000000-0000-4000-8000-000000000504";
+    try { await createReferralVisit(branch, user, client, "504"); const calling = await database.query<{ id: string }>(`SELECT c.id FROM referral_calling c JOIN referrals r ON r.id=c.referral_id WHERE r.given_by_client_id=$1`, [client]); await database.query(`SELECT update_referral_calling($1,'interested','Will visit Saturday',NULL)`, [calling.rows[0]!.id]); await expect(database.query(`SELECT previous_status,status,call_response,remark,updated_by::text FROM referral_calling_history WHERE referral_calling_id=$1`, [calling.rows[0]!.id])).resolves.toMatchObject({ rows: [{ previous_status: "pending", status: "pending", call_response: "interested", remark: "Will visit Saturday", updated_by: user }] }); } finally { await database.exec("RESET ROLE"); }
+  });
+
+  it("keeps referrals globally readable but restricts call updates to the owning branch and super admin", async () => {
+    const branchA = "10000000-0000-4000-8000-000000000505", branchB = "10000000-0000-4000-8000-000000000506", userA = "30000000-0000-4000-8000-000000000505", userB = "30000000-0000-4000-8000-000000000506", admin = "30000000-0000-4000-8000-000000000507", client = "20000000-0000-4000-8000-000000000505";
+    try { await createReferralVisit(branchA, userA, client, "505"); const calling = await database.query<{ id: string }>(`SELECT c.id FROM referral_calling c JOIN referrals r ON r.id=c.referral_id WHERE r.given_by_client_id=$1`, [client]); await database.exec("RESET ROLE"); await database.query(`INSERT INTO branches (id,name) VALUES ($1,'Referral Other Branch')`, [branchB]); await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,'Other','referral-other@example.com','salesperson',$2),($3,'Referral Admin','referral-admin@example.com','super_admin',NULL)`, [userB, branchB, admin]); await database.exec("SET ROLE authenticated"); await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [userB]); await expect(database.query(`SELECT id FROM referral_calling WHERE id=$1`, [calling.rows[0]!.id])).resolves.toMatchObject({ rows: [{ id: calling.rows[0]!.id }] }); await expect(database.query(`SELECT update_referral_calling($1,'no_response',NULL,NULL)`, [calling.rows[0]!.id])).rejects.toThrow(/own branch|privilege/i); await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [userA]); await expect(database.query(`SELECT update_referral_calling($1,'no_response',NULL,NULL)`, [calling.rows[0]!.id])).resolves.toBeDefined(); await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [admin]); await expect(database.query(`SELECT update_referral_calling($1,'converted',NULL,NULL)`, [calling.rows[0]!.id])).resolves.toBeDefined(); } finally { await database.exec("RESET ROLE"); }
+  });
+
+  it("identifies an open referral calling record as overdue when its next follow-up date has passed", async () => {
+    const branch = "10000000-0000-4000-8000-000000000508", user = "30000000-0000-4000-8000-000000000508", client = "20000000-0000-4000-8000-000000000508";
+    try { await createReferralVisit(branch, user, client, "508", "2020-01-01T10:00:00Z"); await expect(database.query(`SELECT c.next_followup_date < CURRENT_DATE AND c.status NOT IN ('closed','converted') AS overdue FROM referral_calling c JOIN referrals r ON r.id=c.referral_id WHERE r.given_by_client_id=$1`, [client])).resolves.toMatchObject({ rows: [{ overdue: true }] }); } finally { await database.exec("RESET ROLE"); }
   });
 });

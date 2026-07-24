@@ -21,6 +21,7 @@ model Branch {
   entryQueueItems      EntryQueue[]
   users                User[]
   notBoughtFollowups   NotBoughtFollowup[]
+  referrals            Referral[]
 
   @@map("branches")
 }
@@ -43,6 +44,7 @@ model User {
   enteredFollowups       NotBoughtFollowup[]
   followupUpdates        NotBoughtHistory[] @relation("NotBoughtHistoryUpdatedBy")
   referrals              Referral[]
+  referralCallUpdates    ReferralCallingHistory[] @relation("ReferralCallingHistoryUpdatedBy")
   branch                 Branch?             @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
   @@index([branchId])
@@ -148,6 +150,7 @@ model ClientTimeline {
   documents          Document[]
   visitForm          VisitForm?
   sourceFollowups    NotBoughtFollowup[] @relation("NotBoughtFollowupSourceTimeline")
+  sourceReferrals    Referral[]          @relation("ReferralSourceTimeline")
 
   @@unique([id, clientId])
   @@index([clientId, eventDate(sort: Desc)])
@@ -218,6 +221,7 @@ model VisitForm {
   updatedAt               DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   clientTimeline          ClientTimeline @relation(fields: [clientTimelineId], references: [id], onDelete: Cascade)
   sourceFollowups         NotBoughtFollowup[] @relation("NotBoughtFollowupSourceVisitForm")
+  sourceReferrals         Referral[]          @relation("ReferralSourceVisitForm")
 
   @@index([clientType])
   @@index([didBuy])
@@ -346,14 +350,23 @@ model Referral {
   givenByClientId String            @map("given_by_client_id") @db.Uuid
   referralName    String            @map("referral_name") @db.VarChar(160)
   referralNumber  String            @map("referral_number") @db.VarChar(30)
+  branchId        String?           @map("branch_id") @db.Uuid
+  sourceTimelineId String?          @map("source_timeline_id") @db.Uuid
+  sourceVisitFormId String?         @map("source_visit_form_id") @db.Uuid
   createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
   calling         ReferralCalling[]
   givenByClient   Client            @relation(fields: [givenByClientId], references: [clientId], onDelete: Cascade)
   salesperson     User              @relation(fields: [salespersonId], references: [id])
+  branch          Branch?           @relation(fields: [branchId], references: [id])
+  sourceTimeline  ClientTimeline?   @relation("ReferralSourceTimeline", fields: [sourceTimelineId], references: [id])
+  sourceVisitForm VisitForm?        @relation("ReferralSourceVisitForm", fields: [sourceVisitFormId], references: [id])
 
   @@index([salespersonId, createdAt(sort: Desc)])
   @@index([givenByClientId])
   @@index([referralNumber])
+  @@index([branchId, createdAt(sort: Desc)])
+  @@index([sourceTimelineId])
+  @@index([sourceVisitFormId])
   @@map("referrals")
 }
 
@@ -362,13 +375,32 @@ model ReferralCalling {
   referralId       String    @map("referral_id") @db.Uuid
   status           String    @db.VarChar(80)
   remark           String?
+  callResponse     String?   @map("call_response") @db.VarChar(40)
   nextFollowupDate DateTime? @map("next_followup_date") @db.Date
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   referral         Referral  @relation(fields: [referralId], references: [id], onDelete: Cascade)
+  history          ReferralCallingHistory[]
 
   @@index([referralId, createdAt(sort: Desc)])
   @@index([status, nextFollowupDate])
   @@map("referral_calling")
+}
+
+model ReferralCallingHistory {
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  referralCallingId String        @map("referral_calling_id") @db.Uuid
+  status         String          @db.VarChar(80)
+  previousStatus String?         @map("previous_status") @db.VarChar(80)
+  callResponse   String?         @map("call_response") @db.VarChar(40)
+  remark         String?
+  updatedById    String?         @map("updated_by") @db.Uuid
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  referralCalling ReferralCalling @relation(fields: [referralCallingId], references: [id], onDelete: Cascade)
+  updatedBy      User?           @relation("ReferralCallingHistoryUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([referralCallingId, createdAt(sort: Desc)])
+  @@index([updatedById])
+  @@map("referral_calling_history")
 }
 
 model LookupCity {
