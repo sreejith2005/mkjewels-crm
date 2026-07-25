@@ -37,6 +37,9 @@ const phaseSixMigrationPath = fileURLToPath(
 const navigationClientDatabaseMigrationPath = fileURLToPath(
   new URL("../prisma/migrations/20260725130000_navigation_client_database/migration.sql", import.meta.url),
 );
+const legacyWalkinIngestMigrationPath = fileURLToPath(
+  new URL("../prisma/migrations/20260725140000_legacy_walkin_ingest_bridge/migration.sql", import.meta.url),
+);
 
 let database: PGlite;
 
@@ -83,6 +86,7 @@ beforeAll(async () => {
   await database.exec(await readFile(phaseFiveMigrationPath, "utf8"));
   await database.exec(await readFile(phaseSixMigrationPath, "utf8"));
   await database.exec(await readFile(navigationClientDatabaseMigrationPath, "utf8"));
+  await database.exec(await readFile(legacyWalkinIngestMigrationPath, "utf8"));
 });
 
 afterAll(async () => {
@@ -90,6 +94,19 @@ afterAll(async () => {
 });
 
 describe("Phase 0 database guarantees", () => {
+  it("ingests a legacy payload through the canonical walk-in write path", async () => {
+    const branch = "10000000-0000-4000-8000-000000000900";
+    await database.query(`INSERT INTO branches (id, name) VALUES ($1, 'Legacy Ingest Branch')`, [branch]);
+
+    const result = await database.query<{ client_id: string; timeline_id: string }>(
+      `SELECT * FROM submit_legacy_walkin_visit($1::jsonb)`,
+      [JSON.stringify({ branch_id: branch, primary_name: "Legacy Asha", primary_phone: "+91 90000 90000", did_buy: true, seen_categories: ["Ring"] })],
+    );
+
+    expect(result.rows[0]?.client_id).toBeTruthy();
+    await expect(database.query(`SELECT client_timeline_id FROM visit_forms WHERE client_timeline_id = $1`, [result.rows[0]!.timeline_id])).resolves.toMatchObject({ rows: [{ client_timeline_id: result.rows[0]!.timeline_id }] });
+    await expect(database.query(`SELECT id FROM users WHERE email = $1`, [`legacy-ingest+${branch}@internal.invalid`])).resolves.toMatchObject({ rows: [{ id: expect.any(String) }] });
+  });
   it("normalizes phone keys and prevents duplicate client phone entries", async () => {
     const branchId = "10000000-0000-4000-8000-000000000001";
     const clientA = "20000000-0000-4000-8000-000000000001";

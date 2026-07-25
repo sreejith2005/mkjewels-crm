@@ -211,6 +211,21 @@ model ClientEditLog {
   @@map("client_edit_log")
 }
 
+model LegacyWalkinIngestAttempt {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  requestId   String   @unique @map("request_id") @db.Uuid
+  sourceIp    String?  @map("source_ip") @db.VarChar(64)
+  payload     Json
+  payloadHash String?  @map("payload_hash") @db.VarChar(64)
+  outcome     String   @db.VarChar(40)
+  result      Json
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([outcome, createdAt(sort: Desc)])
+  @@map("legacy_walkin_ingest_attempts")
+}
+
 model VisitForm {
   id                      String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   clientTimelineId        String         @unique @map("client_timeline_id") @db.Uuid
