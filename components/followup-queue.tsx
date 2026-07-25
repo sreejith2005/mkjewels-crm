@@ -6,15 +6,294 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { displayDate } from "@/lib/clients";
 
-type Item = { id: string; client_id: string; reference_number: string | null; status: string; next_followup_date: string | null; call_response: string | null; remark: string | null; branch_id: string | null; created_at: string; days_since_visit: number; branch_name: string; overdue: boolean; client?: { primary_name: string; primary_phone: string } };
-type History = { id: string; status: string; previous_status: string | null; remark: string | null; call_response: string | null; created_at: string; updated_by: string | null };
+type Item = {
+  id: string;
+  client_id: string;
+  reference_number: string | null;
+  status: string;
+  next_followup_date: string | null;
+  call_response: string | null;
+  remark: string | null;
+  branch_id: string | null;
+  created_at: string;
+  days_since_visit: number;
+  branch_name: string;
+  overdue: boolean;
+  client?: { primary_name: string; primary_phone: string };
+};
+type History = {
+  id: string;
+  status: string;
+  previous_status: string | null;
+  remark: string | null;
+  call_response: string | null;
+  created_at: string;
+  updated_by: string | null;
+};
 type Branch = { id: string; name: string };
-const labels: Record<string, string> = { interested: "Interested", not_interested: "Not interested", no_response: "No response", converted: "Converted", reschedule: "Reschedule" };
+const labels: Record<string, string> = {
+  interested: "Interested",
+  not_interested: "Not interested",
+  no_response: "No response",
+  converted: "Converted",
+  reschedule: "Reschedule",
+};
 
-export function FollowupQueue({ role, branchId, selectedBranchId, branches, items }: { role: string; branchId: string | null; selectedBranchId: string | null; branches: Branch[]; items: Item[] }) {
-  const router = useRouter(); const [saving, setSaving] = useState<string | null>(null); const [message, setMessage] = useState(""); const [history, setHistory] = useState<Record<string, History[]>>({}); const [loadingHistory, setLoadingHistory] = useState<string | null>(null);
-  const canUpdate = (item: Item) => role === "super_admin" || (Boolean(branchId) && branchId === item.branch_id);
-  async function save(item: Item, form: HTMLFormElement) { const data = new FormData(form); const response = String(data.get("call_response") ?? ""); const nextDate = String(data.get("next_followup_date") ?? ""); setSaving(item.id); setMessage(""); const { error } = await createClient().rpc("update_not_bought_followup", { p_followup_id: item.id, p_call_response: response, p_remark: String(data.get("remark") ?? ""), p_next_followup_date: nextDate || undefined }); setSaving(null); if (error) { setMessage(error.message.includes("own branch") ? "Only the originating branch or a super admin can update this follow-up." : "Could not log this call outcome. Check the response and reschedule date."); return; } form.reset(); router.refresh(); }
-  async function toggleHistory(id: string) { if (history[id]) { setHistory((current) => { const next = { ...current }; delete next[id]; return next; }); return; } setLoadingHistory(id); const { data, error } = await createClient().from("not_bought_history").select("id,status,previous_status,remark,call_response,created_at,updated_by").eq("followup_id", id).order("created_at", { ascending: true }); setLoadingHistory(null); if (error) { setMessage("Could not load follow-up history."); return; } setHistory((current) => ({ ...current, [id]: data ?? [] })); }
-  return <main className="mx-auto max-w-7xl px-5 py-7"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-semibold uppercase tracking-wider text-amber-800">Follow-up pipeline</p><h1 className="mt-1 text-3xl font-semibold">Not Bought follow-ups</h1><p className="mt-2 text-stone-600">Overdue open follow-ups appear first. Everyone can read; only the originating branch or super admin can log calls.</p></div>{role === "super_admin" ? <label className="text-sm font-medium">Branch<select className="ml-2 rounded border p-2" value={selectedBranchId ?? ""} onChange={(event) => router.push(event.target.value ? `/followups?branch=${event.target.value}` : "/followups") }><option value="">All branches</option>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label> : null}</div>{message ? <p role="alert" className="mt-4 text-sm text-red-700">{message}</p> : null}<section className="mt-6 overflow-hidden rounded-xl border bg-white"><div className="hidden grid-cols-[1.3fr_.8fr_.8fr_.8fr_.7fr] gap-4 border-b bg-stone-50 p-4 text-xs font-semibold uppercase text-stone-600 lg:grid"><span>Client</span><span>Reference / branch</span><span>Since visit</span><span>Next follow-up</span><span>Status</span></div>{items.length ? items.map((item) => <article key={item.id} className={item.overdue ? "border-b border-l-4 border-l-red-600 bg-red-50/50" : "border-b"}><div className="grid gap-3 p-4 text-sm lg:grid-cols-[1.3fr_.8fr_.8fr_.8fr_.7fr]"><div><Link className="font-semibold text-amber-800 underline" href={`/clients/${item.client_id}`}>{item.client?.primary_name ?? "Client record"}</Link><p className="text-stone-600">{item.client?.primary_phone ?? "Phone unavailable"}</p></div><div><p>{item.reference_number ?? "—"}</p><p className="text-xs text-stone-500">{item.branch_name}</p></div><div>{item.days_since_visit} days</div><div className={item.overdue ? "font-semibold text-red-700" : ""}>{item.overdue ? "Overdue · " : ""}{displayDate(item.next_followup_date)}</div><div><span className="rounded-full bg-stone-100 px-2 py-1 text-xs font-medium capitalize">{item.status.replace("_", " ")}</span>{item.call_response ? <p className="mt-1 text-xs text-stone-500">{labels[item.call_response] ?? item.call_response}</p> : null}</div></div><div className="flex flex-wrap items-center gap-3 px-4 pb-4"><button className="text-sm underline" onClick={() => toggleHistory(item.id)} disabled={loadingHistory === item.id}>{history[item.id] ? "Hide history" : "View history"}</button>{canUpdate(item) ? <form className="flex flex-wrap items-end gap-2" onSubmit={(event) => { event.preventDefault(); void save(item, event.currentTarget); }}><label className="text-xs font-medium">Outcome<select name="call_response" className="mt-1 block rounded border p-2 text-sm" defaultValue="interested">{Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="text-xs font-medium">Reschedule date<input name="next_followup_date" className="mt-1 block rounded border p-2 text-sm" type="date" /></label><label className="text-xs font-medium">Remark<input name="remark" className="mt-1 block rounded border p-2 text-sm" maxLength={2000} /></label><button className="rounded bg-amber-800 px-3 py-2 text-sm font-medium text-white disabled:opacity-50" disabled={saving === item.id}>{saving === item.id ? "Saving…" : "Log call"}</button></form> : <p className="text-xs text-stone-500">Read-only: originated at another branch.</p>}</div>{history[item.id] ? <div className="border-t bg-stone-50 px-4 py-3"><h2 className="text-sm font-semibold">History</h2>{history[item.id].length ? history[item.id].map((entry) => <p className="mt-2 text-sm" key={entry.id}><b>{displayDate(entry.created_at)}</b> · {entry.previous_status ?? "—"} → {entry.status}{entry.call_response ? ` · ${labels[entry.call_response] ?? entry.call_response}` : ""}{entry.remark ? ` · ${entry.remark}` : ""}</p>) : <p className="mt-2 text-sm text-stone-600">No call outcomes logged yet.</p>}</div> : null}</article>) : <p className="p-5 text-sm text-stone-600">No follow-ups match this view.</p>}</section></main>;
+export function FollowupQueue({
+  role,
+  branchId,
+  selectedBranchId,
+  branches,
+  items,
+}: {
+  role: string;
+  branchId: string | null;
+  selectedBranchId: string | null;
+  branches: Branch[];
+  items: Item[];
+}) {
+  const router = useRouter();
+  const [saving, setSaving] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
+  const [history, setHistory] = useState<Record<string, History[]>>({});
+  const [loadingHistory, setLoadingHistory] = useState<string | null>(null);
+  const [tab, setTab] = useState("today");
+  const today = new Date().toISOString().slice(0, 10);
+  const visibleItems = items.filter((item) => tab === "today" ? item.next_followup_date === today && !["closed", "converted"].includes(item.status) : tab === "pending" ? item.status === "pending" && !item.call_response : tab === "in_progress" ? item.status === "in_progress" || (item.status === "pending" && Boolean(item.call_response)) : ["closed", "converted", "done"].includes(item.status));
+  const canUpdate = (item: Item) =>
+    role === "super_admin" ||
+    (Boolean(branchId) && branchId === item.branch_id);
+  async function save(item: Item, form: HTMLFormElement) {
+    const data = new FormData(form);
+    const response = String(data.get("call_response") ?? "");
+    const nextDate = String(data.get("next_followup_date") ?? "");
+    setSaving(item.id);
+    setMessage("");
+    const { error } = await createClient().rpc("update_not_bought_followup", {
+      p_followup_id: item.id,
+      p_call_response: response,
+      p_remark: String(data.get("remark") ?? ""),
+      p_next_followup_date: nextDate || undefined,
+    });
+    setSaving(null);
+    if (error) {
+      setMessage(
+        error.message.includes("own branch")
+          ? "Only the originating branch or a super admin can update this follow-up."
+          : "Could not log this call outcome. Check the response and reschedule date.",
+      );
+      return;
+    }
+    form.reset();
+    router.refresh();
+  }
+  async function toggleHistory(id: string) {
+    if (history[id]) {
+      setHistory((current) => {
+        const next = { ...current };
+        delete next[id];
+        return next;
+      });
+      return;
+    }
+    setLoadingHistory(id);
+    const { data, error } = await createClient()
+      .from("not_bought_history")
+      .select(
+        "id,status,previous_status,remark,call_response,created_at,updated_by",
+      )
+      .eq("followup_id", id)
+      .order("created_at", { ascending: true });
+    setLoadingHistory(null);
+    if (error) {
+      setMessage("Could not load follow-up history.");
+      return;
+    }
+    setHistory((current) => ({ ...current, [id]: data ?? [] }));
+  }
+  return (
+    <main className="mx-auto max-w-7xl px-5 py-7">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-wider text-amber-800">
+            Follow-up pipeline
+          </p>
+          <h1 className="mt-1 text-3xl font-semibold">Not Bought follow-ups</h1>
+          <p className="mt-2 text-stone-600">
+            Overdue open follow-ups appear first. Everyone can read; only the
+            originating branch or super admin can log calls.
+          </p>
+        </div>
+        {role === "super_admin" ? (
+          <label className="text-sm font-medium">
+            Branch
+            <select
+              className="ml-2 rounded border p-2"
+              value={selectedBranchId ?? ""}
+              onChange={(event) =>
+                router.push(
+                  event.target.value
+                    ? `/followups?branch=${event.target.value}`
+                    : "/followups",
+                )
+              }
+            >
+              <option value="">All branches</option>
+              {branches.map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+      </div>
+      <div className="mt-5 flex flex-wrap gap-2">{[["today", "Today Follow Up"], ["pending", "All Pending"], ["in_progress", "In Process"], ["done", "Done"]].map(([value, label]) => <button type="button" className="rounded border px-3 py-2 text-sm" onClick={() => setTab(value)} key={value}>{label}</button>)}</div>
+      {message ? (
+        <p role="alert" className="mt-4 text-sm text-red-700">
+          {message}
+        </p>
+      ) : null}
+      <section className="mt-6 overflow-hidden rounded-xl border bg-white">
+        <div className="hidden grid-cols-[1.3fr_.8fr_.8fr_.8fr_.7fr] gap-4 border-b bg-stone-50 p-4 text-xs font-semibold uppercase text-stone-600 lg:grid">
+          <span>Client</span>
+          <span>Reference / branch</span>
+          <span>Since visit</span>
+          <span>Next follow-up</span>
+          <span>Status</span>
+        </div>
+        {visibleItems.length ? (
+          visibleItems.map((item) => (
+            <article
+              key={item.id}
+              className={
+                item.overdue
+                  ? "border-b border-l-4 border-l-red-600 bg-red-50/50"
+                  : "border-b"
+              }
+            >
+              <div className="grid gap-3 p-4 text-sm lg:grid-cols-[1.3fr_.8fr_.8fr_.8fr_.7fr]">
+                <div>
+                  <Link
+                    className="font-semibold text-amber-800 underline"
+                    href={`/clients/${item.client_id}`}
+                  >
+                    {item.client?.primary_name ?? "Client record"}
+                  </Link>
+                  <p className="text-stone-600">
+                    {item.client?.primary_phone ?? "Phone unavailable"}
+                  </p>
+                </div>
+                <div>
+                  <p>{item.reference_number ?? "—"}</p>
+                  <p className="text-xs text-stone-500">{item.branch_name}</p>
+                </div>
+                <div>{item.days_since_visit} days</div>
+                <div
+                  className={item.overdue ? "font-semibold text-red-700" : ""}
+                >
+                  {item.overdue ? "Overdue · " : ""}
+                  {displayDate(item.next_followup_date)}
+                </div>
+                <div>
+                  <span className="rounded-full bg-stone-100 px-2 py-1 text-xs font-medium capitalize">
+                    {item.status.replace("_", " ")}
+                  </span>
+                  {item.call_response ? (
+                    <p className="mt-1 text-xs text-stone-500">
+                      {labels[item.call_response] ?? item.call_response}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 px-4 pb-4">
+                <button
+                  className="text-sm underline"
+                  onClick={() => toggleHistory(item.id)}
+                  disabled={loadingHistory === item.id}
+                >
+                  {history[item.id] ? "Hide history" : "View history"}
+                </button>
+                {canUpdate(item) ? (
+                  <form
+                    className="flex flex-wrap items-end gap-2"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void save(item, event.currentTarget);
+                    }}
+                  >
+                    <label className="text-xs font-medium">
+                      Outcome
+                      <select
+                        name="call_response"
+                        className="mt-1 block rounded border p-2 text-sm"
+                        defaultValue="interested"
+                      >
+                        {Object.entries(labels).map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="text-xs font-medium">
+                      Reschedule date
+                      <input
+                        name="next_followup_date"
+                        className="mt-1 block rounded border p-2 text-sm"
+                        type="date"
+                      />
+                    </label>
+                    <label className="text-xs font-medium">
+                      Remark
+                      <input
+                        name="remark"
+                        className="mt-1 block rounded border p-2 text-sm"
+                        maxLength={2000}
+                      />
+                    </label>
+                    <button
+                      className="rounded bg-amber-800 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                      disabled={saving === item.id}
+                    >
+                      {saving === item.id ? "Saving…" : "Log call"}
+                    </button>
+                  </form>
+                ) : (
+                  <p className="text-xs text-stone-500">
+                    Read-only: originated at another branch.
+                  </p>
+                )}
+              </div>
+              {history[item.id] ? (
+                <div className="border-t bg-stone-50 px-4 py-3">
+                  <h2 className="text-sm font-semibold">History</h2>
+                  {history[item.id].length ? (
+                    history[item.id].map((entry) => (
+                      <p className="mt-2 text-sm" key={entry.id}>
+                        <b>{displayDate(entry.created_at)}</b> ·{" "}
+                        {entry.previous_status ?? "—"} → {entry.status}
+                        {entry.call_response
+                          ? ` · ${labels[entry.call_response] ?? entry.call_response}`
+                          : ""}
+                        {entry.remark ? ` · ${entry.remark}` : ""}
+                      </p>
+                    ))
+                  ) : (
+                    <p className="mt-2 text-sm text-stone-600">
+                      No call outcomes logged yet.
+                    </p>
+                  )}
+                </div>
+              ) : null}
+            </article>
+          ))
+        ) : (
+          <p className="p-5 text-sm text-stone-600">
+            No follow-ups match this view.
+          </p>
+        )}
+      </section>
+    </main>
+  );
 }

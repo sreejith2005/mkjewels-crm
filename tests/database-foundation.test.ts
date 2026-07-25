@@ -34,6 +34,9 @@ const phaseFiveMigrationPath = fileURLToPath(
 const phaseSixMigrationPath = fileURLToPath(
   new URL("../prisma/migrations/20260724060000_phase_6_dashboard_indexes/migration.sql", import.meta.url),
 );
+const navigationClientDatabaseMigrationPath = fileURLToPath(
+  new URL("../prisma/migrations/20260725130000_navigation_client_database/migration.sql", import.meta.url),
+);
 
 let database: PGlite;
 
@@ -79,6 +82,7 @@ beforeAll(async () => {
   await database.exec(await readFile(phaseFourMigrationPath, "utf8"));
   await database.exec(await readFile(phaseFiveMigrationPath, "utf8"));
   await database.exec(await readFile(phaseSixMigrationPath, "utf8"));
+  await database.exec(await readFile(navigationClientDatabaseMigrationPath, "utf8"));
 });
 
 afterAll(async () => {

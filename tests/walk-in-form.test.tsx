@@ -18,6 +18,7 @@ vi.mock("@/lib/supabase/client", () => ({
 }));
 
 import { WalkInForm } from "@/components/walk-in-form";
+import type { Client } from "@/lib/supabase/app-types";
 
 const branchId = "10000000-0000-4000-8000-000000000501";
 
@@ -31,6 +32,10 @@ function renderWalkInForm() {
       client={null}
     />,
   );
+}
+
+function renderPrefilledWalkInForm() {
+  return render(<WalkInForm profile={{ role: "salesperson", branchId, name: "Test CRM" }} branches={[{ id: branchId, name: "Test Branch" }]} crms={["Test CRM"]} queue={null} client={{ client_id: "20000000-0000-4000-8000-000000000501", primary_name: "Known Client", primary_phone: "9012345678" } as unknown as Client} />);
 }
 
 function openEngagementStep() {
@@ -47,6 +52,7 @@ afterEach(() => {
 });
 
 describe("WalkInForm proof image uploads", () => {
+  it("prefills an existing client for a make walk-in entry shortcut", () => { renderPrefilledWalkInForm(); expect(screen.getByDisplayValue("Known Client")).toBeTruthy(); expect(screen.getByDisplayValue("9012345678")).toBeTruthy(); expect(screen.getByText("Existing client detected")).toBeTruthy(); });
   it("reveals an image upload control when an engagement ask is yes and keeps it hidden when no", () => {
     renderWalkInForm();
     openEngagementStep();
