@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { phoneDigits } from "@/lib/clients";
+import { isPotentialCategory, POTENTIAL_CATEGORIES } from "@/lib/client-potential";
 import { createClient } from "@/lib/supabase/client";
 import type { Client } from "@/lib/supabase/app-types";
 
@@ -685,7 +686,10 @@ export function WalkInForm({
             {field("wedding_year", "Wedding year", "number")}
             {field("communication_preference", "Communication preference")}
             {field("next_visit_date", "Next visit date", "date")}
-            {field("client_potential_category", "Client potential category")}
+            {selectField("client_potential_category", "Client potential category", [
+              ...(!isPotentialCategory(values.client_potential_category) && values.client_potential_category ? [values.client_potential_category] : []),
+              ...POTENTIAL_CATEGORIES,
+            ])}
             {field("high_potential_reason", "Why high potential")}
             {field("product_requirement", "Product requirement")}
             {field(

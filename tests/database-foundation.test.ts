@@ -46,6 +46,9 @@ const legacyFollowupReferralMigrationPath = fileURLToPath(
 const followupCounterMigrationPath = fileURLToPath(
   new URL("../prisma/migrations/20260725161000_followup_counter_alignment/migration.sql", import.meta.url),
 );
+const potentialCategoryMigrationPath = fileURLToPath(
+  new URL("../prisma/migrations/20260725170000_client_potential_categories/migration.sql", import.meta.url),
+);
 
 let database: PGlite;
 
@@ -95,6 +98,7 @@ beforeAll(async () => {
   await database.exec(await readFile(legacyWalkinIngestMigrationPath, "utf8"));
   await database.exec(await readFile(legacyFollowupReferralMigrationPath, "utf8"));
   await database.exec(await readFile(followupCounterMigrationPath, "utf8"));
+  await database.exec(await readFile(potentialCategoryMigrationPath, "utf8"));
 });
 
 afterAll(async () => {
@@ -464,6 +468,36 @@ describe("Phase 1 client CRM database guarantees", () => {
       expect(rows.rows).toEqual([{ field_name: "primary_name", old_value: '"Before"', new_value: '"After"', edited_by: salesperson }]);
     } finally { await database.exec("RESET ROLE"); }
   });
+
+  it("filters client browsing by a fixed potential tier and audits a profile tier change", async () => {
+    const branch = "10000000-0000-4000-8000-000000000103";
+    const salesperson = "30000000-0000-4000-8000-000000000103";
+    const warmClient = "20000000-0000-4000-8000-000000000103";
+    const hotClient = "20000000-0000-4000-8000-000000000104";
+    await database.query(`INSERT INTO branches (id, name) VALUES ($1, 'Potential branch')`, [branch]);
+    await database.query(`INSERT INTO users (id, name, email, role, branch_id) VALUES ($1, 'Potential salesperson', 'potential@example.com', 'salesperson', $2)`, [salesperson, branch]);
+    await database.query(`INSERT INTO clients (client_id, primary_name, primary_phone, last_branch_id, client_potential_category) VALUES ($1, 'Warm client', '9000000103', $3, 'Warm Lead'), ($2, 'Hot client', '9000000104', $3, 'Hot Lead')`, [warmClient, hotClient, branch]);
+    await database.exec("SET ROLE authenticated");
+    await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [salesperson]);
+    try {
+      await expect(database.query(`SELECT client_id FROM browse_clients(NULL, 'Warm Lead', 0, 51)`)).resolves.toMatchObject({ rows: [{ client_id: warmClient }] });
+      await database.query(`UPDATE clients SET client_potential_category = 'VIP Lead' WHERE client_id = $1`, [warmClient]);
+      await expect(database.query(`SELECT field_name, old_value::text, new_value::text, edited_by::text FROM client_edit_log WHERE client_id = $1 AND field_name = 'client_potential_category'`, [warmClient])).resolves.toMatchObject({ rows: [{ field_name: "client_potential_category", old_value: '"Warm Lead"', new_value: '"VIP Lead"', edited_by: salesperson }] });
+      await expect(database.query(`UPDATE clients SET client_potential_category = 'Unapproved Segment' WHERE client_id = $1`, [warmClient])).rejects.toThrow(/must be one of/i);
+    } finally { await database.exec("RESET ROLE"); }
+  });
+
+  it("standardizes obvious legacy labels and records genuinely unmatched labels", async () => {
+    const coolClient = "20000000-0000-4000-8000-000000000105";
+    const unmatchedClient = "20000000-0000-4000-8000-000000000106";
+    await database.exec(`ALTER TABLE clients DISABLE TRIGGER clients_validate_potential_category`);
+    await database.query(`INSERT INTO clients (client_id, primary_name, primary_phone, client_potential_category) VALUES ($1, 'Legacy cool', '9000000105', 'COOL LEAD'), ($2, 'Legacy broadcast', '9000000106', 'WhatsApp Broadcast Segment')`, [coolClient, unmatchedClient]);
+    await database.exec(`ALTER TABLE clients ENABLE TRIGGER clients_validate_potential_category`);
+    await database.exec(await readFile(potentialCategoryMigrationPath, "utf8"));
+    await expect(database.query(`SELECT client_potential_category FROM clients WHERE client_id = $1`, [coolClient])).resolves.toMatchObject({ rows: [{ client_potential_category: "Cool Lead" }] });
+    await expect(database.query(`SELECT client_potential_category FROM clients WHERE client_id = $1`, [unmatchedClient])).resolves.toMatchObject({ rows: [{ client_potential_category: "WhatsApp Broadcast Segment" }] });
+    await expect(database.query(`SELECT field_name, source FROM client_edit_log WHERE client_id = $1`, [unmatchedClient])).resolves.toMatchObject({ rows: [{ field_name: "client_potential_category_legacy_unmatched", source: "potential_category_standardization" }] });
+  });
 });
 
 describe("Phase 2 visit intake guarantees", () => {
@@ -491,8 +525,8 @@ describe("Phase 2 visit intake guarantees", () => {
     await database.query(`INSERT INTO branches (id,name) VALUES ($1,'Existing Branch')`, [branch]); await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,'Existing User','existing@example.com','salesperson',$2)`, [user, branch]); await database.query(`INSERT INTO clients (client_id,primary_name,primary_phone) VALUES ($1,'Existing','9000000202')`, [client]);
     await database.exec("SET ROLE authenticated"); await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [user]);
     try {
-      await database.query(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ client_id: client, branch_id: branch, primary_name: "Existing Updated", primary_phone: "9000000202", did_buy: false, not_bought_reasons: ["Price"], next_visit_date: "2026-08-01", client_potential_category: "High" })]);
-      await expect(database.query(`SELECT primary_name, client_potential_category, next_visit_date::text FROM clients WHERE client_id = $1`, [client])).resolves.toMatchObject({ rows: [{ primary_name: "Existing Updated", client_potential_category: "High", next_visit_date: "2026-08-01" }] });
+      await database.query(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ client_id: client, branch_id: branch, primary_name: "Existing Updated", primary_phone: "9000000202", did_buy: false, not_bought_reasons: ["Price"], next_visit_date: "2026-08-01", client_potential_category: "Hot Lead" })]);
+      await expect(database.query(`SELECT primary_name, client_potential_category, next_visit_date::text FROM clients WHERE client_id = $1`, [client])).resolves.toMatchObject({ rows: [{ primary_name: "Existing Updated", client_potential_category: "Hot Lead", next_visit_date: "2026-08-01" }] });
       await expect(database.query(`SELECT status, remark FROM not_bought_followups WHERE client_id = $1`, [client])).resolves.toMatchObject({ rows: [{ status: "pending", remark: "Price" }] });
     } finally { await database.exec("RESET ROLE"); }
   });

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/client";
 import { displayDate, nullable, phoneDigits, stringArray } from "@/lib/clients";
+import { isPotentialCategory, POTENTIAL_CATEGORIES, potentialStars } from "@/lib/client-potential";
 import type { Json } from "@/lib/supabase/database.types";
 import type { Client } from "@/lib/supabase/app-types";
 const schema = z.object({
@@ -33,6 +34,8 @@ const schema = z.object({
   sugar: z.string(),
   snack: z.string(),
   gift_history: z.string(),
+  // The control below only allows the fixed tiers. Keep a retained unmatched
+  // legacy value parseable until staff deliberately replace it from that list.
   client_potential_category: z.string(),
   high_potential_reason: z.string(),
   instagram_status: z.string(),
@@ -230,7 +233,10 @@ export function ClientProfile({
         </div>
         <div className="flex items-center gap-3">
           <a className="rounded border px-3 py-2 text-sm" href={`/visits/new?client=${client.client_id}`}>Make Walk-in Entry</a>
-          <span className="rounded-full bg-amber-100 px-3 py-1 text-sm text-amber-900">{client.client_potential_category ?? "Potential not set"}</span>
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-sm text-amber-900">
+            Potential: {client.client_potential_category ?? "Not set"}
+            {potentialStars(client.client_potential_category) ? ` ${potentialStars(client.client_potential_category)}` : ""}
+          </span>
         </div>
       </div>
       <div className="mt-4 grid gap-3 rounded-xl border bg-white p-4 text-sm md:grid-cols-3">
@@ -307,7 +313,30 @@ export function ClientProfile({
                           ? " *"
                           : ""}
                       </span>
-                      {field === "address" || field === "gift_history" ? (
+                      {field === "client_potential_category" ? (
+                        <select
+                          className="w-full rounded border p-2"
+                          value={values.client_potential_category}
+                          onChange={(event) =>
+                            setValues({
+                              ...values,
+                              client_potential_category: event.target.value as Form["client_potential_category"],
+                            })
+                          }
+                        >
+                          {!isPotentialCategory(values.client_potential_category) && values.client_potential_category ? (
+                            <option value={values.client_potential_category} disabled>
+                              Legacy value: {values.client_potential_category} (needs review)
+                            </option>
+                          ) : null}
+                          <option value="">Not set</option>
+                          {POTENTIAL_CATEGORIES.map((category) => (
+                            <option value={category} key={category}>
+                              {category} {potentialStars(category)}
+                            </option>
+                          ))}
+                        </select>
+                      ) : field === "address" || field === "gift_history" ? (
                         <textarea
                           className="w-full rounded border p-2"
                           rows={field === "gift_history" ? 3 : 2}
