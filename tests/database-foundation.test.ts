@@ -40,6 +40,9 @@ const navigationClientDatabaseMigrationPath = fileURLToPath(
 const legacyWalkinIngestMigrationPath = fileURLToPath(
   new URL("../prisma/migrations/20260725140000_legacy_walkin_ingest_bridge/migration.sql", import.meta.url),
 );
+const legacyFollowupReferralMigrationPath = fileURLToPath(
+  new URL("../prisma/migrations/20260725160000_legacy_followup_referral_alignment/migration.sql", import.meta.url),
+);
 
 let database: PGlite;
 
@@ -87,6 +90,7 @@ beforeAll(async () => {
   await database.exec(await readFile(phaseSixMigrationPath, "utf8"));
   await database.exec(await readFile(navigationClientDatabaseMigrationPath, "utf8"));
   await database.exec(await readFile(legacyWalkinIngestMigrationPath, "utf8"));
+  await database.exec(await readFile(legacyFollowupReferralMigrationPath, "utf8"));
 });
 
 afterAll(async () => {
@@ -638,6 +642,25 @@ describe("Phase 6 dashboard global-read guarantee", () => {
       const visibleCounts: number[] = [];
       for (const user of [salesperson, manager, admin]) { await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [user]); const result = await database.query<{ count: number }>(`SELECT count(*)::int AS count FROM client_timeline WHERE client_id = $1 AND event_date >= '2026-07-24' AND event_date < '2026-07-25'`, [client]); visibleCounts.push(result.rows[0]!.count); }
       expect(visibleCounts).toEqual([2, 2, 2]);
+    } finally { await database.exec("RESET ROLE"); }
+  });
+});
+
+describe("legacy queue alignment", () => {
+  it("links a referral to the one canonical phone match or creates a minimal client when absent", async () => {
+    const branch = "10000000-0000-4000-8000-000000000801", user = "30000000-0000-4000-8000-000000000801", giver = "20000000-0000-4000-8000-000000000801", existing = "20000000-0000-4000-8000-000000000802";
+    await database.query(`INSERT INTO branches (id,name) VALUES ($1,'Conversion Branch')`, [branch]);
+    await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,'Converter','converter@example.com','salesperson',$2)`, [user, branch]);
+    await database.query(`INSERT INTO clients (client_id,primary_name,primary_phone) VALUES ($1,'Giver','9000000801'),($2,'Known referral','9888888801')`, [giver, existing]);
+    await database.exec("SET ROLE authenticated"); await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [user]);
+    try {
+      const found = await database.query<{ id: string }>(`SELECT id FROM create_manual_referral($1,'Known referral','9888888801','CRM',NULL)`, [giver]);
+      const foundCalling = await database.query<{ id: string }>(`SELECT id FROM referral_calling WHERE referral_id=$1`, [found.rows[0]!.id]);
+      await expect(database.query(`SELECT convert_referral_to_client($1)::text AS client_id`, [foundCalling.rows[0]!.id])).resolves.toMatchObject({ rows: [{ client_id: existing }] });
+      const absent = await database.query<{ id: string }>(`SELECT id FROM create_manual_referral($1,'New referral','9888888802','CRM',NULL)`, [giver]);
+      const absentCalling = await database.query<{ id: string }>(`SELECT id FROM referral_calling WHERE referral_id=$1`, [absent.rows[0]!.id]);
+      const created = await database.query<{ client_id: string }>(`SELECT convert_referral_to_client($1)::text AS client_id`, [absentCalling.rows[0]!.id]);
+      await expect(database.query(`SELECT primary_name,primary_phone FROM clients WHERE client_id=$1`, [created.rows[0]!.client_id])).resolves.toMatchObject({ rows: [{ primary_name: "New referral", primary_phone: "9888888802" }] });
     } finally { await database.exec("RESET ROLE"); }
   });
 });

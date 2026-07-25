@@ -112,6 +112,7 @@ model Client {
   entryQueueItems         EntryQueue[]
   notBoughtFollowups      NotBoughtFollowup[]
   referralsGiven          Referral[]
+  convertedReferralCalls  ReferralCalling[]   @relation("ReferralConvertedClient")
   campaignTags            ClientCampaignTag[]
 
   @@index([primaryPhone])
@@ -402,6 +403,8 @@ model Referral {
   branchId        String?           @map("branch_id") @db.Uuid
   sourceTimelineId String?          @map("source_timeline_id") @db.Uuid
   sourceVisitFormId String?         @map("source_visit_form_id") @db.Uuid
+  relationship      String?         @db.VarChar(120)
+  bestTimeToCall    String?         @map("best_time_to_call") @db.VarChar(120)
   createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
   calling         ReferralCalling[]
   givenByClient   Client            @relation(fields: [givenByClientId], references: [clientId], onDelete: Cascade)
@@ -426,12 +429,15 @@ model ReferralCalling {
   remark           String?
   callResponse     String?   @map("call_response") @db.VarChar(40)
   nextFollowupDate DateTime? @map("next_followup_date") @db.Date
+  convertedClientId String?  @map("converted_client_id") @db.Uuid
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   referral         Referral  @relation(fields: [referralId], references: [id], onDelete: Cascade)
+  convertedClient  Client?   @relation("ReferralConvertedClient", fields: [convertedClientId], references: [clientId], onDelete: SetNull)
   history          ReferralCallingHistory[]
 
   @@index([referralId, createdAt(sort: Desc)])
   @@index([status, nextFollowupDate])
+  @@index([convertedClientId])
   @@map("referral_calling")
 }
 

@@ -225,7 +225,7 @@ export function ClientProfile({
         <div>
           <h1 className="text-3xl font-semibold">{client.primary_name}</h1>
           <p className="mt-1 text-stone-600">
-            {client.primary_phone} · {client.gender ?? "Gender not set"}
+            {client.primary_phone} <button type="button" aria-label="Copy primary phone" className="ml-1 rounded border px-1 text-xs" onClick={() => void navigator.clipboard.writeText(client.primary_phone)}>Copy</button> · {client.gender ?? "Gender not set"}
           </p>
         </div>
         <div className="flex items-center gap-3">
