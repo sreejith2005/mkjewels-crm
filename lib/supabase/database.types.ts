@@ -1084,6 +1084,22 @@ export type Database = {
         Args: { row_user_id: string }
         Returns: boolean
       }
+      lookup_client_by_phone: {
+        Args: { p_phone: string }
+        Returns: {
+          address: string | null
+          city: string | null
+          client_id: string
+          community: string | null
+          country: string | null
+          dob: string | null
+          gender: string | null
+          pincode: string | null
+          primary_name: string
+          primary_phone: string
+          state: string | null
+        }[]
+      }
       search_clients: {
         Args: { result_limit?: number; search_text: string }
         Returns: {

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { phoneDigits } from "@/lib/clients";
 import { isPotentialCategory, POTENTIAL_CATEGORIES } from "@/lib/client-potential";
 import { createClient } from "@/lib/supabase/client";
+import { lookupClientByPhone } from "@/lib/client-phone-lookup";
 import type { Client } from "@/lib/supabase/app-types";
 
 type Queue = {
@@ -137,12 +138,15 @@ export function WalkInForm({
     Record<string, { asked: string; no_reason: string }>
   >({});
   const [proofs, setProofs] = useState<Record<string, Proof>>({});
-  const [proposedClientId] = useState(
+  const [proposedClientId, setProposedClientId] = useState(
     () => client?.client_id ?? crypto.randomUUID(),
   );
   const [proposedTimelineId] = useState(() => crypto.randomUUID());
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(
+    () => new Set(client ? ["primary_name", "gender", "dob", "community", "address", "pincode"] : []),
+  );
   const set = (key: keyof typeof values, value: string) =>
     setValues((current) => ({ ...current, [key]: value }));
   const engagementKinds = [
@@ -153,6 +157,23 @@ export function WalkInForm({
     ["thank_you_note", "Thank-you note"],
     ["referrals", "Referrals"],
   ] as const;
+  useEffect(() => {
+    if (phoneDigits(values.primary_phone).length !== 10) return;
+    const timer = window.setTimeout(() => {
+      void lookupClientByPhone(values.primary_phone).then((matched) => {
+        if (!matched) {
+          if (!queue?.client_id && !client?.client_id) setValues((current) => ({ ...current, client_id: "" }));
+          setAutoFilledFields(new Set());
+          return;
+        }
+        const fields = ["primary_name", "gender", "dob", "community", "address", "pincode", "country", "state", "city"];
+        setValues((current) => ({ ...current, client_id: matched.client_id, primary_name: matched.primary_name, gender: matched.gender ?? "", dob: matched.dob ?? "", community: matched.community ?? "", address: matched.address ?? "", pincode: matched.pincode ?? "", country: matched.country ?? "", state: matched.state ?? "", city: matched.city ?? "" }));
+        setProposedClientId(matched.client_id);
+        setAutoFilledFields(new Set(fields));
+      });
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [client?.client_id, queue?.client_id, values.primary_phone]);
   async function removeProof(key: string) {
     const proof = proofs[key];
     if (!proof) return;
@@ -315,17 +336,18 @@ export function WalkInForm({
       );
       return;
     }
-    router.push(`/clients/${data[0].client_id}`);
+    router.push(`/queue?completed=${encodeURIComponent(values.primary_name)}`);
   }
   const field = (key: keyof typeof values, label: string, type = "text") => (
     <label className="block text-sm">
       <span>{label}</span>
       <input
         type={type}
-        className={inputClass}
+        className={`${inputClass}${autoFilledFields.has(key) ? " border-amber-400 bg-amber-50" : ""}`}
         value={values[key]}
-        onChange={(event) => set(key, event.target.value)}
+        onChange={(event) => { set(key, event.target.value); setAutoFilledFields((current) => { const next = new Set(current); next.delete(key); return next; }); }}
       />
+      {autoFilledFields.has(key) ? <small className="mt-1 block text-amber-800">Auto-filled from client history — editable</small> : null}
     </label>
   );
   const selectField = (
@@ -413,7 +435,7 @@ export function WalkInForm({
             </h2>
             {field("event_date", "Visit date and time", "datetime-local")}
             {field("primary_name", "Client name *")}
-            {field("primary_phone", "Mobile *")}
+            <label className="block text-sm"><span>Mobile *</span><div className="mt-1 flex rounded border border-stone-300 bg-white"><span className="border-r border-stone-300 px-3 py-2 text-stone-600">+91</span><input aria-label="Mobile *" className="min-w-0 flex-1 rounded-r p-2" inputMode="numeric" value={values.primary_phone} onChange={(event) => { set("primary_phone", event.target.value); setAutoFilledFields(new Set()); }} onBlur={() => { if (phoneDigits(values.primary_phone).length === 10) void lookupClientByPhone(values.primary_phone).then((matched) => { if (matched) { setValues((current) => ({ ...current, client_id: matched.client_id, primary_name: matched.primary_name, gender: matched.gender ?? "", dob: matched.dob ?? "", community: matched.community ?? "", address: matched.address ?? "", pincode: matched.pincode ?? "", country: matched.country ?? "", state: matched.state ?? "", city: matched.city ?? "" })); setProposedClientId(matched.client_id); setAutoFilledFields(new Set(["primary_name", "gender", "dob", "community", "address", "pincode", "country", "state", "city"])); } }); }} /></div></label>
             {selectField("source_of_lead", "Source of lead", ["Walk-in", "Referral", "Instagram", "Google", "WhatsApp", "Advertisement", "Other"])}
             {values.source_of_lead.toLowerCase().includes("referral") ? (
               <>

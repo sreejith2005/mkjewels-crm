@@ -49,6 +49,9 @@ const followupCounterMigrationPath = fileURLToPath(
 const potentialCategoryMigrationPath = fileURLToPath(
   new URL("../prisma/migrations/20260725170000_client_potential_categories/migration.sql", import.meta.url),
 );
+const consolidatedWalkinLookupMigrationPath = fileURLToPath(
+  new URL("../prisma/migrations/20260725180000_consolidated_walkin_phone_lookup/migration.sql", import.meta.url),
+);
 
 let database: PGlite;
 
@@ -99,6 +102,7 @@ beforeAll(async () => {
   await database.exec(await readFile(legacyFollowupReferralMigrationPath, "utf8"));
   await database.exec(await readFile(followupCounterMigrationPath, "utf8"));
   await database.exec(await readFile(potentialCategoryMigrationPath, "utf8"));
+  await database.exec(await readFile(consolidatedWalkinLookupMigrationPath, "utf8"));
 });
 
 afterAll(async () => {
@@ -434,6 +438,20 @@ describe("Phase 0 database guarantees", () => {
 });
 
 describe("Phase 1 client CRM database guarantees", () => {
+  it("returns an exact phone-matched profile only to active CRM staff", async () => {
+    const branch = "10000000-0000-4000-8000-000000000099";
+    const user = "30000000-0000-4000-8000-000000000099";
+    const client = "20000000-0000-4000-8000-000000000099";
+    await database.query(`INSERT INTO branches (id,name) VALUES ($1,'Lookup Branch')`, [branch]);
+    await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,'Lookup User','lookup@example.com','salesperson',$2)`, [user, branch]);
+    await database.query(`INSERT INTO clients (client_id,primary_name,primary_phone,gender,dob,community,address,pincode,last_branch_id) VALUES ($1,'Lookup Client','9012345099','Female','1990-01-02','Nair','Main Road','682001',$2)`, [client, branch]);
+    await database.exec("SET ROLE authenticated");
+    await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [user]);
+    try {
+      await expect(database.query(`SELECT primary_name,gender,pincode FROM lookup_client_by_phone($1)`, ["+91 90123 45099"])).resolves.toMatchObject({ rows: [{ primary_name: "Lookup Client", gender: "Female", pincode: "682001" }] });
+      await expect(database.query(`SELECT * FROM lookup_client_by_phone($1)`, ["9012345000"])).resolves.toMatchObject({ rows: [] });
+    } finally { await database.exec("RESET ROLE"); }
+  });
   it("keeps a salesperson's created client on their own branch and rejects duplicate phones", async () => {
     const branch = "10000000-0000-4000-8000-000000000101";
     const salesperson = "30000000-0000-4000-8000-000000000101";
