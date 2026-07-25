@@ -353,6 +353,7 @@ model NotBoughtFollowup {
   status           String             @db.VarChar(80)
   nextFollowupDate DateTime?          @map("next_followup_date") @db.Date
   callResponse     String?            @map("call_response")
+  followupCount    Int                @default(0) @map("followup_count")
   remark           String?
   enteredById      String             @map("entered_by") @db.Uuid
   branchId         String?            @map("branch_id") @db.Uuid
@@ -428,6 +429,7 @@ model ReferralCalling {
   status           String    @db.VarChar(80)
   remark           String?
   callResponse     String?   @map("call_response") @db.VarChar(40)
+  followupCount    Int       @default(0) @map("followup_count")
   nextFollowupDate DateTime? @map("next_followup_date") @db.Date
   convertedClientId String?  @map("converted_client_id") @db.Uuid
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)

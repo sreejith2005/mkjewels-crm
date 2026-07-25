@@ -43,6 +43,9 @@ const legacyWalkinIngestMigrationPath = fileURLToPath(
 const legacyFollowupReferralMigrationPath = fileURLToPath(
   new URL("../prisma/migrations/20260725160000_legacy_followup_referral_alignment/migration.sql", import.meta.url),
 );
+const followupCounterMigrationPath = fileURLToPath(
+  new URL("../prisma/migrations/20260725161000_followup_counter_alignment/migration.sql", import.meta.url),
+);
 
 let database: PGlite;
 
@@ -91,6 +94,7 @@ beforeAll(async () => {
   await database.exec(await readFile(navigationClientDatabaseMigrationPath, "utf8"));
   await database.exec(await readFile(legacyWalkinIngestMigrationPath, "utf8"));
   await database.exec(await readFile(legacyFollowupReferralMigrationPath, "utf8"));
+  await database.exec(await readFile(followupCounterMigrationPath, "utf8"));
 });
 
 afterAll(async () => {
