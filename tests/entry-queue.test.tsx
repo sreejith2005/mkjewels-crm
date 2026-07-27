@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const push = vi.fn();
@@ -13,10 +13,10 @@ import { EntryQueue } from "@/components/entry-queue";
 
 const branchId = "10000000-0000-4000-8000-000000000601";
 function renderQueue() {
-  return render(<EntryQueue profile={{ role: "salesperson", branchId }} selectedBranchId={branchId} branches={[{ id: branchId, name: "Test Branch" }]} crms={["Test CRM"]} initialItems={[{ id: "queue-1", token: "0725-ABCDE", client_name: "Queued Client", mobile: "9012345601", assigned_crm_name: "Test CRM", status: "pending", created_at: "2026-07-25T09:00:00Z", client_id: null }]} />);
+  return render(<EntryQueue profile={{ role: "salesperson", branchId }} selectedBranchId={branchId} branches={[{ id: branchId, name: "Test Branch" }]} crms={["Test CRM"]} initialItems={[{ id: "queue-1", token: "0725-ABCDE", client_name: "Queued Client", mobile: "9012345601", assigned_crm_name: "Test CRM", status: "pending", created_at: "2026-07-25T09:00:00Z", client_id: null }, { id: "queue-2", token: "0725-DONE01", client_name: "Submitted Client", mobile: "9012345603", assigned_crm_name: "Test CRM", status: "complete", created_at: "2026-07-25T10:00:00Z", client_id: "client-2" }]} />);
 }
 
-afterEach(() => vi.resetAllMocks());
+afterEach(() => { cleanup(); vi.resetAllMocks(); });
 
 describe("consolidated client walk-in queue", () => {
   it("registers in place, preserves entered values, and exposes only queue-originated walk-in actions", async () => {
@@ -30,5 +30,13 @@ describe("consolidated client walk-in queue", () => {
     expect(screen.getByDisplayValue("9012345602")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Make Walk-in Entry" }).getAttribute("href")).toBe("/visits/new?queue=queue-1");
     expect(screen.queryByText("Direct walk-in")).toBeNull();
+  });
+
+  it("keeps completed visits out of the active queue but makes them reviewable in Recently submitted", () => {
+    renderQueue();
+    expect(screen.queryByText("Submitted Client")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Recently submitted" }));
+    expect(screen.getByText("Submitted Client")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Review client record" }).getAttribute("href")).toBe("/clients/client-2");
   });
 });

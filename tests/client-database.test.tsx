@@ -12,6 +12,7 @@ describe("ClientDatabase", () => {
     expect(screen.getByText("Client data is always live and instant; no sync step is needed.")).toBeTruthy();
     expect(screen.getAllByText("Hot Lead ★★★★☆")).toHaveLength(2);
     expect(screen.getByLabelText("Potential category")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Register Client" }).getAttribute("href")).toBe("/queue");
     expect(screen.getByRole("link", { name: "View Client Profile" }).getAttribute("href")).toBe("/clients/client-1");
     expect(screen.getByRole("link", { name: "Make Walk-in Entry" }).getAttribute("href")).toBe("/visits/new?client=client-1");
   });

@@ -659,6 +659,33 @@ export type Database = {
         }
         Relationships: []
       }
+      lookup_pincodes: {
+        Row: {
+          active: boolean
+          city: string | null
+          country: string | null
+          id: string
+          pincode: string
+          state: string | null
+        }
+        Insert: {
+          active?: boolean
+          city?: string | null
+          country?: string | null
+          id?: string
+          pincode: string
+          state?: string | null
+        }
+        Update: {
+          active?: boolean
+          city?: string | null
+          country?: string | null
+          id?: string
+          pincode?: string
+          state?: string | null
+        }
+        Relationships: []
+      }
       lookup_product_categories: {
         Row: {
           active: boolean

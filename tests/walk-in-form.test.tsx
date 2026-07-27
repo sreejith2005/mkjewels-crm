@@ -1,16 +1,22 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const push = vi.fn();
 const rpc = vi.fn();
 const upload = vi.fn();
 const remove = vi.fn();
+const pincodeMaybeSingle = vi.fn();
+const pincodeActiveFilter = { maybeSingle: pincodeMaybeSingle };
+const pincodePincodeFilter = { eq: vi.fn(() => pincodeActiveFilter) };
+const pincodeSelect = vi.fn(() => ({ eq: vi.fn(() => pincodePincodeFilter) }));
+const from = vi.fn(() => ({ select: pincodeSelect }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({
     rpc,
+    from,
     storage: {
       from: () => ({ upload, remove }),
     },
@@ -54,17 +60,42 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 
+beforeEach(() => {
+  pincodeMaybeSingle.mockResolvedValue({ data: null, error: null });
+});
+
 describe("WalkInForm proof image uploads", () => {
+  it("opens with an IST datetime-local value and the walk-in lead source selected", () => {
+    renderWalkInForm();
+    expect((screen.getByLabelText("Visit date and time") as HTMLInputElement).value).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+    expect((screen.getByLabelText("Source of lead") as HTMLSelectElement).value).toBe("Walk-in");
+  });
+
+  it("uses legacy source, bridal, occupation, and category reveal rules", () => {
+    render(<WalkInForm profile={{ role: "salesperson", branchId, name: "Test CRM" }} branches={[{ id: branchId, name: "Test Branch" }]} crms={["Test CRM"]} queue={null} client={null} lookups={{ productCategories: ["Ring", "Other"], notBoughtReasons: [], beverages: [], snacks: [] }} />);
+    fireEvent.change(screen.getByLabelText("Source of lead"), { target: { value: "Reference" } });
+    expect(screen.getByLabelText("Reference name")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "6. Preferences & planning" }));
+    fireEvent.change(screen.getByLabelText("Bridal / non-bridal"), { target: { value: "Non-bridal" } });
+    expect(screen.queryByLabelText("Wedding month")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Bridal / non-bridal"), { target: { value: "Bridal" } });
+    expect(screen.getByLabelText("Wedding month")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Occupation"), { target: { value: "Other" } });
+    expect(screen.getByLabelText("Occupation other")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "4. Purchase outcome" }));
+    fireEvent.click(within(screen.getByLabelText("Product categories seen by the client")).getByText("Other"));
+    expect(screen.getByLabelText("Other (seen category)")).toBeTruthy();
+  });
   it("auto-fills a matched phone profile and keeps a manually edited value", async () => {
     rpc.mockImplementation((name: string) => name === "lookup_client_by_phone" ? Promise.resolve({ data: [{ client_id: "20000000-0000-4000-8000-000000000599", primary_name: "Phone Match", primary_phone: "9012345599", gender: "Female", dob: "1990-01-02", community: "Nair", address: "Main Road", pincode: "682001", country: "India", state: "Kerala", city: "Kochi" }], error: null }) : Promise.resolve({ data: [], error: null }));
     renderWalkInForm();
     fireEvent.change(screen.getByLabelText("Mobile *"), { target: { value: "9012345599" } });
     await waitFor(() => expect(screen.getByDisplayValue("Phone Match")).toBeTruthy());
     fireEvent.click(screen.getByRole("button", { name: "2. Profile" }));
-    await waitFor(() => expect(screen.getByDisplayValue("Female")).toBeTruthy());
+    await waitFor(() => expect(screen.getByDisplayValue("FEMALE")).toBeTruthy());
     expect(screen.getAllByText("Auto-filled from client history — editable").length).toBeGreaterThan(0);
-    fireEvent.change(screen.getByDisplayValue("Female"), { target: { value: "Other" } });
-    expect(screen.getByDisplayValue("Other")).toBeTruthy();
+    fireEvent.change(screen.getByDisplayValue("FEMALE"), { target: { value: "OTHER" } });
+    expect(screen.getByDisplayValue("OTHER")).toBeTruthy();
   });
 
   it("leaves typed values in place when the phone has no matching client", async () => {
@@ -79,10 +110,63 @@ describe("WalkInForm proof image uploads", () => {
 
   it("returns to the queue with the completed client confirmation after submission", async () => {
     rpc.mockImplementation((name: string) => name === "lookup_client_by_phone" ? Promise.resolve({ data: [], error: null }) : Promise.resolve({ data: [{ client_id: "20000000-0000-4000-8000-000000000509", timeline_id: "40000000-0000-4000-8000-000000000509", reference_number: "TES-260725-0001" }], error: null }));
-    const { container } = renderQueuedWalkInForm();
+    renderQueuedWalkInForm();
     fireEvent.click(screen.getByRole("button", { name: "6. Preferences & planning" }));
-    fireEvent.submit(container.querySelector("form")!);
+    fireEvent.click(screen.getByRole("button", { name: "Submit complete visit" }));
     await waitFor(() => expect(push).toHaveBeenCalledWith("/queue?completed=Queue%20Client"));
+  });
+
+  it("never submits from beverage changes or implicit form submits", async () => {
+    renderWalkInForm();
+    fireEvent.change(screen.getByLabelText("Client name *"), { target: { value: "No Auto Submit" } });
+    fireEvent.change(screen.getByLabelText("Mobile *"), { target: { value: "9012345597" } });
+    fireEvent.click(screen.getByRole("button", { name: "6. Preferences & planning" }));
+    fireEvent.change(screen.getByLabelText("Beverage"), { target: { value: "Tea" } });
+    expect(rpc).not.toHaveBeenCalledWith("submit_walkin_visit", expect.anything());
+    fireEvent.submit(screen.getByRole("button", { name: "Submit complete visit" }).closest("form")!);
+    expect(await screen.findByText("Use Submit complete visit to save this form.")).toBeTruthy();
+    expect(rpc).not.toHaveBeenCalledWith("submit_walkin_visit", expect.anything());
+  });
+
+  it("keeps values when staff return to an earlier step and edit the profile", () => {
+    renderWalkInForm();
+    fireEvent.change(screen.getByLabelText("Client name *"), { target: { value: "Editable Visit" } });
+    fireEvent.click(screen.getByRole("button", { name: "2. Profile" }));
+    fireEvent.change(screen.getByLabelText("Gender"), { target: { value: "FEMALE" } });
+    fireEvent.click(screen.getByRole("button", { name: "1. Client & visit" }));
+    expect(screen.getByDisplayValue("Editable Visit")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "2. Profile" }));
+    expect((screen.getByLabelText("Gender") as HTMLSelectElement).value).toBe("FEMALE");
+  });
+
+  it("uses the legacy gender choices and synchronizes billing phone only while requested", () => {
+    renderWalkInForm();
+    fireEvent.click(screen.getByRole("button", { name: "2. Profile" }));
+    expect(screen.getByRole("option", { name: "FEMALE" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "MALE" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "OTHER" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "1. Client & visit" }));
+    fireEvent.change(screen.getByLabelText("Mobile *"), { target: { value: "9012345678" } });
+    fireEvent.click(screen.getByRole("button", { name: "2. Profile" }));
+    fireEvent.click(screen.getByLabelText("Same as mobile number"));
+    expect((screen.getByLabelText("Billing phone") as HTMLInputElement).value).toBe("9012345678");
+    fireEvent.click(screen.getByRole("button", { name: "1. Client & visit" }));
+    fireEvent.change(screen.getByLabelText("Mobile *"), { target: { value: "9012345679" } });
+    fireEvent.click(screen.getByRole("button", { name: "2. Profile" }));
+    expect((screen.getByLabelText("Billing phone") as HTMLInputElement).value).toBe("9012345679");
+    fireEvent.click(screen.getByLabelText("Same as mobile number"));
+    expect((screen.getByLabelText("Billing phone") as HTMLInputElement).disabled).toBe(false);
+  });
+
+  it("looks up a six-digit pincode and keeps the filled location editable", async () => {
+    pincodeMaybeSingle.mockResolvedValue({ data: { city: "Kochi", state: "Kerala", country: "India" }, error: null });
+    renderWalkInForm();
+    fireEvent.click(screen.getByRole("button", { name: "2. Profile" }));
+    fireEvent.change(screen.getByLabelText("Pincode"), { target: { value: "682001" } });
+    await waitFor(() => expect(screen.getByDisplayValue("Kochi")).toBeTruthy());
+    expect(screen.getByDisplayValue("Kerala")).toBeTruthy();
+    fireEvent.change(screen.getByDisplayValue("Kochi"), { target: { value: "Ernakulam" } });
+    expect(screen.getByDisplayValue("Ernakulam")).toBeTruthy();
   });
 
   it("prefills an existing client for a make walk-in entry shortcut", () => { renderPrefilledWalkInForm(); expect(screen.getByDisplayValue("Known Client")).toBeTruthy(); expect(screen.getByDisplayValue("9012345678")).toBeTruthy(); expect(screen.getByText("Existing client detected")).toBeTruthy(); });
@@ -117,7 +201,7 @@ describe("WalkInForm proof image uploads", () => {
     ];
     vi.spyOn(crypto, "randomUUID").mockImplementation(() => ids.shift() ?? originalRandomUUID.call(crypto));
 
-    const { container } = renderWalkInForm();
+    renderWalkInForm();
     fireEvent.change(screen.getByLabelText("Client name *"), { target: { value: "Upload Failure Client" } });
     fireEvent.change(screen.getByLabelText("Mobile *"), { target: { value: "9012345501" } });
     openEngagementStep();
@@ -133,7 +217,8 @@ describe("WalkInForm proof image uploads", () => {
     const uploadedPath = upload.mock.calls[0][0];
     expect(uploadedPath).toBe("20000000-0000-4000-8000-000000000501/40000000-0000-4000-8000-000000000501/50000000-0000-4000-8000-000000000501_review-proof.jpg");
 
-    fireEvent.submit(container.querySelector("form")!);
+    fireEvent.click(screen.getByRole("button", { name: "6. Preferences & planning" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit complete visit" }));
 
     await waitFor(() => expect(rpc).toHaveBeenCalledWith("submit_walkin_visit", expect.any(Object)));
     await waitFor(() => expect(remove).toHaveBeenCalledWith([uploadedPath]));
@@ -142,7 +227,7 @@ describe("WalkInForm proof image uploads", () => {
   });
 
   it("blocks submission when an engagement ask is yes without an uploaded proof image", async () => {
-    const { container } = renderWalkInForm();
+    renderWalkInForm();
     fireEvent.change(screen.getByLabelText("Client name *"), { target: { value: "Missing Proof Client" } });
     fireEvent.change(screen.getByLabelText("Mobile *"), { target: { value: "9012345502" } });
     openEngagementStep();
@@ -151,7 +236,8 @@ describe("WalkInForm proof image uploads", () => {
     expect(testimonial).not.toBeNull();
     fireEvent.change(within(testimonial!).getByRole("combobox"), { target: { value: "yes" } });
 
-    fireEvent.submit(container.querySelector("form")!);
+    fireEvent.click(screen.getByRole("button", { name: "6. Preferences & planning" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit complete visit" }));
 
     expect(await screen.findByText("Testimonial needs a proof image before submission.")).toBeTruthy();
     expect(rpc).not.toHaveBeenCalled();

@@ -40,10 +40,20 @@ export function ClientDatabase({
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-7">
-      <h1 className="text-3xl font-semibold">Client database</h1>
-      <p className="mt-2 text-sm text-stone-600">
-        Client data is always live and instant; no sync step is needed.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold">Client database</h1>
+          <p className="mt-2 text-sm text-stone-600">
+            Client data is always live and instant; no sync step is needed.
+          </p>
+        </div>
+        <Link
+          className="rounded bg-amber-800 px-4 py-2 font-medium text-white"
+          href="/queue"
+        >
+          Register Client
+        </Link>
+      </div>
       <form className="mt-5 flex flex-wrap gap-2" action="/clients">
         <label className="sr-only" htmlFor="client-database-search">Search clients</label>
         <input id="client-database-search" className="w-full max-w-xl rounded border p-2" name="search" defaultValue={search} placeholder="Search name or any phone number" />

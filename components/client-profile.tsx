@@ -136,6 +136,7 @@ export function ClientProfile({
   client,
   timeline,
   audit,
+  lookups,
 }: {
   client: Client;
   timeline: Array<{
@@ -156,6 +157,7 @@ export function ClientProfile({
     created_at: string;
     editor: string | null;
   }>;
+  lookups: { beverages: string[]; snacks: string[] };
 }) {
   const [values, setValues] = useState(() => initial(client));
   const [tab, setTab] = useState<"profile" | "timeline" | "audit">("profile");
@@ -336,7 +338,52 @@ export function ClientProfile({
                             </option>
                           ))}
                         </select>
-                      ) : field === "address" || field === "gift_history" ? (
+                      ) : field === "gender" ? (
+                        <select
+                          aria-label="Gender"
+                          className="w-full rounded border p-2"
+                          value={values.gender}
+                          onChange={(event) =>
+                            setValues({ ...values, gender: event.target.value })
+                          }
+                        >
+                          <option value="">Choose</option>
+                          {["FEMALE", "MALE", "OTHER"].map((option) => (
+                            <option value={option} key={option}>{option}</option>
+                          ))}
+                        </select>
+                      ) : field === "beverage" || field === "snack" ? (
+                        <select
+                          aria-label={label(field)}
+                          className="w-full rounded border p-2"
+                          value={values[field]}
+                          onChange={(event) =>
+                            setValues({ ...values, [field]: event.target.value })
+                          }
+                        >
+                          <option value="">Choose</option>
+                          {!(field === "beverage" ? lookups.beverages : lookups.snacks).includes(values[field]) && values[field] ? (
+                            <option value={values[field]}>{values[field]} (legacy)</option>
+                          ) : null}
+                          {(field === "beverage" ? lookups.beverages : lookups.snacks).map((option) => (
+                            <option value={option} key={option}>{option}</option>
+                          ))}
+                        </select>
+                      ) : field === "sugar" ? (
+                        <select
+                          aria-label="Sugar"
+                          className="w-full rounded border p-2"
+                          value={values.sugar}
+                          onChange={(event) =>
+                            setValues({ ...values, sugar: event.target.value })
+                          }
+                        >
+                          <option value="">Choose</option>
+                          {["No sugar", "Less sugar", "Regular sugar"].map((option) => (
+                            <option value={option} key={option}>{option}</option>
+                          ))}
+                        </select>
+                      ) : field === "city_other" && values.city.trim().toUpperCase() !== "OTHER" ? null : field === "community_other" && !values.community.trim().toUpperCase().startsWith("OTHER") ? null : field === "address" || field === "gift_history" ? (
                         <textarea
                           className="w-full rounded border p-2"
                           rows={field === "gift_history" ? 3 : 2}
@@ -358,6 +405,7 @@ export function ClientProfile({
                               ? "date"
                               : "text"
                           }
+                          inputMode={field === "primary_phone" || field === "secondary_phone" || field === "billing_phone" ? "numeric" : undefined}
                           value={values[field]}
                           onChange={(event) =>
                             setValues({

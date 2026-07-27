@@ -52,6 +52,9 @@ const potentialCategoryMigrationPath = fileURLToPath(
 const consolidatedWalkinLookupMigrationPath = fileURLToPath(
   new URL("../prisma/migrations/20260725180000_consolidated_walkin_phone_lookup/migration.sql", import.meta.url),
 );
+const superAdminQueueRegistrationMigrationPath = fileURLToPath(
+  new URL("../prisma/migrations/20260727000000_fix_super_admin_queue_registration/migration.sql", import.meta.url),
+);
 
 let database: PGlite;
 
@@ -103,6 +106,7 @@ beforeAll(async () => {
   await database.exec(await readFile(followupCounterMigrationPath, "utf8"));
   await database.exec(await readFile(potentialCategoryMigrationPath, "utf8"));
   await database.exec(await readFile(consolidatedWalkinLookupMigrationPath, "utf8"));
+  await database.exec(await readFile(superAdminQueueRegistrationMigrationPath, "utf8"));
 });
 
 afterAll(async () => {
@@ -557,6 +561,16 @@ describe("Phase 2 visit intake guarantees", () => {
       await database.query(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ entry_queue_id: entry.rows[0]!.id, branch_id: branch, primary_name: "Queued", primary_phone: "9000000203", did_buy: true })]);
       await expect(database.query(`SELECT status FROM entry_queue WHERE id = $1`, [entry.rows[0]!.id])).resolves.toMatchObject({ rows: [{ status: "complete" }] });
       await expect(database.query(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ branch_id: other, primary_name: "Forbidden", primary_phone: "9000000204", did_buy: true })])).rejects.toThrow(/own branch|privilege/i);
+    } finally { await database.exec("RESET ROLE"); }
+  });
+
+  it("allows a super admin to register a queue entry for a selected active branch", async () => {
+    const branch = "10000000-0000-4000-8000-000000000205"; const admin = "30000000-0000-4000-8000-000000000205";
+    await database.query(`INSERT INTO branches (id,name) VALUES ($1,'Admin Queue Branch')`, [branch]);
+    await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,'Queue Admin','queue-admin@example.com','super_admin',NULL)`, [admin]);
+    await database.exec("SET ROLE authenticated"); await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [admin]);
+    try {
+      await expect(database.query(`SELECT * FROM create_entry_queue($1,$2,$3,$4)`, ["Admin Queued", "9000000205", branch, null])).resolves.toMatchObject({ rows: [{ token: expect.any(String), client_type: "new" }] });
     } finally { await database.exec("RESET ROLE"); }
   });
 });
