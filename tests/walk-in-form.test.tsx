@@ -69,6 +69,7 @@ describe("WalkInForm proof image uploads", () => {
     renderWalkInForm();
     expect((screen.getByLabelText("Visit date and time") as HTMLInputElement).value).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
     expect((screen.getByLabelText("Source of lead") as HTMLSelectElement).value).toBe("Walk-in");
+    expect((screen.getByLabelText("Client type") as HTMLSelectElement).value).toBe("new");
   });
 
   it("uses legacy source, bridal, occupation, and category reveal rules", () => {
@@ -86,11 +87,32 @@ describe("WalkInForm proof image uploads", () => {
     fireEvent.click(within(screen.getByLabelText("Product categories seen by the client")).getByText("Other"));
     expect(screen.getByLabelText("Other (seen category)")).toBeTruthy();
   });
+
+  it("uses the literal legacy controls for wedding, communication, and marketing fields", () => {
+    renderWalkInForm();
+    fireEvent.click(screen.getByRole("button", { name: "6. Preferences & planning" }));
+    fireEvent.change(screen.getByLabelText("Bridal / non-bridal"), { target: { value: "Bridal" } });
+
+    const weddingMonth = screen.getByLabelText("Wedding month") as HTMLSelectElement;
+    const weddingYear = screen.getByLabelText("Wedding year") as HTMLSelectElement;
+    const communication = screen.getByLabelText("Communication preference") as HTMLSelectElement;
+    expect(weddingMonth.tagName).toBe("SELECT");
+    expect(Array.from(weddingMonth.options).map((option) => option.value)).toEqual(["", "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"]);
+    expect(Array.from(weddingYear.options).map((option) => option.value)).toEqual(["", ...Array.from({ length: 11 }, (_, index) => String(new Date().getFullYear() + index))]);
+    expect(Array.from(communication.options).map((option) => option.value)).toEqual(["", "CALL", "WHATSAPP CALLS", "WHATSAPP MESSAGE", "DON'T CONTACT"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "4. Purchase outcome" }));
+    expect(screen.getByRole("radio", { name: "YES" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "NO" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("radio", { name: "YES" }));
+    expect((screen.getByRole("radio", { name: "YES" }) as HTMLInputElement).checked).toBe(true);
+  });
   it("auto-fills a matched phone profile and keeps a manually edited value", async () => {
     rpc.mockImplementation((name: string) => name === "lookup_client_by_phone" ? Promise.resolve({ data: [{ client_id: "20000000-0000-4000-8000-000000000599", primary_name: "Phone Match", primary_phone: "9012345599", gender: "Female", dob: "1990-01-02", community: "Nair", address: "Main Road", pincode: "682001", country: "India", state: "Kerala", city: "Kochi" }], error: null }) : Promise.resolve({ data: [], error: null }));
     renderWalkInForm();
     fireEvent.change(screen.getByLabelText("Mobile *"), { target: { value: "9012345599" } });
     await waitFor(() => expect(screen.getByDisplayValue("Phone Match")).toBeTruthy());
+    expect((screen.getByLabelText("Client type") as HTMLSelectElement).value).toBe("existing");
     fireEvent.click(screen.getByRole("button", { name: "2. Profile" }));
     await waitFor(() => expect(screen.getByDisplayValue("FEMALE")).toBeTruthy());
     expect(screen.getAllByText("Auto-filled from client history — editable").length).toBeGreaterThan(0);
@@ -186,6 +208,49 @@ describe("WalkInForm proof image uploads", () => {
     fireEvent.change(instagramSelect, { target: { value: "no" } });
     expect(instagramControls.queryByLabelText("Instagram follow proof image")).toBeNull();
     expect(instagramControls.getByPlaceholderText("Reason")).toBeTruthy();
+  });
+
+  it("submits an uploaded proof image and keeps the Storage object after a successful visit", async () => {
+    rpc.mockImplementation((name: string) => name === "submit_walkin_visit"
+      ? Promise.resolve({ data: [{ client_id: "20000000-0000-4000-8000-000000000501", timeline_id: "40000000-0000-4000-8000-000000000501", reference_number: "TES-260727-0001" }], error: null })
+      : Promise.resolve({ data: [], error: null }));
+    upload.mockResolvedValueOnce({ error: null });
+    remove.mockResolvedValue({ error: null });
+
+    const originalRandomUUID = crypto.randomUUID;
+    const ids = [
+      "20000000-0000-4000-8000-000000000501",
+      "40000000-0000-4000-8000-000000000501",
+      "50000000-0000-4000-8000-000000000501",
+    ];
+    vi.spyOn(crypto, "randomUUID").mockImplementation(() => ids.shift() ?? originalRandomUUID.call(crypto));
+
+    renderWalkInForm();
+    fireEvent.change(screen.getByLabelText("Client name *"), { target: { value: "Uploaded Proof Client" } });
+    fireEvent.change(screen.getByLabelText("Mobile *"), { target: { value: "9012345503" } });
+    openEngagementStep();
+
+    const googleReview = engagementRow("Google review");
+    expect(googleReview).not.toBeNull();
+    const googleReviewControls = within(googleReview!);
+    fireEvent.change(googleReviewControls.getByRole("combobox"), { target: { value: "yes" } });
+    fireEvent.change(
+      googleReviewControls.getByLabelText("Google review proof image"),
+      { target: { files: [new File(["proof"], "review-proof.jpg", { type: "image/jpeg" })] } },
+    );
+
+    await waitFor(() => expect(upload).toHaveBeenCalledOnce());
+    const storagePath = upload.mock.calls[0][0];
+    fireEvent.click(screen.getByRole("button", { name: "6. Preferences & planning" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit complete visit" }));
+
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith("submit_walkin_visit", expect.objectContaining({
+      p_payload: expect.objectContaining({
+        documents: [{ storage_path: storagePath, file_name: "review-proof.jpg", mime_type: "image/jpeg" }],
+      }),
+    })));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/queue?completed=Uploaded%20Proof%20Client"));
+    expect(remove).not.toHaveBeenCalled();
   });
 
   it("removes uploaded proof images when submit_walkin_visit fails", async () => {

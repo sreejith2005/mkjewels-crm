@@ -55,6 +55,15 @@ const consolidatedWalkinLookupMigrationPath = fileURLToPath(
 const superAdminQueueRegistrationMigrationPath = fileURLToPath(
   new URL("../prisma/migrations/20260727000000_fix_super_admin_queue_registration/migration.sql", import.meta.url),
 );
+const categoryArrayDedupeMigrationPath = fileURLToPath(
+  new URL("../prisma/migrations/20260727050000_dedupe_category_arrays/migration.sql", import.meta.url),
+);
+const notBoughtParityMigrationPath = fileURLToPath(
+  new URL("../prisma/migrations/20260727060000_not_bought_followup_legacy_parity/migration.sql", import.meta.url),
+);
+const referralParityMigrationPath = fileURLToPath(
+  new URL("../prisma/migrations/20260727070000_referral_calling_legacy_parity/migration.sql", import.meta.url),
+);
 
 let database: PGlite;
 
@@ -107,6 +116,9 @@ beforeAll(async () => {
   await database.exec(await readFile(potentialCategoryMigrationPath, "utf8"));
   await database.exec(await readFile(consolidatedWalkinLookupMigrationPath, "utf8"));
   await database.exec(await readFile(superAdminQueueRegistrationMigrationPath, "utf8"));
+  await database.exec(await readFile(categoryArrayDedupeMigrationPath, "utf8"));
+  await database.exec(await readFile(notBoughtParityMigrationPath, "utf8"));
+  await database.exec(await readFile(referralParityMigrationPath, "utf8"));
 });
 
 afterAll(async () => {
@@ -194,6 +206,16 @@ describe("Phase 0 database guarantees", () => {
       total_purchase_visits: 1,
       total_non_purchase_visits: 1,
     });
+  });
+
+  it("deduplicates category arrays before timeline rollups and audit logging", async () => {
+    const branchId = "10000000-0000-4000-8000-000000000009";
+    const clientId = "20000000-0000-4000-8000-000000000009";
+    await database.query(`INSERT INTO branches (id, name) VALUES ($1, 'Category Guard Branch')`, [branchId]);
+    await database.query(`INSERT INTO clients (client_id, primary_name, primary_phone) VALUES ($1, 'Category Guard Client', '9000000009')`, [clientId]);
+    await database.query(`INSERT INTO client_timeline (client_id,event_date,buy_status,branch_id,seen_categories,bought_categories,order_categories) VALUES ($1,'2026-07-24T10:00:00Z','YES',$2,ARRAY['Ring','Ring','Bangle'],ARRAY['Chain','Chain'],ARRAY['Pendant','Pendant'])`, [clientId, branchId]);
+    await expect(database.query(`SELECT seen_categories,bought_categories,order_categories FROM client_timeline WHERE client_id=$1`, [clientId])).resolves.toMatchObject({ rows: [{ seen_categories: ['Ring', 'Bangle'], bought_categories: ['Chain'], order_categories: ['Pendant'] }] });
+    await expect(database.query(`SELECT last_seen_categories,last_bought_categories,last_order_categories FROM clients WHERE client_id=$1`, [clientId])).resolves.toMatchObject({ rows: [{ last_seen_categories: ['Ring', 'Bangle'], last_bought_categories: ['Chain'], last_order_categories: ['Pendant'] }] });
   });
 
   it("allows cross-branch history reads but rejects a false visit branch", async () => {
@@ -646,6 +668,17 @@ describe("Phase 4 not-bought follow-up guarantees", () => {
   it("logs every call outcome with old and new status plus the acting user", async () => {
     const branch = "10000000-0000-4000-8000-000000000404", user = "30000000-0000-4000-8000-000000000404", client = "20000000-0000-4000-8000-000000000404";
     try { await createNotBoughtVisit(branch, user, client, "404"); const followup = await database.query<{ id: string }>(`SELECT id FROM not_bought_followups WHERE client_id=$1`, [client]); await database.query(`SELECT update_not_bought_followup($1,'interested','Will visit Saturday',NULL)`, [followup.rows[0]!.id]); await expect(database.query(`SELECT previous_status,status,call_response,remark,updated_by::text FROM not_bought_history WHERE followup_id=$1`, [followup.rows[0]!.id])).resolves.toMatchObject({ rows: [{ previous_status: "pending", status: "pending", call_response: "interested", remark: "Will visit Saturday", updated_by: user }] }); } finally { await database.exec("RESET ROLE"); }
+  });
+  it("saves a historical follow-up with no source visit form through the single legacy form contract", async () => {
+    const branch = "10000000-0000-4000-8000-000000000409", user = "30000000-0000-4000-8000-000000000409", client = "20000000-0000-4000-8000-000000000409";
+    await database.query(`INSERT INTO branches (id,name) VALUES ($1,'Historical Followup Branch')`, [branch]);
+    await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,'Historical Followup User','historical-followup@example.com','salesperson',$2)`, [user, branch]);
+    await database.query(`INSERT INTO clients (client_id,primary_name,primary_phone) VALUES ($1,'Historical Followup Client','9000000409')`, [client]);
+    await database.exec("SET ROLE authenticated"); await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [user]);
+    try {
+      const created = await database.query<{ id: string }>(`INSERT INTO not_bought_followups (client_id,status,entered_by,branch_id) VALUES ($1,'PENDING',$2,$3) RETURNING id`, [client, user, branch]);
+      await expect(database.query(`SELECT status,call_response,remark,next_followup_date::text FROM save_not_bought_followup($1,'IN PROCESS','CONNECTED','2026-07-30','Called client')`, [created.rows[0]!.id])).resolves.toMatchObject({ rows: [{ status: "IN PROCESS", call_response: "CONNECTED", remark: "Called client", next_followup_date: "2026-07-30" }] });
+    } finally { await database.exec("RESET ROLE"); }
   });
 
   it("keeps follow-ups globally readable but restricts writes to the originating branch and super admin", async () => {

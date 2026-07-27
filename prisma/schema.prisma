@@ -355,6 +355,7 @@ model NotBoughtFollowup {
   callResponse     String?            @map("call_response")
   followupCount    Int                @default(0) @map("followup_count")
   remark           String?
+  actionPoint      String?            @map("action_point")
   enteredById      String             @map("entered_by") @db.Uuid
   branchId         String?            @map("branch_id") @db.Uuid
   sourceTimelineId String?            @map("source_timeline_id") @db.Uuid
@@ -406,6 +407,7 @@ model Referral {
   sourceVisitFormId String?         @map("source_visit_form_id") @db.Uuid
   relationship      String?         @db.VarChar(120)
   bestTimeToCall    String?         @map("best_time_to_call") @db.VarChar(120)
+  assignedDoer      String?         @map("assigned_doer") @db.VarChar(160)
   createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
   calling         ReferralCalling[]
   givenByClient   Client            @relation(fields: [givenByClientId], references: [clientId], onDelete: Cascade)
@@ -418,6 +420,7 @@ model Referral {
   @@index([givenByClientId])
   @@index([referralNumber])
   @@index([branchId, createdAt(sort: Desc)])
+  @@index([assignedDoer])
   @@index([sourceTimelineId])
   @@index([sourceVisitFormId])
   @@map("referrals")
@@ -432,6 +435,7 @@ model ReferralCalling {
   followupCount    Int       @default(0) @map("followup_count")
   nextFollowupDate DateTime? @map("next_followup_date") @db.Date
   convertedClientId String?  @map("converted_client_id") @db.Uuid
+  actionPoint      String?   @map("action_point")
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   referral         Referral  @relation(fields: [referralId], references: [id], onDelete: Cascade)
   convertedClient  Client?   @relation("ReferralConvertedClient", fields: [convertedClientId], references: [clientId], onDelete: SetNull)
@@ -451,6 +455,7 @@ model ReferralCallingHistory {
   callResponse   String?         @map("call_response") @db.VarChar(40)
   remark         String?
   updatedById    String?         @map("updated_by") @db.Uuid
+  enteredBy      String?         @map("entered_by") @db.VarChar(160)
   createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   referralCalling ReferralCalling @relation(fields: [referralCallingId], references: [id], onDelete: Cascade)
   updatedBy      User?           @relation("ReferralCallingHistoryUpdatedBy", fields: [updatedById], references: [id])
@@ -534,6 +539,33 @@ model LookupNotBoughtReason {
 
   @@index([active, label])
   @@map("lookup_not_bought_reasons")
+}
+
+model LookupRelation {
+  id     String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  label  String  @unique @db.VarChar(160)
+  active Boolean @default(true)
+
+  @@index([active, label])
+  @@map("lookup_relations")
+}
+
+model LookupSugarOption {
+  id     String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  label  String  @unique @db.VarChar(160)
+  active Boolean @default(true)
+
+  @@index([active, label])
+  @@map("lookup_sugar_options")
+}
+
+model LookupSourceOfLead {
+  id     String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  label  String  @unique @db.VarChar(160)
+  active Boolean @default(true)
+
+  @@index([active, label])
+  @@map("lookup_source_of_leads")
 }
 
 enum UserRole {

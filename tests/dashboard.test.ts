@@ -16,6 +16,13 @@ describe("Phase 6 dashboard reporting", () => {
     expect(data.crmBreakdown[0]).toMatchObject({ name: "Bala", visits: 3, bought: 1 });
   });
 
+  it("builds a non-overlapping status distribution that reconciles to total walk-ins", () => {
+    const rows = [visit({ event_type: "READY_PRODUCT_PURCHASE" }), visit({ event_type: "NON_PURCHASE_VISIT" }), visit({ event_type: "STORE_VISIT" })];
+    const distribution = buildDashboardData(rows, [], [], "2026-07-24").statusDistribution;
+    expect(distribution).toEqual(expect.arrayContaining([{ label: "Bought", value: 1, color: "#217047" }, { label: "Not bought", value: 1, color: "#a73f35" }, { label: "Other visits", value: 1, color: "#9a9488" }]));
+    expect(distribution.reduce((sum, item) => sum + item.value, 0)).toBe(3);
+  });
+
   it("uses the existing queue overdue predicate for both operational queues", () => {
     const data = buildDashboardData([], [{ status: "pending", next_followup_date: "2026-07-23", created_at: "2026-07-24T10:00:00Z" }, { status: "converted", next_followup_date: "2026-07-20", created_at: "2026-07-24T10:00:00Z" }], [{ status: "pending", next_followup_date: "2026-07-24", created_at: "2026-07-24T10:00:00Z" }, { status: "pending", next_followup_date: "2026-07-22", created_at: "2026-07-24T10:00:00Z" }], "2026-07-24");
     expect(data.operations).toEqual({ pendingFollowups: 1, overdueFollowups: 1, pendingReferrals: 2, overdueReferrals: 1 });

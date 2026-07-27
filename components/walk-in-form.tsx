@@ -40,6 +40,17 @@ const LEGACY_VISIT_STATUSES = [
   "YES", "NO", "REPAIR_PLACED", "REPAIR_PICKUP", "ORDER_PLACED",
   "ORDER_PICKUP", "PRODUCT_EXCHANGE", "PRODUCT_RETURN", "STORE_VISIT", "PRICE_CALCULATION",
 ];
+const LEGACY_WEDDING_MONTHS = [
+  "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
+  "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER",
+];
+const LEGACY_COMMUNICATION_PREFERENCES = [
+  "CALL", "WHATSAPP CALLS", "WHATSAPP MESSAGE", "DON'T CONTACT",
+];
+function legacyWeddingMonthNumber(value: string) {
+  const index = LEGACY_WEDDING_MONTHS.indexOf(value);
+  return index === -1 ? value : String(index + 1);
+}
 function istDateTimeLocal(now = new Date()) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit",
@@ -78,6 +89,7 @@ function initialValue(
     source_of_lead_other: "",
     reference_name: "",
     reference_phone: "",
+    client_type: client?.client_id || queue?.client_id ? "existing" : "new",
     did_buy: "yes",
     visit_status: "YES",
     not_bought_other: "",
@@ -92,6 +104,11 @@ function initialValue(
     beverage: client?.beverage ?? "",
     sugar: client?.sugar ?? "",
     snack: client?.snack ?? "",
+    beverage_other: "",
+    sugar_other: "",
+    snack_other: "",
+    gift: "",
+    gift_other: "",
     next_visit_date: client?.next_visit_date ?? "",
     client_potential_category: client?.client_potential_category ?? "",
     high_potential_reason: client?.high_potential_reason ?? "",
@@ -132,6 +149,7 @@ export function WalkInForm({
     notBoughtReasons: [],
     beverages: [],
     snacks: [],
+    relations: [], sugarOptions: [], sourceOfLeads: [], communities: [], gifts: [],
   },
 }: {
   profile: { role: string; branchId: string | null; name: string };
@@ -144,6 +162,7 @@ export function WalkInForm({
     notBoughtReasons: string[];
     beverages: string[];
     snacks: string[];
+    relations?: string[]; sugarOptions?: string[]; sourceOfLeads?: string[]; communities?: string[]; gifts?: string[];
   };
 }) {
   const router = useRouter();
@@ -186,12 +205,14 @@ export function WalkInForm({
     const timer = window.setTimeout(() => {
       void lookupClientByPhone(values.primary_phone).then((matched) => {
         if (!matched) {
-          if (!queue?.client_id && !client?.client_id) setValues((current) => ({ ...current, client_id: "" }));
+          if (!queue?.client_id && !client?.client_id) {
+            setValues((current) => ({ ...current, client_id: "", client_type: "new" }));
+          }
           setAutoFilledFields(new Set());
           return;
         }
         const fields = ["primary_name", "gender", "dob", "community", "address", "pincode", "country", "state", "city"];
-        setValues((current) => ({ ...current, client_id: matched.client_id, primary_name: matched.primary_name, gender: matched.gender?.toUpperCase() ?? "", dob: matched.dob ?? "", community: matched.community ?? "", address: matched.address ?? "", pincode: matched.pincode ?? "", country: matched.country ?? "", state: matched.state ?? "", city: matched.city ?? "" }));
+        setValues((current) => ({ ...current, client_id: matched.client_id, client_type: "existing", primary_name: matched.primary_name, gender: matched.gender?.toUpperCase() ?? "", dob: matched.dob ?? "", community: matched.community ?? "", address: matched.address ?? "", pincode: matched.pincode ?? "", country: matched.country ?? "", state: matched.state ?? "", city: matched.city ?? "" }));
         setProposedClientId(matched.client_id);
         setAutoFilledFields(new Set(fields));
       });
@@ -330,6 +351,9 @@ export function WalkInForm({
       primary_phone: phoneDigits(values.primary_phone),
       event_date: values.event_date ? `${values.event_date}:00+05:30` : undefined,
       did_buy: values.visit_status === "YES",
+      // The legacy control stores month names, while the current schema stores
+      // the same month as a checked smallint.
+      wedding_month: legacyWeddingMonthNumber(values.wedding_month),
       companions: companions.filter(
         (item) => item.name || item.mobile || item.relation,
       ),
@@ -372,6 +396,11 @@ export function WalkInForm({
         new_things_other: values.new_things_other,
         referrals_count: values.referrals_count,
         referrals: referrals.filter((referral) => referral.name || referral.mobile),
+        beverage_other: values.beverage_other,
+        sugar_other: values.sugar_other,
+        snack_other: values.snack_other,
+        gift: values.gift,
+        gift_other: values.gift_other,
         other_store_client_wants_to_visit:
           values.other_store_client_wants_to_visit,
         categories_client_wants_more: asList(
@@ -384,6 +413,15 @@ export function WalkInForm({
     });
     setSaving(false);
     if (error || !data?.[0]) {
+      console.error("submit_walkin_visit failed", {
+        code: error?.code,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+        uploadedProofPaths: Object.values(proofs)
+          .filter((proof) => proof.status === "ready")
+          .map((proof) => proof.path),
+      });
       await createClient()
         .storage.from("crm-documents")
         .remove(
@@ -481,9 +519,24 @@ export function WalkInForm({
               )}
             </h2>
             {field("event_date", "Visit date and time", "datetime-local")}
+            <label className="block text-sm">
+              Client type
+              <select
+                aria-label="Client type"
+                className={inputClass}
+                disabled
+                value={values.client_type}
+              >
+                <option value="existing">OLD CLIENT</option>
+                <option value="new">NEW CLIENT</option>
+              </select>
+              <span className="mt-1 block text-xs text-stone-500">
+                Derived from the client&apos;s phone lookup.
+              </span>
+            </label>
             {field("primary_name", "Client name *")}
-            <label className="block text-sm"><span>Mobile *</span><div className="mt-1 flex rounded border border-stone-300 bg-white"><span className="border-r border-stone-300 px-3 py-2 text-stone-600">+91</span><input aria-label="Mobile *" className="min-w-0 flex-1 rounded-r p-2" inputMode="numeric" value={values.primary_phone} onChange={(event) => { set("primary_phone", event.target.value); if (billingMatchesPrimary) set("billing_phone", event.target.value); setAutoFilledFields(new Set()); }} onBlur={() => { if (phoneDigits(values.primary_phone).length === 10) void lookupClientByPhone(values.primary_phone).then((matched) => { if (matched) { setValues((current) => ({ ...current, client_id: matched.client_id, primary_name: matched.primary_name, gender: matched.gender?.toUpperCase() ?? "", dob: matched.dob ?? "", community: matched.community ?? "", address: matched.address ?? "", pincode: matched.pincode ?? "", country: matched.country ?? "", state: matched.state ?? "", city: matched.city ?? "" })); setProposedClientId(matched.client_id); setAutoFilledFields(new Set(["primary_name", "gender", "dob", "community", "address", "pincode", "country", "state", "city"])); } }); }} /></div></label>
-            {selectField("source_of_lead", "Source of lead", ["Walk-in", "Reference", "Instagram", "Google", "WhatsApp", "Advertisement", "Other"])}
+            <label className="block text-sm"><span>Mobile *</span><div className="mt-1 flex rounded border border-stone-300 bg-white"><span className="border-r border-stone-300 px-3 py-2 text-stone-600">+91</span><input aria-label="Mobile *" className="min-w-0 flex-1 rounded-r p-2" inputMode="numeric" value={values.primary_phone} onChange={(event) => { set("primary_phone", event.target.value); if (billingMatchesPrimary) set("billing_phone", event.target.value); setAutoFilledFields(new Set()); }} onBlur={() => { if (phoneDigits(values.primary_phone).length === 10) void lookupClientByPhone(values.primary_phone).then((matched) => { if (matched) { setValues((current) => ({ ...current, client_id: matched.client_id, client_type: "existing", primary_name: matched.primary_name, gender: matched.gender?.toUpperCase() ?? "", dob: matched.dob ?? "", community: matched.community ?? "", address: matched.address ?? "", pincode: matched.pincode ?? "", country: matched.country ?? "", state: matched.state ?? "", city: matched.city ?? "" })); setProposedClientId(matched.client_id); setAutoFilledFields(new Set(["primary_name", "gender", "dob", "community", "address", "pincode", "country", "state", "city"])); } }); }} /></div></label>
+            {selectField("source_of_lead", "Source of lead", lookups.sourceOfLeads?.length ? lookups.sourceOfLeads : ["Walk-in", "Reference", "Instagram", "Google", "WhatsApp", "Advertisement", "Other"])}
             {values.source_of_lead.trim().toUpperCase() === "REFERENCE" ? (
               <>
                 {field("reference_name", "Reference name")}
@@ -536,7 +589,7 @@ export function WalkInForm({
             {values.city.trim().toUpperCase() === "OTHER" ? field("city_other", "City other") : null}
             {field("pincode", "Pincode")}
             {field("address", "Address")}
-            {field("community", "Community / caste")}
+            {selectField("community", "Community / caste", lookups.communities ?? [])}
             {values.community.trim().toUpperCase().startsWith("OTHER") ? field("community_other", "Community other") : null}
             {field("dob", "Date of birth", "date")}
             {field("anniversary", "Anniversary", "date")}
@@ -552,7 +605,7 @@ export function WalkInForm({
                   className="grid gap-2 md:grid-cols-[1fr_1fr_1fr_auto]"
                   key={index}
                 >
-                  {(["name", "mobile", "relation"] as const).map((key) => (
+                  {(["name", "mobile"] as const).map((key) => (
                     <input
                       className="rounded border p-2"
                       placeholder={key}
@@ -568,7 +621,7 @@ export function WalkInForm({
                       }
                       key={key}
                     />
-                  ))}
+                  ))}<select aria-label={`Companion ${index + 1} relation`} className="rounded border p-2" value={item.relation} onChange={(event) => setCompanions((current) => current.map((row, rowIndex) => rowIndex === index ? { ...row, relation: event.target.value } : row))}><option value="">Relation</option>{(lookups.relations ?? []).map((relation) => <option key={relation} value={relation}>{relation}</option>)}</select>
                   <button
                     type="button"
                     className="text-sm underline"
@@ -635,7 +688,7 @@ export function WalkInForm({
                     {reason}
                   </label>
                 ))}
-                {field("not_bought_other", "Other reason")}
+                {notBoughtReasons.some((reason) => reason.startsWith("Other:")) ? field("not_bought_other", "Other reason") : null}
               </div>
             ) : null}
             {values.visit_status !== "STORE_VISIT" && values.visit_status !== "PRICE_CALCULATION" ? <>
@@ -655,7 +708,25 @@ export function WalkInForm({
                 {selectField("repair_or_order_approach", "Did CRM approach to show new products?", ["YES", "NO"])}
                 {values.repair_or_order_approach === "YES" ? <>{selectField("new_things_choice", "Is client buying / making order for new things?", ["BUYING_NEW_PRODUCT", "MAKING_NEW_ORDER", "NO"])}{["BUYING_NEW_PRODUCT", "MAKING_NEW_ORDER"].includes(values.new_things_choice) ? <>{field("salesperson_handled", "Salesperson attending new buy / order")}{multiField("new_things_categories", "New buy / order categories")}{asList(values.new_things_categories).some((item) => item.toUpperCase().startsWith("OTHER")) ? field("new_things_other", "Other (new buy / order category)") : null}</> : null}</> : null}
               </> : null}
-              {values.visit_status !== "PRODUCT_EXCHANGE" ? field("marketing_message_sent", "Marketing message") : null}
+              {values.visit_status !== "PRODUCT_EXCHANGE" ? (
+                <fieldset className="block text-sm" aria-label="Marketing message">
+                  <legend>Marketing message</legend>
+                  <div className="mt-1 flex gap-4">
+                    {["YES", "NO"].map((option) => (
+                      <label className="inline-flex items-center gap-1" key={option}>
+                        <input
+                          type="radio"
+                          name="marketing_message"
+                          value={option}
+                          checked={values.marketing_message_sent === option}
+                          onChange={(event) => set("marketing_message_sent", event.target.value)}
+                        />
+                        {option}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              ) : null}
             </> : null}
           </div>
         ) : null}
@@ -755,13 +826,18 @@ export function WalkInForm({
               Preferences & planning
             </h2>
             {selectField("beverage", "Beverage", lookups.beverages)}
-            {selectField("sugar", "Sugar", ["No sugar", "Less sugar", "Regular sugar"])}
+            {values.beverage === "Other:" ? field("beverage_other", "Other beverage") : null}
+            {selectField("sugar", "Sugar", lookups.sugarOptions ?? [])}
+            {values.sugar === "Other:" ? field("sugar_other", "Other sugar preference") : null}
             {selectField("snack", "Snack", lookups.snacks)}
+            {values.snack === "Other:" ? field("snack_other", "Other snack") : null}
+            {selectField("gift", "Gift given", lookups.gifts ?? [])}
+            {values.gift === "Other:" ? field("gift_other", "Other gift") : null}
             {selectField("occupation", "Occupation", ["Business", "Professional", "Homemaker", "Student", "Retired", "Other"])}
             {values.occupation.trim().toUpperCase() === "OTHER" ? field("occupation_other", "Occupation other") : null}
             {selectField("bridal_or_non_bridal", "Bridal / non-bridal", ["Bridal", "Non-bridal"])}
-            {values.bridal_or_non_bridal.trim().toUpperCase() === "BRIDAL" ? <>{field("wedding_month", "Wedding month", "number")}{field("wedding_year", "Wedding year", "number")}</> : null}
-            {field("communication_preference", "Communication preference")}
+            {values.bridal_or_non_bridal.trim().toUpperCase() === "BRIDAL" ? <>{selectField("wedding_month", "Wedding month", LEGACY_WEDDING_MONTHS)}{selectField("wedding_year", "Wedding year", Array.from({ length: 11 }, (_, index) => String(new Date().getFullYear() + index)))}</> : null}
+            {selectField("communication_preference", "Communication preference", LEGACY_COMMUNICATION_PREFERENCES)}
             {field("next_visit_date", "Next visit date", "date")}
             {selectField("client_potential_category", "Client potential category", [
               ...(!isPotentialCategory(values.client_potential_category) && values.client_potential_category ? [values.client_potential_category] : []),

@@ -157,7 +157,7 @@ export function ClientProfile({
     created_at: string;
     editor: string | null;
   }>;
-  lookups: { beverages: string[]; snacks: string[] };
+  lookups: { beverages: string[]; snacks: string[]; sugars?: string[]; communities?: string[]; gifts?: string[] };
 }) {
   const [values, setValues] = useState(() => initial(client));
   const [tab, setTab] = useState<"profile" | "timeline" | "audit">("profile");
@@ -352,9 +352,9 @@ export function ClientProfile({
                             <option value={option} key={option}>{option}</option>
                           ))}
                         </select>
-                      ) : field === "beverage" || field === "snack" ? (
+                      ) : field === "beverage" || field === "snack" || field === "sugar" || field === "community" ? (
                         <select
-                          aria-label={label(field)}
+                          aria-label={field === "sugar" ? "Sugar" : label(field)}
                           className="w-full rounded border p-2"
                           value={values[field]}
                           onChange={(event) =>
@@ -362,24 +362,10 @@ export function ClientProfile({
                           }
                         >
                           <option value="">Choose</option>
-                          {!(field === "beverage" ? lookups.beverages : lookups.snacks).includes(values[field]) && values[field] ? (
+                          {!(field === "beverage" ? lookups.beverages : field === "snack" ? lookups.snacks : field === "sugar" ? (lookups.sugars ?? []) : (lookups.communities ?? [])).includes(values[field]) && values[field] ? (
                             <option value={values[field]}>{values[field]} (legacy)</option>
                           ) : null}
-                          {(field === "beverage" ? lookups.beverages : lookups.snacks).map((option) => (
-                            <option value={option} key={option}>{option}</option>
-                          ))}
-                        </select>
-                      ) : field === "sugar" ? (
-                        <select
-                          aria-label="Sugar"
-                          className="w-full rounded border p-2"
-                          value={values.sugar}
-                          onChange={(event) =>
-                            setValues({ ...values, sugar: event.target.value })
-                          }
-                        >
-                          <option value="">Choose</option>
-                          {["No sugar", "Less sugar", "Regular sugar"].map((option) => (
+                          {(field === "beverage" ? lookups.beverages : field === "snack" ? lookups.snacks : field === "sugar" ? (lookups.sugars ?? []) : (lookups.communities ?? [])).map((option) => (
                             <option value={option} key={option}>{option}</option>
                           ))}
                         </select>

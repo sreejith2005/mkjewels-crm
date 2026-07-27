@@ -24,6 +24,7 @@ type Visit = { id: string; event_date: string; event_type: string; buy_status: s
 type Followup = { status: string; next_followup_date: string | null; created_at: string };
 type ReferralCalling = Followup;
 export type Breakdown = { name: string; visits: number; bought: number; buyRate: number };
+export type StatusDistributionItem = { label: string; value: number; color: string };
 
 const SALES_EVENT_TYPES = ["READY_PRODUCT_PURCHASE", "ORDER_PLACED_VISIT", "REPAIR_PLACED_VISIT", "ORDER_PICKUP_VISIT", "REPAIR_PICKUP_VISIT", "UPSALE_VISIT", "PRODUCT_RETURN_VISIT"];
 const openAndOverdue = (item: Followup, today: string) => Boolean(item.next_followup_date && item.next_followup_date < today && !["closed", "converted"].includes(item.status));
@@ -59,6 +60,17 @@ export function buildDashboardData(visits: Visit[], followups: Followup[], refer
   }
   return {
     totals,
+    statusDistribution: [
+      { label: "Not bought", value: totals.notBought, color: "#a73f35" },
+      { label: "Bought", value: totals.bought, color: "#217047" },
+      { label: "Order placed", value: totals.orderPlaced, color: "#b98934" },
+      { label: "Repair placed", value: totals.repairPlaced, color: "#6b5ca5" },
+      { label: "Order pickup", value: totals.orderPickup, color: "#287a88" },
+      { label: "Repair pickup", value: totals.repairPickup, color: "#9a5f2d" },
+      { label: "Upsale", value: totals.upsale, color: "#c14f7a" },
+      { label: "Product return", value: totals.productReturn, color: "#6b7280" },
+      { label: "Other visits", value: Math.max(0, totals.walkIns - totals.notBought - totals.bought - totals.orderPlaced - totals.repairPlaced - totals.orderPickup - totals.repairPickup - totals.upsale - totals.productReturn), color: "#9a9488" },
+    ] satisfies StatusDistributionItem[],
     operations: {
       pendingFollowups: followups.filter((item) => !["closed", "converted"].includes(item.status)).length,
       overdueFollowups: followups.filter((item) => openAndOverdue(item, today)).length,
