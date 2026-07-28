@@ -64,6 +64,9 @@ const notBoughtParityMigrationPath = fileURLToPath(
 const referralParityMigrationPath = fileURLToPath(
   new URL("../prisma/migrations/20260727070000_referral_calling_legacy_parity/migration.sql", import.meta.url),
 );
+const walkinReferralPayloadMigrationPath = fileURLToPath(
+  new URL("../prisma/migrations/20260728010000_walkin_referral_payloads/migration.sql", import.meta.url),
+);
 
 let database: PGlite;
 
@@ -119,6 +122,7 @@ beforeAll(async () => {
   await database.exec(await readFile(categoryArrayDedupeMigrationPath, "utf8"));
   await database.exec(await readFile(notBoughtParityMigrationPath, "utf8"));
   await database.exec(await readFile(referralParityMigrationPath, "utf8"));
+  await database.exec(await readFile(walkinReferralPayloadMigrationPath, "utf8"));
 });
 
 afterAll(async () => {
@@ -704,6 +708,34 @@ describe("Phase 5 referral calling guarantees", () => {
   it("auto-creates exactly one referral and pending call from a referral-captured visit", async () => {
     const branch = "10000000-0000-4000-8000-000000000501", user = "30000000-0000-4000-8000-000000000501", client = "20000000-0000-4000-8000-000000000501";
     try { const visit = await createReferralVisit(branch, user, client, "501"); await expect(database.query(`SELECT r.referral_name,r.referral_number,r.branch_id::text,r.source_timeline_id::text,r.source_visit_form_id,c.status,c.next_followup_date::text FROM referrals r JOIN referral_calling c ON c.referral_id=r.id WHERE r.given_by_client_id=$1`, [client])).resolves.toMatchObject({ rows: [{ referral_name: "Captured Referral 501", referral_number: "9876500501", branch_id: branch, source_timeline_id: visit.rows[0]!.timeline_id, source_visit_form_id: expect.any(String), status: "pending", next_followup_date: "2026-07-21" }] }); } finally { await database.exec("RESET ROLE"); }
+  });
+
+  it("atomically creates a referral calling row for every valid walk-in referral payload", async () => {
+    const branch = "10000000-0000-4000-8000-000000000509", user = "30000000-0000-4000-8000-000000000509", client = "20000000-0000-4000-8000-000000000509";
+    try {
+      await database.query(`INSERT INTO branches (id,name) VALUES ($1,'Walk-in referral payload branch')`, [branch]);
+      await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,'Walk-in referral payload user','walkin-referral-payload@example.com','salesperson',$2)`, [user, branch]);
+      await database.query(`INSERT INTO clients (client_id,primary_name,primary_phone) VALUES ($1,'Walk-in referral giver','9000000509')`, [client]);
+      await database.exec("SET ROLE authenticated");
+      await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [user]);
+      const visit = await database.query<{ timeline_id: string }>(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ client_id: client, branch_id: branch, primary_name: "Walk-in referral giver", primary_phone: "9000000509", did_buy: true, event_date: "2026-07-24T10:00:00Z", engagement: { referrals: { asked: true } }, additional_fields: { referrals: [{ name: "Payload Referral One", mobile: "+91 98765 00509" }, { name: "Payload Referral Two", mobile: "98765 10509" }] } })]);
+      await expect(database.query(`SELECT r.referral_name,r.referral_number,r.source_timeline_id::text,r.source_visit_form_id::text,c.status,c.next_followup_date::text FROM referrals r JOIN referral_calling c ON c.referral_id=r.id WHERE r.given_by_client_id=$1 ORDER BY r.referral_name`, [client])).resolves.toMatchObject({ rows: [
+        { referral_name: "Payload Referral One", referral_number: "9876500509", source_timeline_id: visit.rows[0]!.timeline_id, source_visit_form_id: expect.any(String), status: "pending", next_followup_date: "2026-07-27" },
+        { referral_name: "Payload Referral Two", referral_number: "9876510509", source_timeline_id: visit.rows[0]!.timeline_id, source_visit_form_id: expect.any(String), status: "pending", next_followup_date: "2026-07-27" },
+      ] });
+    } finally { await database.exec("RESET ROLE"); }
+  });
+
+  it("rolls back the complete walk-in when a supplied referral is incomplete", async () => {
+    const branch = "10000000-0000-4000-8000-000000000510", user = "30000000-0000-4000-8000-000000000510", phone = "9000000510";
+    try {
+      await database.query(`INSERT INTO branches (id,name) VALUES ($1,'Walk-in referral rollback branch')`, [branch]);
+      await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,'Walk-in referral rollback user','walkin-referral-rollback@example.com','salesperson',$2)`, [user, branch]);
+      await database.exec("SET ROLE authenticated");
+      await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [user]);
+      await expect(database.query(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ branch_id: branch, primary_name: "Rollback walk-in referral", primary_phone: phone, did_buy: true, additional_fields: { referrals: [{ name: "Incomplete referral", mobile: "123" }] } })])).rejects.toThrow(/referral requires a name and 10-digit phone/i);
+      await expect(database.query(`SELECT client_id FROM client_phone_index WHERE phone=$1`, [phone])).resolves.toMatchObject({ rows: [] });
+    } finally { await database.exec("RESET ROLE"); }
   });
 
   it("creates a manual referral with null visit source fields and the same pending calling shape", async () => {

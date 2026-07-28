@@ -343,6 +343,11 @@ export function WalkInForm({
       setStep(4);
       return;
     }
+    if (referrals.some((referral) => referral.name.trim().length === 0 || phoneDigits(referral.mobile).length !== 10)) {
+      setMessage("Every referral needs a name and 10-digit mobile number.");
+      setStep(4);
+      return;
+    }
     setSaving(true);
     const payload = {
       ...values,
