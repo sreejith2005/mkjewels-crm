@@ -67,6 +67,12 @@ const referralParityMigrationPath = fileURLToPath(
 const walkinReferralPayloadMigrationPath = fileURLToPath(
   new URL("../prisma/migrations/20260728010000_walkin_referral_payloads/migration.sql", import.meta.url),
 );
+const repeatWalkinClientPhoneIndexMigrationPath = fileURLToPath(
+  new URL("../prisma/migrations/20260728020000_fix_repeat_walkin_client_phone_index/migration.sql", import.meta.url),
+);
+const newClientProofPathMigrationPath = fileURLToPath(
+  new URL("../prisma/migrations/20260728030000_align_new_client_proof_paths/migration.sql", import.meta.url),
+);
 
 let database: PGlite;
 
@@ -123,6 +129,8 @@ beforeAll(async () => {
   await database.exec(await readFile(notBoughtParityMigrationPath, "utf8"));
   await database.exec(await readFile(referralParityMigrationPath, "utf8"));
   await database.exec(await readFile(walkinReferralPayloadMigrationPath, "utf8"));
+  await database.exec(await readFile(repeatWalkinClientPhoneIndexMigrationPath, "utf8"));
+  await database.exec(await readFile(newClientProofPathMigrationPath, "utf8"));
 });
 
 afterAll(async () => {
@@ -573,8 +581,13 @@ describe("Phase 2 visit intake guarantees", () => {
     await database.query(`INSERT INTO branches (id,name) VALUES ($1,'Existing Branch')`, [branch]); await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,'Existing User','existing@example.com','salesperson',$2)`, [user, branch]); await database.query(`INSERT INTO clients (client_id,primary_name,primary_phone) VALUES ($1,'Existing','9000000202')`, [client]);
     await database.exec("SET ROLE authenticated"); await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [user]);
     try {
-      await database.query(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ client_id: client, branch_id: branch, primary_name: "Existing Updated", primary_phone: "9000000202", did_buy: false, not_bought_reasons: ["Price"], next_visit_date: "2026-08-01", client_potential_category: "Hot Lead" })]);
-      await expect(database.query(`SELECT primary_name, client_potential_category, next_visit_date::text FROM clients WHERE client_id = $1`, [client])).resolves.toMatchObject({ rows: [{ primary_name: "Existing Updated", client_potential_category: "Hot Lead", next_visit_date: "2026-08-01" }] });
+      const firstVisit = await database.query<{ client_id: string; timeline_id: string }>(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ client_id: client, branch_id: branch, primary_name: "Existing Updated", primary_phone: "9000000202", billing_phone: "9000000202", did_buy: false, not_bought_reasons: ["Price"], next_visit_date: "2026-08-01", client_potential_category: "Hot Lead" })]);
+      const secondVisit = await database.query<{ client_id: string; timeline_id: string }>(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ client_id: client, branch_id: branch, primary_name: "Existing Updated Again", primary_phone: "9000000202", billing_phone: "9000000202", did_buy: true, next_visit_date: "2026-08-02", client_potential_category: "Hot Lead" })]);
+      expect(firstVisit.rows[0]?.client_id).toBe(client);
+      expect(secondVisit.rows[0]?.client_id).toBe(client);
+      expect(secondVisit.rows[0]?.timeline_id).not.toBe(firstVisit.rows[0]?.timeline_id);
+      await expect(database.query(`SELECT primary_name, client_potential_category, next_visit_date::text FROM clients WHERE client_id = $1`, [client])).resolves.toMatchObject({ rows: [{ primary_name: "Existing Updated Again", client_potential_category: "Hot Lead", next_visit_date: "2026-08-02" }] });
+      await expect(database.query(`SELECT count(*)::int AS count FROM client_timeline WHERE client_id = $1`, [client])).resolves.toMatchObject({ rows: [{ count: 2 }] });
       await expect(database.query(`SELECT status, remark FROM not_bought_followups WHERE client_id = $1`, [client])).resolves.toMatchObject({ rows: [{ status: "pending", remark: "Price" }] });
     } finally { await database.exec("RESET ROLE"); }
   });

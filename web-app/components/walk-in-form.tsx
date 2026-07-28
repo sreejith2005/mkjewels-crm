@@ -26,7 +26,7 @@ type Proof = {
   status: "uploading" | "ready" | "error";
   error?: string;
 };
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const inputClass = "mt-1 w-full rounded border border-stone-300 bg-white p-2";
 const sections = [
   "Client & visit",
@@ -90,8 +90,8 @@ function initialValue(
     reference_name: "",
     reference_phone: "",
     client_type: client?.client_id || queue?.client_id ? "existing" : "new",
-    did_buy: "yes",
-    visit_status: "YES",
+    did_buy: "",
+    visit_status: "",
     not_bought_other: "",
     repair_or_order_approach: "",
     marketing_message_sent: "",
@@ -123,6 +123,7 @@ function initialValue(
     bought_other: "",
     order_other: "",
     salesperson_handled: "",
+    salesperson: "",
     new_things_choice: "",
     other_order: "",
     came_for_categories: "",
@@ -130,6 +131,12 @@ function initialValue(
     new_things_categories: "",
     new_things_other: "",
     referrals_count: "",
+    companions_count: "",
+    seen_count: "",
+    bought_count: "",
+    order_count: "",
+    camefor_count: "",
+    new_things_count: "",
   };
 }
 function asList(value: string) {
@@ -176,6 +183,8 @@ export function WalkInForm({
   const [engagement, setEngagement] = useState<
     Record<string, { asked: string; no_reason: string }>
   >({});
+  const [productTags, setProductTags] = useState<Record<string, string[]>>({});
+  const [remarkPhotoSlots, setRemarkPhotoSlots] = useState(1);
   const [proofs, setProofs] = useState<Record<string, Proof>>({});
   const [proposedClientId, setProposedClientId] = useState(
     () => client?.client_id ?? crypto.randomUUID(),
@@ -193,12 +202,12 @@ export function WalkInForm({
   const set = (key: keyof typeof values, value: string) =>
     setValues((current) => ({ ...current, [key]: value }));
   const engagementKinds = [
-    ["instagram", "Instagram follow"],
-    ["google_review", "Google review"],
-    ["testimonial", "Testimonial"],
-    ["feedback_form", "Feedback form"],
-    ["thank_you_note", "Thank-you note"],
-    ["referrals", "Referrals"],
+    ["instagram", "Instagram follow", ["YES", "NO", "CLIENT_NOT_INTERESTED", "CLIENT_ALREADY_FOLLOWING_US"]],
+    ["google_review", "Google review", ["YES", "NO", "ALREADY_DONE", "NOT_INTERESTED"]],
+    ["testimonial", "Testimonial", ["YES", "NO", "NOT_INTERESTED"]],
+    ["feedback_form", "Feedback form", ["YES", "NO", "NOT_INTERESTED"]],
+    ["thank_you_note", "Thank-you note", ["YES", "NO"]],
+    ["referrals", "Referrals", ["YES", "NO", "NOT_INTERESTED"]],
   ] as const;
   useEffect(() => {
     if (phoneDigits(values.primary_phone).length !== 10) return;
@@ -254,7 +263,8 @@ export function WalkInForm({
   }
   async function uploadProof(key: string, file: File | undefined) {
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
+    const allowsVideo = key === "testimonial";
+    if (!file.type.startsWith("image/") && !(allowsVideo && file.type.startsWith("video/"))) {
       setProofs((current) => ({
         ...current,
         [key]: {
@@ -262,12 +272,12 @@ export function WalkInForm({
           fileName: file.name,
           mimeType: file.type,
           status: "error",
-          error: "Choose an image file.",
+          error: allowsVideo ? "Choose an image or video file." : "Choose an image file.",
         },
       }));
       return;
     }
-    if (file.size > MAX_IMAGE_BYTES) {
+    if (file.size > MAX_UPLOAD_BYTES) {
       setProofs((current) => ({
         ...current,
         [key]: {
@@ -275,7 +285,7 @@ export function WalkInForm({
           fileName: file.name,
           mimeType: file.type,
           status: "error",
-          error: "Image must be 10MB or smaller.",
+          error: "File must be 10MB or smaller.",
         },
       }));
       return;
@@ -334,9 +344,16 @@ export function WalkInForm({
       setStep(0);
       return;
     }
+    const minimalVisit = ["STORE_VISIT", "PRICE_CALCULATION"].includes(values.visit_status);
+    const missingEngagementAnswer = !minimalVisit && engagementKinds.find(([key]) => !engagement[key]?.asked);
+    if (missingEngagementAnswer) {
+      setMessage(`${missingEngagementAnswer[1]} must be answered.`);
+      setStep(4);
+      return;
+    }
     const requiredProof = engagementKinds.find(
       ([key]) =>
-        engagement[key]?.asked === "yes" && proofs[key]?.status !== "ready",
+        engagement[key]?.asked === "YES" && proofs[key]?.status !== "ready",
     );
     if (requiredProof) {
       setMessage(`${requiredProof[1]} needs a proof image before submission.`);
@@ -348,9 +365,44 @@ export function WalkInForm({
       setStep(4);
       return;
     }
+    const required = [
+      ["billing_phone", phoneDigits(values.billing_phone).length === 10, "Billing phone"],
+      ["gender", Boolean(values.gender), "Gender"],
+      ["occupation", Boolean(values.occupation), "Occupation"],
+      ["bridal_or_non_bridal", Boolean(values.bridal_or_non_bridal), "Bridal / non bridal"],
+      ["communication_preference", Boolean(values.communication_preference), "Communication preference"],
+      ["country", Boolean(values.country), "Country"],
+      ["state", Boolean(values.state), "State"],
+      ["city", Boolean(values.city), "City"],
+      ["pincode", Boolean(values.pincode), "Pincode"],
+      ["address", Boolean(values.address), "Address"],
+      ["community", Boolean(values.community), "Community"],
+      ["salesperson", Boolean(values.salesperson), "Salesperson"],
+      ["visit_status", Boolean(values.visit_status), "Visit status"],
+    ] as const;
+    const invalid = required.find(([, valid]) => !valid);
+    if (invalid || (values.occupation.toUpperCase() === "OTHER" && !values.occupation_other.trim()) || (values.bridal_or_non_bridal.toUpperCase() === "BRIDAL" && (!values.wedding_month || !values.wedding_year))) {
+      setMessage(`${invalid?.[2] ?? "The conditional legacy fields"} is required.`);
+      const planningField = ["occupation", "bridal_or_non_bridal", "communication_preference"].includes(invalid?.[0] ?? "") || (values.occupation.toUpperCase() === "OTHER" && !values.occupation_other.trim()) || (values.bridal_or_non_bridal.toUpperCase() === "BRIDAL" && (!values.wedding_month || !values.wedding_year));
+      setStep(planningField ? 5 : invalid?.[0] === "visit_status" ? 3 : invalid?.[0] === "salesperson" ? 0 : 1);
+      return;
+    }
+    if (values.visit_status === "NO" && !notBoughtReasons.length) {
+      setMessage("Select at least one reason for not buying.");
+      setStep(3);
+      return;
+    }
+    if (values.visit_status === "NO" && !values.next_visit_date) {
+      setMessage("Next visit date is required for Not Bought.");
+      setStep(5);
+      return;
+    }
     setSaving(true);
     const payload = {
       ...values,
+      // Prefer the resolved existing client explicitly. The database also
+      // independently resolves the normalized phone as a race-safe fallback.
+      client_id: values.client_id || client?.client_id || queue?.client_id || "",
       proposed_client_id: proposedClientId,
       proposed_timeline_id: proposedTimelineId,
       primary_phone: phoneDigits(values.primary_phone),
@@ -374,9 +426,16 @@ export function WalkInForm({
           mime_type: proof.mimeType,
         })),
       category_details: {
-        seen_count: asList(values.seen_categories).length,
-        bought_count: asList(values.bought_categories).length,
-        order_count: asList(values.order_categories).length,
+        seen_count: values.seen_count,
+        bought_count: values.bought_count,
+        order_count: values.order_count,
+        camefor_count: values.camefor_count,
+        new_things_count: values.new_things_count,
+        seen_tags: productTags.seen ?? [],
+        bought_tags: productTags.bought ?? [],
+        order_tags: productTags.order ?? [],
+        camefor_tags: productTags.camefor ?? [],
+        new_things_tags: productTags.new_things ?? [],
         seen_other: values.seen_other,
         bought_other: values.bought_other,
         order_other: values.order_other,
@@ -387,7 +446,7 @@ export function WalkInForm({
         Object.entries(engagement).map(([key, item]) => [
           key,
           {
-            asked: item.asked === "" ? null : item.asked === "yes",
+            asked: item.asked === "" ? null : item.asked === "YES",
             no_reason: item.no_reason,
           },
         ]),
@@ -400,6 +459,9 @@ export function WalkInForm({
         new_things_categories: asList(values.new_things_categories),
         new_things_other: values.new_things_other,
         referrals_count: values.referrals_count,
+        companions_count: values.companions_count,
+        salesperson: values.salesperson,
+        engagement_answers: Object.fromEntries(Object.entries(engagement).map(([key, item]) => [key, item.asked])),
         referrals: referrals.filter((referral) => referral.name || referral.mobile),
         beverage_other: values.beverage_other,
         sugar_other: values.sugar_other,
@@ -427,25 +489,24 @@ export function WalkInForm({
           .filter((proof) => proof.status === "ready")
           .map((proof) => proof.path),
       });
-      await createClient()
-        .storage.from("crm-documents")
-        .remove(
-          Object.values(proofs)
-            .filter((proof) => proof.status === "ready")
-            .map((proof) => proof.path),
-        );
-      setMessage(
-        "Could not submit this visit. Uploaded proof images were removed.",
-      );
+      const safeMessage = error?.code === "23505"
+        ? "This client record could not be updated. Please try submitting the visit again."
+        : error?.code === "42501"
+          ? "You are not allowed to submit a visit to the selected branch."
+          : error?.code === "23514"
+            ? "The uploaded proof could not be linked to this visit. Please try again."
+            : "We could not save this visit. Please try again; if it persists, contact an administrator.";
+      setMessage(`${safeMessage} Uploaded proof files were kept so you do not need to add them again.`);
       return;
     }
     router.push(`/queue?completed=${encodeURIComponent(values.primary_name)}`);
   }
-  const field = (key: keyof typeof values, label: string, type = "text") => (
+  const requiredMark = <span className="text-red-600"> *</span>;
+  const field = (key: keyof typeof values, label: string, type = "text", required = false) => (
     <label className="block text-sm">
-      <span>{label}</span>
+      <span>{label}{required ? requiredMark : null}</span>
       <input
-        type={type}
+        aria-label={label} type={type} required={required}
         className={`${inputClass}${autoFilledFields.has(key) ? " border-amber-400 bg-amber-50" : ""}`}
         value={values[key]}
         onChange={(event) => { set(key, event.target.value); setAutoFilledFields((current) => { const next = new Set(current); next.delete(key); return next; }); }}
@@ -456,13 +517,13 @@ export function WalkInForm({
   const selectField = (
     key: keyof typeof values,
     label: string,
-    options: string[],
+    options: string[], required = false,
   ) => (
     <label className="block text-sm">
-      <span>{label}</span>
+      <span>{label}{required ? requiredMark : null}</span>
       <select
-        className={inputClass}
-        value={values[key]}
+        aria-label={label} className={inputClass}
+        value={values[key]} required={required}
         onChange={(event) => set(key, event.target.value)}
       >
         <option value="">Choose</option>
@@ -490,6 +551,16 @@ export function WalkInForm({
       </div>
     </fieldset>
   );
+  const countAndTags = (
+    countKey: "seen_count" | "bought_count" | "order_count" | "camefor_count" | "new_things_count",
+    tagKey: "seen" | "bought" | "order" | "camefor" | "new_things",
+    label: string,
+    allowNa = false,
+  ) => {
+    const count = Number(values[countKey]);
+    const tagCount = Number.isFinite(count) && count > 0 ? count : 0;
+    return <div className="grid gap-3 md:grid-cols-2"><label className="block text-sm">{label}<select aria-label={label} className={inputClass} value={values[countKey]} onChange={(event) => { const next = event.target.value; set(countKey, next); const size = Number(next); setProductTags((current) => ({ ...current, [tagKey]: Number.isFinite(size) && size > 0 ? Array.from({ length: size }, (_, index) => current[tagKey]?.[index] ?? "") : [] })); }}><option value="">Choose</option>{Array.from({ length: 10 }, (_, index) => <option key={index + 1} value={String(index + 1)}>{index + 1}</option>)}{allowNa ? <option value="NA">NA</option> : null}</select></label>{tagCount > 0 ? <div className="grid gap-2">{Array.from({ length: tagCount }, (_, index) => <input key={index} aria-label={`${tagKey} tag ${index + 1}`} className="rounded border p-2" placeholder={`Tag / code ${index + 1}`} value={productTags[tagKey]?.[index] ?? ""} onChange={(event) => setProductTags((current) => ({ ...current, [tagKey]: Array.from({ length: tagCount }, (_, tagIndex) => tagIndex === index ? event.target.value : current[tagKey]?.[tagIndex] ?? "") }))} />)}</div> : null}</div>;
+  };
   return (
     <form onSubmit={submit} className="mt-6">
       <nav className="flex flex-wrap gap-2 border-b pb-4">
@@ -523,7 +594,7 @@ export function WalkInForm({
                 </span>
               )}
             </h2>
-            {field("event_date", "Visit date and time", "datetime-local")}
+            {field("event_date", "Visit date and time", "datetime-local", true)}
             <label className="block text-sm">
               Client type
               <select
@@ -539,12 +610,12 @@ export function WalkInForm({
                 Derived from the client&apos;s phone lookup.
               </span>
             </label>
-            {field("primary_name", "Client name *")}
+            {field("primary_name", "Client name", "text", true)}
             <label className="block text-sm"><span>Mobile *</span><div className="mt-1 flex rounded border border-stone-300 bg-white"><span className="border-r border-stone-300 px-3 py-2 text-stone-600">+91</span><input aria-label="Mobile *" className="min-w-0 flex-1 rounded-r p-2" inputMode="numeric" value={values.primary_phone} onChange={(event) => { set("primary_phone", event.target.value); if (billingMatchesPrimary) set("billing_phone", event.target.value); setAutoFilledFields(new Set()); }} onBlur={() => { if (phoneDigits(values.primary_phone).length === 10) void lookupClientByPhone(values.primary_phone).then((matched) => { if (matched) { setValues((current) => ({ ...current, client_id: matched.client_id, client_type: "existing", primary_name: matched.primary_name, gender: matched.gender?.toUpperCase() ?? "", dob: matched.dob ?? "", community: matched.community ?? "", address: matched.address ?? "", pincode: matched.pincode ?? "", country: matched.country ?? "", state: matched.state ?? "", city: matched.city ?? "" })); setProposedClientId(matched.client_id); setAutoFilledFields(new Set(["primary_name", "gender", "dob", "community", "address", "pincode", "country", "state", "city"])); } }); }} /></div></label>
-            {selectField("source_of_lead", "Source of lead", lookups.sourceOfLeads?.length ? lookups.sourceOfLeads : ["Walk-in", "Reference", "Instagram", "Google", "WhatsApp", "Advertisement", "Other"])}
+            {selectField("source_of_lead", "Source of lead", lookups.sourceOfLeads?.length ? lookups.sourceOfLeads : ["Walk-in", "Reference", "Instagram", "Google", "WhatsApp", "Advertisement", "Other"], true)}
             {values.source_of_lead.trim().toUpperCase() === "REFERENCE" ? (
               <>
-                {field("reference_name", "Reference name")}
+                {field("reference_name", "Reference name", "text", true)}
                 {field("reference_phone", "Reference phone")}
               </>
             ) : null}
@@ -569,6 +640,7 @@ export function WalkInForm({
             <label className="block text-sm">
               CRM / salesperson
               <select
+                aria-label="CRM / salesperson"
                 className={inputClass}
                 value={values.crm_name}
                 onChange={(event) => set("crm_name", event.target.value)}
@@ -581,20 +653,21 @@ export function WalkInForm({
                 ))}
               </select>
             </label>
+            <label className="block text-sm">Salesperson attending the client<select aria-label="Salesperson attending the client" className={inputClass} value={values.salesperson} onChange={(event) => set("salesperson", event.target.value)}><option value="">Choose</option>{crms.map((item) => <option value={item} key={item}>{item}</option>)}</select></label>
           </div>
         ) : null}
         {step === 1 ? (
           <div className="grid gap-4 md:grid-cols-2">
             <h2 className="md:col-span-2 text-lg font-semibold">Profile</h2>
-            {selectField("gender", "Gender", ["FEMALE", "MALE", "OTHER"])}
+            {selectField("gender", "Gender", ["FEMALE", "MALE", "OTHER"], true)}
             <label className="block text-sm"><span>Billing phone</span><input aria-label="Billing phone" className={inputClass} inputMode="numeric" value={values.billing_phone} disabled={billingMatchesPrimary} onChange={(event) => set("billing_phone", event.target.value)} /><span className="mt-2 flex items-center gap-2"><input aria-label="Same as mobile number" type="checkbox" checked={billingMatchesPrimary} onChange={(event) => { setBillingMatchesPrimary(event.target.checked); if (event.target.checked) set("billing_phone", values.primary_phone); }} />Same as mobile number</span></label>
-            {field("country", "Country")}
-            {field("state", "State")}
-            {field("city", "City")}
+            {field("country", "Country", "text", true)}
+            {field("state", "State", "text", true)}
+            {field("city", "City", "text", true)}
             {values.city.trim().toUpperCase() === "OTHER" ? field("city_other", "City other") : null}
-            {field("pincode", "Pincode")}
-            {field("address", "Address")}
-            {selectField("community", "Community / caste", lookups.communities ?? [])}
+            {field("pincode", "Pincode", "text", true)}
+            {field("address", "Address", "text", true)}
+            {selectField("community", "Community / caste", lookups.communities?.length ? lookups.communities : ["OTHER"], true)}
             {values.community.trim().toUpperCase().startsWith("OTHER") ? field("community_other", "Community other") : null}
             {field("dob", "Date of birth", "date")}
             {field("anniversary", "Anniversary", "date")}
@@ -603,7 +676,7 @@ export function WalkInForm({
         {step === 2 ? (
           <div>
             <h2 className="text-lg font-semibold">Companions</h2>
-            <p className="mt-1 text-sm text-stone-600">Add up to 10 people.</p>
+            <label className="mt-3 block max-w-xs text-sm">How many family members / friends are with them?<select aria-label="How many family members / friends are with them?" className={inputClass} value={values.companions_count} onChange={(event) => { const count = Number(event.target.value); set("companions_count", event.target.value); setCompanions((current) => Array.from({ length: Number.isFinite(count) && count > 0 ? count : 0 }, (_, index) => current[index] ?? { name: "", mobile: "", relation: "" })); }}><option value="">Choose</option>{Array.from({ length: 11 }, (_, index) => <option key={index} value={String(index)}>{index}</option>)}</select></label>
             <div className="mt-4 space-y-2">
               {companions.map((item, index) => (
                 <div
@@ -662,18 +735,20 @@ export function WalkInForm({
               Purchase outcome
             </h2>
             <label className="block text-sm">
-              Client bought any product?
+              Client bought any product?{requiredMark}
               <select
+                aria-label="Client bought any product?"
                 className={inputClass}
                 value={values.visit_status}
                 onChange={(event) => { set("visit_status", event.target.value); set("did_buy", event.target.value === "YES" ? "yes" : "no"); }}
               >
+                <option value="">Choose</option>
                 {LEGACY_VISIT_STATUSES.map((status) => <option key={status} value={status}>{status.replaceAll("_", " ")}</option>)}
               </select>
             </label>
             {values.visit_status === "NO" ? (
               <div className="md:col-span-2">
-                <p className="text-sm">Not-bought reasons</p>
+                <p className="text-sm">Not-bought reasons{requiredMark}</p>
                 {lookups.notBoughtReasons.map((reason) => (
                   <label
                     className="mr-4 inline-flex items-center gap-1 text-sm"
@@ -699,19 +774,31 @@ export function WalkInForm({
             {values.visit_status !== "STORE_VISIT" && values.visit_status !== "PRICE_CALCULATION" ? <>
               {["YES", "NO", "PRODUCT_EXCHANGE"].includes(values.visit_status) || (["REPAIR_PLACED", "REPAIR_PICKUP", "ORDER_PLACED", "ORDER_PICKUP", "PRODUCT_RETURN"].includes(values.visit_status) && values.repair_or_order_approach === "YES") ? <>
                 {multiField("seen_categories", "Product categories seen by the client")}
+                {countAndTags("seen_count", "seen", "Number of products client has seen", true)}
                 {asList(values.seen_categories).some((item) => item.toUpperCase().startsWith("OTHER")) ? field("seen_other", "Other (seen category)") : null}
               </> : null}
               {values.visit_status === "YES" ? <>
                 {multiField("bought_categories", "Bought product categories")}
+                {countAndTags("bought_count", "bought", "How many products did the client buy?")}
                 {asList(values.bought_categories).some((item) => item.toUpperCase().startsWith("OTHER")) ? field("bought_other", "Other (bought category)") : null}
                 {selectField("other_order", "Did the client make any other / new order?", ["YES", "NO"])}
-                {values.other_order === "YES" ? <>{multiField("order_categories", "Order / new-things categories")}{asList(values.order_categories).some((item) => item.toUpperCase().startsWith("OTHER")) ? field("order_other", "Other (order category)") : null}</> : null}
+                {values.other_order === "YES" ? <>{multiField("order_categories", "Order / new-things categories")}{countAndTags("order_count", "order", "How many products in the order?")}{asList(values.order_categories).some((item) => item.toUpperCase().startsWith("OTHER")) ? field("order_other", "Other (order category)") : null}</> : null}
               </> : null}
               {["REPAIR_PLACED", "REPAIR_PICKUP", "ORDER_PLACED", "ORDER_PICKUP", "PRODUCT_RETURN"].includes(values.visit_status) ? <>
                 {multiField("came_for_categories", "Product categories client came for")}
+                {countAndTags("camefor_count", "camefor", "Number of products client came for", true)}
                 {asList(values.came_for_categories).some((item) => item.toUpperCase().startsWith("OTHER")) ? field("came_for_other", "Other (came-for category)") : null}
                 {selectField("repair_or_order_approach", "Did CRM approach to show new products?", ["YES", "NO"])}
-                {values.repair_or_order_approach === "YES" ? <>{selectField("new_things_choice", "Is client buying / making order for new things?", ["BUYING_NEW_PRODUCT", "MAKING_NEW_ORDER", "NO"])}{["BUYING_NEW_PRODUCT", "MAKING_NEW_ORDER"].includes(values.new_things_choice) ? <>{field("salesperson_handled", "Salesperson attending new buy / order")}{multiField("new_things_categories", "New buy / order categories")}{asList(values.new_things_categories).some((item) => item.toUpperCase().startsWith("OTHER")) ? field("new_things_other", "Other (new buy / order category)") : null}</> : null}</> : null}
+                {values.repair_or_order_approach === "YES" ? <>{selectField("new_things_choice", "Is client buying / making order for new things?", ["BUYING_NEW_PRODUCT", "MAKING_NEW_ORDER", "NO"])}{["BUYING_NEW_PRODUCT", "MAKING_NEW_ORDER"].includes(values.new_things_choice) ? <>{field("salesperson_handled", "Salesperson attending new buy / order")}{multiField("new_things_categories", "New buy / order categories")}{countAndTags("new_things_count", "new_things", "Number of new products")}{asList(values.new_things_categories).some((item) => item.toUpperCase().startsWith("OTHER")) ? field("new_things_other", "Other (new buy / order category)") : null}</> : null}</> : null}
+              </> : null}
+              {values.visit_status === "PRODUCT_EXCHANGE" ? <>
+                {multiField("came_for_categories", "Product categories client came for")}
+                {countAndTags("camefor_count", "camefor", "Number of products client came for", true)}
+                {field("salesperson_handled", "Salesperson attending the client (new buy / order)")}
+                {multiField("new_things_categories", "New buy / order categories")}
+                {countAndTags("new_things_count", "new_things", "Number of new products")}
+                {asList(values.came_for_categories).some((item) => item.toUpperCase().startsWith("OTHER")) ? field("came_for_other", "Other (came for category)") : null}
+                {asList(values.new_things_categories).some((item) => item.toUpperCase().startsWith("OTHER")) ? field("new_things_other", "Other (new buy / order category)") : null}
               </> : null}
               {values.visit_status !== "PRODUCT_EXCHANGE" ? (
                 <fieldset className="block text-sm" aria-label="Marketing message">
@@ -735,10 +822,10 @@ export function WalkInForm({
             </> : null}
           </div>
         ) : null}
-        {step === 4 ? (
+        {step === 4 && !["STORE_VISIT", "PRICE_CALCULATION"].includes(values.visit_status) ? (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Engagement asks</h2>
-            {engagementKinds.map(([key, label]) => {
+            {engagementKinds.map(([key, label, answers]) => {
               const item = engagement[key] ?? { asked: "", no_reason: "" };
               const proof = proofs[key];
               return (
@@ -749,20 +836,20 @@ export function WalkInForm({
                   <b className="text-sm">{label}</b>
                   <select
                     className="rounded border p-2 text-sm"
-                    value={item.asked}
+                    value={item.asked.toLowerCase()}
                     onChange={(event) => {
-                      if (event.target.value !== "yes") void removeProof(key);
+                      const asked = event.target.value.toUpperCase();
+                      if (asked !== "YES") void removeProof(key);
                       setEngagement((current) => ({
                         ...current,
-                        [key]: { ...item, asked: event.target.value },
+                        [key]: { ...item, asked },
                       }));
                     }}
                   >
-                    <option value="">Not recorded</option>
-                    <option value="yes">Asked — yes</option>
-                    <option value="no">Asked — no</option>
+                    <option value="">Choose</option>
+                    {answers.map((answer) => <option value={answer.toLowerCase()} key={answer}>{answer.replaceAll("_", " ")}</option>)}
                   </select>
-                  {item.asked === "no" ? (
+                  {item.asked === "NO" ? (
                     <input
                       className="rounded border p-2 text-sm"
                       placeholder="Reason"
@@ -774,13 +861,13 @@ export function WalkInForm({
                         }))
                       }
                     />
-                  ) : item.asked === "yes" ? (
+                  ) : item.asked === "YES" ? (
                     <div>
                       {key === "referrals" ? <div className="mb-2"><label className="block text-sm">How many referrals?<select aria-label="How many referrals?" className="mt-1 block rounded border p-2" value={values.referrals_count} onChange={(event) => { const count = Number(event.target.value); set("referrals_count", event.target.value); setReferrals((current) => Array.from({ length: count }, (_, index) => current[index] ?? { name: "", mobile: "" })); }}><option value="">Choose</option>{Array.from({ length: 10 }, (_, index) => <option key={index + 1} value={String(index + 1)}>{index + 1}</option>)}</select></label>{referrals.map((referral, index) => <div className="mt-2 grid gap-2 md:grid-cols-2" key={index}><input aria-label={`Referral ${index + 1} name`} className="rounded border p-2" placeholder={`Referral ${index + 1} name`} value={referral.name} onChange={(event) => setReferrals((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} /><input aria-label={`Referral ${index + 1} number`} className="rounded border p-2" inputMode="numeric" placeholder={`Referral ${index + 1} number`} value={referral.mobile} onChange={(event) => setReferrals((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, mobile: event.target.value } : item))} /></div>)}</div> : null}
                       <input
                         aria-label={`${label} proof image`}
                         type="file"
-                        accept="image/*"
+                        accept={key === "testimonial" ? "image/*,video/*" : "image/*"}
                         capture="environment"
                         className="text-sm"
                         disabled={proof?.status === "uploading"}
@@ -817,7 +904,7 @@ export function WalkInForm({
                     </div>
                   ) : (
                     <span className="text-sm text-stone-500">
-                      Select yes to attach proof, or no to record a reason.
+                      YES requires proof; NO requires a reason. Other legacy answers are recorded as selected.
                     </span>
                   )}
                 </div>
@@ -838,12 +925,12 @@ export function WalkInForm({
             {values.snack === "Other:" ? field("snack_other", "Other snack") : null}
             {selectField("gift", "Gift given", lookups.gifts ?? [])}
             {values.gift === "Other:" ? field("gift_other", "Other gift") : null}
-            {selectField("occupation", "Occupation", ["Business", "Professional", "Homemaker", "Student", "Retired", "Other"])}
-            {values.occupation.trim().toUpperCase() === "OTHER" ? field("occupation_other", "Occupation other") : null}
-            {selectField("bridal_or_non_bridal", "Bridal / non-bridal", ["Bridal", "Non-bridal"])}
-            {values.bridal_or_non_bridal.trim().toUpperCase() === "BRIDAL" ? <>{selectField("wedding_month", "Wedding month", LEGACY_WEDDING_MONTHS)}{selectField("wedding_year", "Wedding year", Array.from({ length: 11 }, (_, index) => String(new Date().getFullYear() + index)))}</> : null}
-            {selectField("communication_preference", "Communication preference", LEGACY_COMMUNICATION_PREFERENCES)}
-            {field("next_visit_date", "Next visit date", "date")}
+            {selectField("occupation", "Occupation", ["BUSINESS OWNER", "SELF EMPLOYED", "SERVICE / SALARIED", "HOUSEWIFE / HOMEMAKER", "STUDENT", "DOCTOR", "LAWYER", "CHARTERED ACCOUNTANT / CA", "ENGINEER", "TEACHER / PROFESSOR", "BANKER / FINANCE", "GOVERNMENT EMPLOYEE", "REAL ESTATE", "FASHION / DESIGNER", "RETIRED", "OTHER"], true)}
+            {values.occupation.trim().toUpperCase() === "OTHER" ? field("occupation_other", "Occupation other", "text", true) : null}
+            {selectField("bridal_or_non_bridal", "Bridal / non-bridal", ["BRIDAL", "NON BRIDAL"], true)}
+            {values.bridal_or_non_bridal.trim().toUpperCase() === "BRIDAL" ? <>{selectField("wedding_month", "Wedding month", LEGACY_WEDDING_MONTHS, true)}{selectField("wedding_year", "Wedding year", Array.from({ length: 11 }, (_, index) => String(new Date().getFullYear() + index)), true)}</> : null}
+            {selectField("communication_preference", "Communication preference", LEGACY_COMMUNICATION_PREFERENCES, true)}
+            {field("next_visit_date", "Next visit date", "date", values.visit_status === "NO")}
             {selectField("client_potential_category", "Client potential category", [
               ...(!isPotentialCategory(values.client_potential_category) && values.client_potential_category ? [values.client_potential_category] : []),
               ...POTENTIAL_CATEGORIES,
@@ -856,6 +943,7 @@ export function WalkInForm({
             )}
             {notBoughtReasons.some((reason) => reason.trim().toUpperCase() === "WANT TO SEE MORE DESIGNS") ? multiField("categories_client_wants_more", "Which categories client wants to see more") : null}
             {field("remark", "Remark")}
+            <div className="md:col-span-2"><p className="text-sm">Upload photo (optional) — up to 10</p><div className="mt-2 grid gap-2 md:grid-cols-2">{Array.from({ length: remarkPhotoSlots }, (_, index) => { const key = `remark_photo_${index + 1}`; const proof = proofs[key]; return <label className="block text-sm" key={key}>Photo {index + 1}<input aria-label={`Remark photo ${index + 1}`} type="file" accept="image/*" capture="environment" className="mt-1 block text-sm" onChange={(event) => void uploadProof(key, event.target.files?.[0])} />{proof ? <span className="block text-xs text-stone-600">{proof.status === "ready" ? `${proof.fileName} uploaded` : proof.error ?? "Uploading…"}</span> : null}</label>; })}</div>{remarkPhotoSlots < 10 ? <button type="button" className="mt-2 rounded border px-3 py-1 text-sm" onClick={() => setRemarkPhotoSlots((current) => current + 1)}>Add more photo</button> : null}</div>
           </div>
         ) : null}
       </section>
