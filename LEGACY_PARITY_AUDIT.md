@@ -1,7 +1,7 @@
 # Legacy parity audit
 
 **Audit date:** 2026-07-27
-**Scope:** read-only comparison of the literal legacy sources in `WEB APP/`—`CRM CODE.GS`, `CRM INDEX.HTML`, `FORM CODE.GS`, and `FROM INDEX.HTML`—against the current Next.js implementation in the same checkout. The filename `FROM INDEX.HTML` is intentionally preserved: it is the tracked legacy file named in the request as `FROM_INDEX.HTML`.
+**Scope:** read-only comparison of the literal legacy sources in `web-app/`—`CRM CODE.GS`, `CRM INDEX.HTML`, `FORM CODE.GS`, and `FROM INDEX.HTML`—against the current Next.js implementation in the same checkout. The filename `FROM INDEX.HTML` is intentionally preserved: it is the tracked legacy file named in the request as `FROM_INDEX.HTML`.
 
 ## Method and status vocabulary
 

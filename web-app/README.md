@@ -32,7 +32,7 @@ is not needed for login or normal CRM access.
 
 ## Configure local environment variables
 
-From `WEB APP`:
+From `web-app`:
 
 ```powershell
 Copy-Item .env.example .env.local

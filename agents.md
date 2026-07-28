@@ -1,7 +1,7 @@
 # MK Jewels In-House CRM — Master Plan v1
 
 Status: FINALIZED STACK, ready for execution
-Owner: Sreejith | Orchestrator: Claude | Builder: Codex (in `sreejith-crm/web app`)
+Owner: Sreejith | Orchestrator: Claude | Builder: Codex (in `sreejith-crm/web-app`)
 
 ---
 
@@ -75,6 +75,6 @@ We build and verify phases in order, but nothing here is a "someday" — all of 
 
 ## 5. How we'll work together from here
 
-For each step, I'll write a fully-specified Codex prompt (context, exact task, constraints, and — critically — an instruction for Codex to end its own run with a structured summary of what it did, what decisions it made, and what it needs confirmed). You paste that prompt into Codex in `sreejith-crm/web app`, then bring me Codex's output/summary. I review it, and write the next prompt. Repeat through all 8 phases.
+For each step, I'll write a fully-specified Codex prompt (context, exact task, constraints, and — critically — an instruction for Codex to end its own run with a structured summary of what it did, what decisions it made, and what it needs confirmed). You paste that prompt into Codex in `sreejith-crm/web-app`, then bring me Codex's output/summary. I review it, and write the next prompt. Repeat through all 8 phases.
 
 **Next message: Phase 0, Prompt 1 — repo scaffold + Supabase project + full Prisma schema.**
