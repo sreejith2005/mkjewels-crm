@@ -44,12 +44,12 @@ const IMAGE_PROOF_DESCRIPTION = "JPEG, PNG, WebP, HEIC, or HEIF image";
 const TESTIMONIAL_PROOF_DESCRIPTION = `${IMAGE_PROOF_DESCRIPTION}, MP4, MOV, or WebM video`;
 const inputClass = "mt-1 w-full rounded border border-stone-300 bg-white p-2";
 const sections = [
-  "Client & visit",
-  "Profile",
-  "Companions",
-  "Purchase outcome",
-  "Engagement asks",
-  "Preferences & planning",
+  "CLIENT DETAILS",
+  "CLIENT PROFILE & CONTACT",
+  "FAMILY / FRIENDS WITH CLIENT",
+  "VISIT DETAILS",
+  "CRM APPROACH",
+  "PREFERENCES, REMARKS & FOLLOW-UP",
 ] as const;
 const LEGACY_VISIT_STATUSES = [
   "YES", "NO", "REPAIR_PLACED", "REPAIR_PICKUP", "ORDER_PLACED",
@@ -635,28 +635,30 @@ export function WalkInForm({
     return <div className="grid gap-3 md:grid-cols-2"><label className="block text-sm">{label}<select aria-label={label} className={inputClass} value={values[countKey]} onChange={(event) => { const next = event.target.value; set(countKey, next); const size = Number(next); setProductTags((current) => ({ ...current, [tagKey]: Number.isFinite(size) && size > 0 ? Array.from({ length: size }, (_, index) => current[tagKey]?.[index] ?? "") : [] })); }}><option value="">Choose</option>{Array.from({ length: 10 }, (_, index) => <option key={index + 1} value={String(index + 1)}>{index + 1}</option>)}{allowNa ? <option value="NA">NA</option> : null}</select></label>{tagCount > 0 ? <div className="grid gap-2">{Array.from({ length: tagCount }, (_, index) => <input key={index} aria-label={`${tagKey} tag ${index + 1}`} className="rounded border p-2" placeholder={`Tag / code ${index + 1}`} value={productTags[tagKey]?.[index] ?? ""} onChange={(event) => setProductTags((current) => ({ ...current, [tagKey]: Array.from({ length: tagCount }, (_, tagIndex) => tagIndex === index ? event.target.value : current[tagKey]?.[tagIndex] ?? "") }))} />)}</div> : null}</div>;
   };
   return (
-    <form onSubmit={submit} className="mt-6">
-      <nav className="flex flex-wrap gap-2 border-b pb-4">
+    <form onSubmit={submit} className="legacy-walkin-form mt-6">
+      <p className="legacy-walkin-note">COMPLETE EACH SECTION IN ORDER. CONDITIONAL QUESTIONS APPEAR ONLY WHEN THEY APPLY.</p>
+      <nav className="legacy-walkin-steps" aria-label="Walk-in form sections">
         {sections.map((label, index) => (
           <button
             type="button"
+            aria-label={`${index + 1}. ${["Client & visit", "Profile", "Companions", "Purchase outcome", "Engagement asks", "Preferences & planning"][index]}`}
             onClick={() => setStep(index)}
             className={
               step === index
-                ? "rounded bg-amber-800 px-3 py-1 text-sm text-white"
-                : "rounded bg-stone-200 px-3 py-1 text-sm"
+                ? "legacy-walkin-step is-active"
+                : "legacy-walkin-step"
             }
             key={label}
           >
-            {index + 1}. {label}
+            <span>{index + 1}</span>{label}
           </button>
         ))}
       </nav>
-      <section className="mt-5 rounded-xl border bg-white p-5">
+      <section className="legacy-walkin-card mt-4">
         {step === 0 ? (
           <div className="grid gap-4 md:grid-cols-2">
             <h2 className="md:col-span-2 text-lg font-semibold">
-              Client & visit{" "}
+              CLIENT DETAILS {" "}
               {client ? (
                 <span className="text-sm font-normal text-green-700">
                   Existing client detected
@@ -731,7 +733,7 @@ export function WalkInForm({
         ) : null}
         {step === 1 ? (
           <div className="grid gap-4 md:grid-cols-2">
-            <h2 className="md:col-span-2 text-lg font-semibold">Profile</h2>
+            <h2 className="md:col-span-2 text-lg font-semibold">CLIENT PROFILE & CONTACT</h2>
             {selectField("gender", "Gender", ["FEMALE", "MALE", "OTHER"], true)}
             <label className="block text-sm"><span>Billing phone</span><input aria-label="Billing phone" className={inputClass} inputMode="numeric" value={values.billing_phone} disabled={billingMatchesPrimary} onChange={(event) => set("billing_phone", event.target.value)} /><span className="mt-2 flex items-center gap-2"><input aria-label="Same as mobile number" type="checkbox" checked={billingMatchesPrimary} onChange={(event) => { setBillingMatchesPrimary(event.target.checked); if (event.target.checked) set("billing_phone", values.primary_phone); }} />Same as mobile number</span></label>
             {field("country", "Country", "text", true)}
@@ -748,7 +750,7 @@ export function WalkInForm({
         ) : null}
         {step === 2 ? (
           <div>
-            <h2 className="text-lg font-semibold">Companions</h2>
+            <h2 className="text-lg font-semibold">FAMILY / FRIENDS WITH CLIENT</h2>
             <label className="mt-3 block max-w-xs text-sm">How many family members / friends are with them?<select aria-label="How many family members / friends are with them?" className={inputClass} value={values.companions_count} onChange={(event) => { const count = Number(event.target.value); set("companions_count", event.target.value); setCompanions((current) => Array.from({ length: Number.isFinite(count) && count > 0 ? count : 0 }, (_, index) => current[index] ?? { name: "", mobile: "", relation: "" })); }}><option value="">Choose</option>{Array.from({ length: 11 }, (_, index) => <option key={index} value={String(index)}>{index}</option>)}</select></label>
             <div className="mt-4 space-y-2">
               {companions.map((item, index) => (
@@ -805,7 +807,7 @@ export function WalkInForm({
         {step === 3 ? (
           <div className="grid gap-4 md:grid-cols-2">
             <h2 className="md:col-span-2 text-lg font-semibold">
-              Purchase outcome
+              VISIT DETAILS
             </h2>
             <label className="block text-sm">
               Client bought any product?{requiredMark}
@@ -897,7 +899,7 @@ export function WalkInForm({
         ) : null}
         {step === 4 && !["STORE_VISIT", "PRICE_CALCULATION"].includes(values.visit_status) ? (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Engagement asks</h2>
+            <h2 className="text-lg font-semibold">CRM APPROACH</h2>
             {engagementKinds.map(([key, label, answers]) => {
               const item = engagement[key] ?? { asked: "", no_reason: "" };
               const proof = proofs[key];
@@ -989,7 +991,7 @@ export function WalkInForm({
         {step === 5 ? (
           <div className="grid gap-4 md:grid-cols-2">
             <h2 className="md:col-span-2 text-lg font-semibold">
-              Preferences & planning
+              PREFERENCES, REMARKS & FOLLOW-UP
             </h2>
             {selectField("beverage", "Beverage", lookups.beverages)}
             {values.beverage === "Other:" ? field("beverage_other", "Other beverage") : null}
