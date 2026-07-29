@@ -85,6 +85,9 @@ const notBoughtLiteralParityMigrationPath = fileURLToPath(
 const referralLiteralParityMigrationPath = fileURLToPath(
   new URL("../prisma/migrations/20260729040000_referral_calling_literal_legacy_parity/migration.sql", import.meta.url),
 );
+const stagedProofPathMigrationPath = fileURLToPath(
+  new URL("../prisma/migrations/20260729050000_allow_staged_proof_paths/migration.sql", import.meta.url),
+);
 
 let database: PGlite;
 
@@ -147,6 +150,7 @@ beforeAll(async () => {
   await database.exec(await readFile(queueAllocationAvailabilityParityMigrationPath, "utf8"));
   await database.exec(await readFile(notBoughtLiteralParityMigrationPath, "utf8"));
   await database.exec(await readFile(referralLiteralParityMigrationPath, "utf8"));
+  await database.exec(await readFile(stagedProofPathMigrationPath, "utf8"));
 });
 
 afterAll(async () => {
@@ -701,6 +705,26 @@ describe("Legacy roster mutation and queue allocation guarantees", () => {
       await database.query(`INSERT INTO crm_daily_availability (branch_id,crm_name,date,is_available) VALUES ($1,'MOVED CRM','2026-07-26',false)`, [branchA]);
       await database.query(`SELECT * FROM manage_crm_roster('DELETE',$1,NULL,NULL,NULL)`, [added.rows[0]!.id]);
       await expect(database.query(`SELECT id FROM crm_daily_availability WHERE branch_id=$1`, [branchA])).resolves.toMatchObject({ rows: [] });
+    } finally { await database.exec("RESET ROLE"); }
+  });
+
+  it("links a staged proof to the existing client selected by its phone", async () => {
+    const branch = "10000000-0000-4000-8000-000000000278";
+    const user = "30000000-0000-4000-8000-000000000278";
+    const client = "20000000-0000-4000-8000-000000000278";
+    const stagedClient = "20000000-0000-4000-8000-000000000279";
+    const timeline = "40000000-0000-4000-8000-000000000278";
+    const file = "50000000-0000-4000-8000-000000000278_proof.jpg";
+    const path = `${stagedClient}/${timeline}/${file}`;
+    await database.query(`INSERT INTO branches (id,name) VALUES ($1,'Staged Proof Branch')`, [branch]);
+    await database.query(`INSERT INTO users (id,name,email,role,branch_id) VALUES ($1,'Staged Proof User','staged@example.com','salesperson',$2)`, [user, branch]);
+    await database.query(`INSERT INTO clients (client_id,primary_name,primary_phone) VALUES ($1,'Existing staged proof','9000000278')`, [client]);
+    await database.exec("SET ROLE authenticated");
+    await database.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [user]);
+    try {
+      const result = await database.query<{ client_id: string; timeline_id: string }>(`SELECT * FROM submit_walkin_visit($1::jsonb)`, [JSON.stringify({ proposed_client_id: stagedClient, proposed_timeline_id: timeline, branch_id: branch, primary_name: "Existing staged proof", primary_phone: "9000000278", did_buy: true, documents: [{ storage_path: path, file_name: "proof.jpg", mime_type: "image/jpeg" }] })]);
+      expect(result.rows[0]?.client_id).toBe(client);
+      await expect(database.query(`SELECT client_id,client_timeline_id,storage_path FROM documents WHERE storage_path=$1`, [path])).resolves.toMatchObject({ rows: [{ client_id: client, client_timeline_id: timeline, storage_path: path }] });
     } finally { await database.exec("RESET ROLE"); }
   });
 
