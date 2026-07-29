@@ -160,6 +160,10 @@ function asList(value: string) {
     .map((item) => item.trim())
     .filter(Boolean);
 }
+function storageFileName(storagePath: string, fallback: string) {
+  const leaf = storagePath.split("/").at(-1) ?? "";
+  return leaf.replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}_(.+)$/i, "$1") || fallback;
+}
 function walkInSubmitErrorMessage(error: SubmitError | null) {
   if (error?.code === "23505") {
     return "This client record could not be updated. Please try submitting the visit again.";
@@ -492,7 +496,10 @@ export function WalkInForm({
         .filter((proof) => proof.status === "ready")
         .map((proof) => ({
           storage_path: proof.path,
-          file_name: proof.fileName,
+          // Storage paths have a filename-safe suffix. The documents check
+          // intentionally requires that exact suffix, while this display name
+          // may contain spaces or other characters from the user's device.
+          file_name: storageFileName(proof.path, proof.fileName),
           mime_type: proof.mimeType,
         })),
       category_details: {

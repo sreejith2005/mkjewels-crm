@@ -282,7 +282,7 @@ describe("WalkInForm proof image uploads", () => {
     fireEvent.change(googleReviewControls.getByRole("combobox"), { target: { value: "yes" } });
     fireEvent.change(
       googleReviewControls.getByLabelText("Google review proof image"),
-      { target: { files: [new File(["proof"], "review-proof.jpg", { type: "image/jpeg" })] } },
+      { target: { files: [new File(["proof"], "review proof (1).jpg", { type: "image/jpeg" })] } },
     );
 
     await waitFor(() => expect(upload).toHaveBeenCalledOnce());
@@ -292,7 +292,7 @@ describe("WalkInForm proof image uploads", () => {
 
     await waitFor(() => expect(rpc).toHaveBeenCalledWith("submit_walkin_visit", expect.objectContaining({
       p_payload: expect.objectContaining({
-        documents: [{ storage_path: storagePath, file_name: "review-proof.jpg", mime_type: "image/jpeg" }],
+        documents: [{ storage_path: storagePath, file_name: "review_proof__1_.jpg", mime_type: "image/jpeg" }],
       }),
     })));
     await waitFor(() => expect(push).toHaveBeenCalledWith("/queue?completed=Uploaded%20Proof%20Client"));
