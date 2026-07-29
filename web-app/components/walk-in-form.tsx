@@ -27,6 +27,10 @@ type Proof = {
   status: "uploading" | "ready" | "error";
   error?: string;
 };
+type SubmitError = {
+  code?: string;
+  message?: string;
+};
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const inputClass = "mt-1 w-full rounded border border-stone-300 bg-white p-2";
 const sections = [
@@ -145,6 +149,28 @@ function asList(value: string) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+function walkInSubmitErrorMessage(error: SubmitError | null) {
+  if (error?.code === "23505") {
+    return "This client record could not be updated. Please try submitting the visit again.";
+  }
+  if (error?.code === "42501") {
+    return "You are not allowed to submit a visit to the selected branch.";
+  }
+  if (error?.code === "23514") {
+    const detail = error.message ?? "";
+    if (/documents_(storage_path|file_name)_check/i.test(detail)) {
+      return "This proof file is invalid. Remove and add that proof again before submitting.";
+    }
+    if (/wedding_(month|year)_check/i.test(detail)) {
+      return "Wedding month or year is invalid. Select the wedding details again before submitting.";
+    }
+    if (/client potential category/i.test(detail)) {
+      return "Choose one of the listed client potential categories before submitting.";
+    }
+    return "Some form details are invalid. Recheck the wedding details and client potential category, then submit again.";
+  }
+  return "We could not save this visit. Please try again; if it persists, contact an administrator.";
 }
 export function WalkInForm({
   profile,
@@ -520,13 +546,7 @@ export function WalkInForm({
           .filter((proof) => proof.status === "ready")
           .map((proof) => proof.path),
       });
-      const safeMessage = error?.code === "23505"
-        ? "This client record could not be updated. Please try submitting the visit again."
-        : error?.code === "42501"
-          ? "You are not allowed to submit a visit to the selected branch."
-          : error?.code === "23514"
-            ? "The uploaded proof could not be linked to this visit. Please try again."
-            : "We could not save this visit. Please try again; if it persists, contact an administrator.";
+      const safeMessage = walkInSubmitErrorMessage(error);
       setMessage(`${safeMessage} Uploaded proof files were kept so you do not need to add them again.`);
       return;
     }

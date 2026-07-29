@@ -349,6 +349,20 @@ describe("WalkInForm proof image uploads", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
+  it("does not mislabel an unrelated database validation failure as a proof-link failure", async () => {
+    rpc.mockImplementation((name: string) => name === "submit_walkin_visit"
+      ? Promise.resolve({ data: null, error: { code: "23514", message: "new row violates check constraint visit_forms_wedding_year_check" } })
+      : Promise.resolve({ data: [], error: null }));
+    renderWalkInForm();
+    fireEvent.change(screen.getByLabelText("Client name *"), { target: { value: "Validation Client" } });
+    fireEvent.change(screen.getByLabelText("Mobile *"), { target: { value: "9012345504" } });
+    completeLegacyRequiredFields();
+    answerRequiredEngagements();
+    fireEvent.click(screen.getByRole("button", { name: "6. Preferences & planning" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit complete visit" }));
+    expect(await screen.findByText("Wedding month or year is invalid. Select the wedding details again before submitting. Uploaded proof files were kept so you do not need to add them again.")).toBeTruthy();
+  });
+
   it("blocks submission when an engagement ask is yes without an uploaded proof image", async () => {
     renderWalkInForm();
     fireEvent.change(screen.getByLabelText("Client name *"), { target: { value: "Missing Proof Client" } });
