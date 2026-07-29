@@ -11,6 +11,9 @@ export default async function ClientPage({ params }: { params: Promise<{ clientI
     clientResult,
     timelineResult,
     auditResult,
+    profileResult,
+    authResult,
+    branchesResult,
     beveragesResult,
     snacksResult,
     sugarsResult,
@@ -18,8 +21,11 @@ export default async function ClientPage({ params }: { params: Promise<{ clientI
     giftsResult,
   ] = await Promise.all([
     supabase.from("clients").select("*").eq("client_id", clientId).single(),
-    supabase.from("client_timeline").select("id,event_date,event_type,buy_status,crm_name,remark,branch_id,salesperson_id,seen_categories,bought_categories").eq("client_id", clientId).order("event_date", { ascending: false }),
+    supabase.from("client_timeline").select("id,created_at,event_date,event_type,buy_status,crm_name,remark,branch_id,salesperson_id,seen_categories,bought_categories,order_categories,product_requirement,reference_number").eq("client_id", clientId).order("created_at", { ascending: false }).order("event_date", { ascending: false }),
     supabase.from("client_edit_log").select("id,field_name,old_value,new_value,created_at,edited_by").eq("client_id", clientId).order("created_at", { ascending: false }),
+    supabase.rpc("get_my_profile"),
+    supabase.auth.getUser(),
+    supabase.from("branches").select("id,name").eq("active", true).order("name"),
     supabase.from("lookup_beverages").select("label").eq("active", true).order("label"),
     supabase.from("lookup_snacks").select("label").eq("active", true).order("label"),
     db.from("lookup_sugar_options").select("label").eq("active", true).order("label"),
@@ -28,6 +34,10 @@ export default async function ClientPage({ params }: { params: Promise<{ clientI
   ]);
 
   if (clientResult.error || !clientResult.data) notFound();
+
+  const { data: currentUser } = authResult.data.user
+    ? await supabase.from("users").select("branch_id").eq("id", authResult.data.user.id).single()
+    : { data: null };
 
   const branchIds = [...new Set([clientResult.data.last_branch_id, ...(timelineResult.data ?? []).map((item) => item.branch_id)].filter(Boolean))] as string[];
   const editorIds = [...new Set((auditResult.data ?? []).map((item) => item.edited_by).filter(Boolean))] as string[];
@@ -41,8 +51,9 @@ export default async function ClientPage({ params }: { params: Promise<{ clientI
 
   return <ClientProfile
     client={clientResult.data}
-    timeline={(timelineResult.data ?? []).map((item) => ({ ...item, branch: branchNames.get(item.branch_id) ?? null, salesperson: item.salesperson_id ? userNames.get(item.salesperson_id) ?? null : null }))}
+    timeline={(timelineResult.data ?? []).map((item) => ({ ...item, seen_categories: item.seen_categories ?? [], bought_categories: item.bought_categories ?? [], order_categories: item.order_categories ?? [], branch: branchNames.get(item.branch_id) ?? null, salesperson: item.salesperson_id ? userNames.get(item.salesperson_id) ?? null : null }))}
     audit={(auditResult.data ?? []).map((item) => ({ ...item, editor: item.edited_by ? userNames.get(item.edited_by) ?? null : null }))}
+    walkinContext={{ role: profileResult.data?.[0]?.role ?? "", branchId: currentUser?.branch_id ?? null, branches: branchesResult.data ?? [] }}
     lookups={{
       beverages: (beveragesResult.data ?? []).map((item) => item.label),
       snacks: (snacksResult.data ?? []).map((item) => item.label),

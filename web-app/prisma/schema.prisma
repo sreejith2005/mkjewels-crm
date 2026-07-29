@@ -18,6 +18,7 @@ model Branch {
   clientsLastVisited   Client[]               @relation("ClientLastBranch")
   crmAllocations       CrmAllocation[]
   crmDailyAvailability CrmDailyAvailability[]
+  crmQueueRoundRobin   CrmQueueRoundRobin?
   entryQueueItems      EntryQueue[]
   users                User[]
   notBoughtFollowups   NotBoughtFollowup[]
@@ -346,6 +347,15 @@ model CrmDailyAvailability {
   @@map("crm_daily_availability")
 }
 
+model CrmQueueRoundRobin {
+  branchId  String   @id @map("branch_id") @db.Uuid
+  lastIndex Int      @default(-1) @map("last_index")
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@map("crm_queue_round_robin")
+}
+
 model NotBoughtFollowup {
   id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   clientId         String             @map("client_id") @db.Uuid
@@ -442,6 +452,7 @@ model ReferralCalling {
   history          ReferralCallingHistory[]
 
   @@index([referralId, createdAt(sort: Desc)])
+  @@unique([referralId])
   @@index([status, nextFollowupDate])
   @@index([convertedClientId])
   @@map("referral_calling")
@@ -456,12 +467,17 @@ model ReferralCallingHistory {
   remark         String?
   updatedById    String?         @map("updated_by") @db.Uuid
   enteredBy      String?         @map("entered_by") @db.VarChar(160)
+  followupDate   DateTime?       @map("followup_date") @db.Date
+  nextFollowupDate DateTime?     @map("next_followup_date") @db.Date
+  source         String?         @db.VarChar(80)
+  requestKey     String?         @map("request_key") @db.Uuid
   createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   referralCalling ReferralCalling @relation(fields: [referralCallingId], references: [id], onDelete: Cascade)
   updatedBy      User?           @relation("ReferralCallingHistoryUpdatedBy", fields: [updatedById], references: [id])
 
   @@index([referralCallingId, createdAt(sort: Desc)])
   @@index([updatedById])
+  @@unique([referralCallingId, requestKey])
   @@map("referral_calling_history")
 }
 

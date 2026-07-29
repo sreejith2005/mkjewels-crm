@@ -1079,8 +1079,12 @@ export type Database = {
     }
     Functions: {
       create_entry_queue: {
-        Args: { p_assigned_crm_name?: string; p_branch_id?: string; p_client_name: string; p_mobile: string }
-        Returns: { token: string; client_id: string | null; client_type: string }[]
+        Args: { p_assigned_crm_name?: string; p_branch_id?: string; p_client_id?: string; p_client_name: string; p_mobile: string }
+        Returns: { id: string; token: string; client_id: string | null; client_type: string }[]
+      }
+      manage_crm_roster: {
+        Args: { p_branch_id?: string | null; p_crm_name?: string | null; p_operation: string; p_roster_id?: string | null; p_target_branch_id?: string | null }
+        Returns: { active: boolean; branch_id: string; crm_name: string; id: string; message: string }[]
       }
       create_client_with_phone: {
         Args: {

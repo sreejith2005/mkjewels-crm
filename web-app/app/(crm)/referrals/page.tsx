@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ReferralEntry } from "@/components/referral-entry";
 import { ReferralQueue } from "@/components/referral-queue";
 import { createClient } from "@/lib/supabase/server";
 
@@ -9,11 +8,8 @@ export default async function ReferralsPage() {
   const profile = profiles?.[0];
   if (!profile || !auth.user) return null;
   const db = supabase as any;
-  const [{ data: actor }, { data: branches }, { data: calling }, { data: relations }] = await Promise.all([
-    db.from("users").select("branch_id").eq("id", auth.user.id).single(),
-    db.from("branches").select("id,name").eq("active", true).order("name"),
+  const [{ data: calling }] = await Promise.all([
     db.from("referral_calling").select("id,status,remark,next_followup_date,followup_count,converted_client_id,action_point,referrals!inner(crm_name,assigned_doer,salesperson_id,given_by_client_id,referral_name,referral_number)"),
-    db.from("lookup_relations").select("label").eq("active", true).order("label"),
   ]);
   const rows = calling ?? [];
   const clientIds = [...new Set(rows.flatMap((row: any) => [row.referrals.given_by_client_id, row.converted_client_id]).filter(Boolean))];
@@ -36,5 +32,5 @@ export default async function ReferralsPage() {
       history_count: entries.length, history: entries.map((entry: any) => [entry.entered_by, entry.remark].filter(Boolean).join(": ")).filter(Boolean).join("\n"),
     };
   });
-  return <main className="mx-auto max-w-[1500px] px-5 py-7"><h1 className="text-3xl font-semibold">Referrals Calling</h1><p className="mt-1 text-sm text-stone-600">Live referral leads and calling queue.</p><div className="mt-6"><ReferralEntry role={profile.role} branchId={actor?.branch_id ?? null} branches={branches ?? []} relations={(relations ?? []).map((item: { label: string }) => item.label)} /></div><ReferralQueue role={profile.role} branchId={actor?.branch_id ?? null} enteredByName={profile.name} items={items} /></main>;
+  return <main className="mx-auto max-w-[1500px] px-5 py-7"><h1 className="text-3xl font-semibold">REFERRALS CALLING</h1><p className="mt-1 text-sm text-stone-600">CALL REFERRALS GIVEN BY CLIENTS. CRM CAN SEE WHO GAVE THE REFERRAL, SAVE FOLLOW-UP HISTORY, AND TRACK CONVERTED REFERRALS.</p><ReferralQueue role={profile.role} branchId={null} enteredByName={profile.name} items={items} /></main>;
 }

@@ -13,6 +13,8 @@ const lookups = {
 function responseFor(table: string) {
   const data = table === "clients" ? { client_id: "client-1", primary_name: "Anita", last_branch_id: null }
     : table === "client_timeline" || table === "client_edit_log" ? []
+      : table === "branches" ? []
+        : table === "users" ? { branch_id: null }
       : lookups[table as keyof typeof lookups] ?? [];
   const result = Promise.resolve({ data, error: null });
   const query = {
@@ -27,7 +29,11 @@ function responseFor(table: string) {
 }
 
 vi.mock("next/navigation", () => ({ notFound: vi.fn() }));
-vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ from: responseFor })) }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({
+  from: responseFor,
+  rpc: vi.fn(async () => ({ data: [{ role: "salesperson" }], error: null })),
+  auth: { getUser: vi.fn(async () => ({ data: { user: null }, error: null })) },
+})) }));
 vi.mock("@/components/client-profile", () => ({
   ClientProfile: ({ lookups: profileLookups }: { lookups: Record<string, string[]> }) => <output>{JSON.stringify(profileLookups)}</output>,
 }));

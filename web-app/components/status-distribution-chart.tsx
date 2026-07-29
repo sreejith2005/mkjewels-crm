@@ -15,9 +15,10 @@ function arcPath(start: number, end: number) {
 export function StatusDistributionChart({ total, items }: { total: number; items: StatusDistributionItem[] }) {
   const visible = items.filter((item) => item.value > 0);
   if (!total || !visible.length) return <p className="p-5 text-sm text-stone-600">No visits in this date range.</p>;
+  const sliceTotal = visible.reduce((sum, item) => sum + item.value, 0);
   const slices = visible.map((item, index) => {
-    const start = -Math.PI / 2 + visible.slice(0, index).reduce((sum, previous) => sum + (previous.value / total) * Math.PI * 2, 0);
-    return { ...item, start, end: start + (item.value / total) * Math.PI * 2 };
+    const start = -Math.PI / 2 + visible.slice(0, index).reduce((sum, previous) => sum + (previous.value / sliceTotal) * Math.PI * 2, 0);
+    return { ...item, start, end: start + (item.value / sliceTotal) * Math.PI * 2 };
   });
   return <div className="grid gap-4 p-4 sm:grid-cols-[220px_minmax(0,1fr)] sm:items-center"><svg className="mx-auto h-56 w-56" viewBox="0 0 220 220" role="img" aria-label={`Walk-in status distribution across ${total} visits`}>
     {slices.length === 1 ? <circle cx="110" cy="110" r="84" fill={slices[0]!.color} /> : slices.map((slice) => <path d={arcPath(slice.start, slice.end)} fill={slice.color} key={slice.label}><title>{`${slice.label}: ${slice.value}`}</title></path>)}

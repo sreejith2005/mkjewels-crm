@@ -1,11 +1,23 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import type { DashboardMode } from "@/lib/dashboard";
 
-export function DashboardFilter({ start, end, preset }: { start: string; end: string; preset: string }) {
-  const router = useRouter(); const searchParams = useSearchParams(); const [customStart, setCustomStart] = useState(start); const [customEnd, setCustomEnd] = useState(end);
-  function select(next: string) { const params = new URLSearchParams(searchParams); params.set("preset", next); if (next !== "custom") { params.delete("start"); params.delete("end"); } router.push(`/dashboard?${params}`); }
-  function applyCustom() { if (customStart && customEnd && customStart <= customEnd) router.push(`/dashboard?preset=custom&start=${customStart}&end=${customEnd}`); }
-  return <div className="flex flex-wrap items-end gap-3 rounded-xl border bg-white p-3"><label className="text-sm font-medium">Range<select aria-label="Date range" className="ml-2 rounded border p-2" value={preset} onChange={(event) => select(event.target.value)}><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="week">This week</option><option value="month">This month</option><option value="custom">Custom</option></select></label>{preset === "custom" ? <><label className="text-xs font-medium">From<input aria-label="Custom start date" className="mt-1 block rounded border p-2 text-sm" type="date" value={customStart} onChange={(event) => setCustomStart(event.target.value)} /></label><label className="text-xs font-medium">To<input aria-label="Custom end date" className="mt-1 block rounded border p-2 text-sm" type="date" value={customEnd} onChange={(event) => setCustomEnd(event.target.value)} /></label><button type="button" className="rounded bg-amber-800 px-3 py-2 text-sm font-medium text-white" onClick={applyCustom}>Apply</button></> : null}</div>;
+export function DashboardFilter({ mode, startDate, endDate }: { mode: DashboardMode; startDate: string; endDate: string }) {
+  const router = useRouter();
+  const [selectedMode, setSelectedMode] = useState<DashboardMode>(mode);
+  const [selectedStartDate, setSelectedStartDate] = useState(mode === "DATE_TO_DATE" ? startDate : "");
+  const [selectedEndDate, setSelectedEndDate] = useState(mode === "DATE_TO_DATE" ? endDate : "");
+
+  function apply() {
+    const params = new URLSearchParams({ mode: selectedMode });
+    if (selectedMode === "DATE_TO_DATE") {
+      if (selectedStartDate) params.set("startDate", selectedStartDate);
+      if (selectedEndDate) params.set("endDate", selectedEndDate);
+    }
+    router.push(`/dashboard?${params}`);
+  }
+
+  return <div className="flex flex-wrap items-end gap-3 rounded-xl border bg-white p-3"><label className="text-sm font-medium">FILTER TYPE<select aria-label="Filter type" className="ml-2 rounded border p-2" value={selectedMode} onChange={(event) => setSelectedMode(event.target.value as DashboardMode)}><option value="ALL">ALL DATA</option><option value="MONTH">THIS MONTH</option><option value="WEEK">THIS WEEK</option><option value="DATE_TO_DATE">DATE TO DATE</option></select></label>{selectedMode === "DATE_TO_DATE" ? <><label className="text-xs font-medium">START DATE<input aria-label="Start date" className="mt-1 block rounded border p-2 text-sm" type="date" value={selectedStartDate} onChange={(event) => setSelectedStartDate(event.target.value)} /></label><label className="text-xs font-medium">END DATE<input aria-label="End date" className="mt-1 block rounded border p-2 text-sm" type="date" value={selectedEndDate} onChange={(event) => setSelectedEndDate(event.target.value)} /></label></> : null}<button type="button" className="rounded bg-amber-800 px-3 py-2 text-sm font-medium text-white" onClick={apply}>APPLY FILTER</button></div>;
 }

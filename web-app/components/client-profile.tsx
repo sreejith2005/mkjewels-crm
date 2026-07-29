@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/client";
+import { ExistingClientWalkinAction } from "@/components/existing-client-walkin-action";
 import { displayDate, nullable, phoneDigits, stringArray } from "@/lib/clients";
 import { isPotentialCategory, POTENTIAL_CATEGORIES, potentialStars } from "@/lib/client-potential";
 import type { Json } from "@/lib/supabase/database.types";
@@ -137,10 +138,12 @@ export function ClientProfile({
   timeline,
   audit,
   lookups,
+  walkinContext,
 }: {
   client: Client;
   timeline: Array<{
     id: string;
+    created_at: string;
     event_date: string;
     event_type: string;
     buy_status: string | null;
@@ -148,6 +151,11 @@ export function ClientProfile({
     remark: string | null;
     branch: string | null;
     salesperson: string | null;
+    seen_categories: string[];
+    bought_categories: string[];
+    order_categories: string[];
+    product_requirement: string | null;
+    reference_number: string | null;
   }>;
   audit: Array<{
     id: number;
@@ -158,6 +166,7 @@ export function ClientProfile({
     editor: string | null;
   }>;
   lookups: { beverages: string[]; snacks: string[]; sugars?: string[]; communities?: string[]; gifts?: string[] };
+  walkinContext: { role: string; branchId: string | null; branches: { id: string; name: string }[] };
 }) {
   const [values, setValues] = useState(() => initial(client));
   const [tab, setTab] = useState<"profile" | "timeline" | "audit">("profile");
@@ -219,10 +228,7 @@ export function ClientProfile({
       setMessage("Saved");
       setValues(initial(updated));
     },
-    onError: (error) =>
-      setMessage(
-        error instanceof Error ? error.message : "Could not save. Try again.",
-      ),
+    onError: () => setMessage("Could not save the profile. Check the entered values and try again."),
   });
   return (
     <main className="mx-auto max-w-7xl px-5 py-7">
@@ -234,7 +240,7 @@ export function ClientProfile({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <a className="rounded border px-3 py-2 text-sm" href={`/visits/new?client=${client.client_id}`}>Make Walk-in Entry</a>
+          <span className="rounded border px-3 py-2 text-sm"><ExistingClientWalkinAction clientId={client.client_id} primaryName={client.primary_name} primaryPhone={client.primary_phone} {...walkinContext} /></span>
           <span className="rounded-full bg-amber-100 px-3 py-1 text-sm text-amber-900">
             Potential: {client.client_potential_category ?? "Not set"}
             {potentialStars(client.client_potential_category) ? ` ${potentialStars(client.client_potential_category)}` : ""}
@@ -459,6 +465,8 @@ export function ClientProfile({
                   {item.salesperson ?? item.crm_name ?? "—"}
                 </p>
                 {item.remark && <p className="mt-1">{item.remark}</p>}
+                <p className="mt-1 text-sm text-stone-600">Seen: {item.seen_categories.join(", ") || "—"} · Bought: {item.bought_categories.join(", ") || "—"} · Order: {item.order_categories.join(", ") || "—"}</p>
+                <p className="mt-1 text-sm text-stone-600">Product requirement: {item.product_requirement ?? "—"} · Reference number: {item.reference_number ?? "—"} · {item.reference_number ? "Legacy edit eligible" : "No ref"}</p>
               </article>
             ))
           ) : (

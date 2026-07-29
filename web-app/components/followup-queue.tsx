@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { queueTabMatches } from "@/lib/followup-logic";
+import { isDoneFollowup, queueTabMatches, sortNotBoughtFollowups } from "@/lib/followup-logic";
 import { createClient } from "@/lib/supabase/client";
 import { displayDate } from "@/lib/clients";
+import { kolkataDateKey } from "@/lib/business-date";
 
 export type FollowupItem = {
   id: string; client_id: string; reference_number: string | null; status: string;
@@ -17,7 +18,12 @@ export type FollowupItem = {
 };
 
 const TABS = [["today", "TODAY FOLLOW UP"], ["pending", "ALL PENDING FOLLOW UP"], ["inprocess", "INPROCESS FOLLOW UP"], ["done", "ALL DONE"]] as const;
-const FOLLOW_UP_STATUSES = ["PENDING", "IN PROCESS", "FOLLOW UP DONE"] as const;
+const FOLLOW_UP_STATUSES = [
+  "PENDING", "CLIENT ASKED TO CALL LATER", "INTERESTED - NEED FOLLOW UP",
+  "NEGOTIATION / PRICE DISCUSSION", "VISIT PLANNED", "WHATSAPP SENT", "NOT DECIDED YET",
+  "ALREADY PURCHASED FROM MK JEWELS", "ALREADY PURCHASED FROM ANOTHER JEWELLER",
+  "NO REQUIREMENT AT THE MOMENT (FOLLOW UP AFTER A FEW MONTHS)", "CALL NOT PICKED",
+] as const;
 const CALL_RESPONSES = ["CONNECTED", "NOT PICKED", "SWITCHED OFF", "WHATSAPP ONLY", "WRONG NUMBER"] as const;
 type FollowupRpcClient = { rpc: (name: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> };
 
@@ -31,18 +37,18 @@ export function FollowupQueue({ items, crmNames, enteredByName }: {
   const [open, setOpen] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [syncing, setSyncing] = useState(false);
-  const today = new Date().toISOString().slice(0, 10);
-  const visible = useMemo(() => items.filter((item) => {
+  const today = kolkataDateKey();
+  const visible = useMemo(() => sortNotBoughtFollowups(items.filter((item) => {
     const text = `${item.client_name} ${item.phone} ${item.reference_number ?? ""}`.toLowerCase();
     return (!crm || item.crm_name === crm) && (!search || text.includes(search.toLowerCase()))
       && queueTabMatches({ status: item.status, next_followup_date: item.next_followup_date, followup_count: item.followup_count }, tab, today);
-  }), [items, crm, search, tab, today]);
+  }), tab), [items, crm, search, tab, today]);
 
   async function sync() {
     setSyncing(true); setMessage("");
     const { data, error } = await (createClient() as unknown as FollowupRpcClient).rpc("sync_not_bought_followups");
     setSyncing(false);
-    if (error) { setMessage(`Could not sync Not Bought data: ${error.message}`); return; }
+    if (error) { setMessage("Could not sync Not Bought data. Please try again or contact an administrator."); return; }
     setMessage(`Not Bought data synced${typeof data === "number" ? `: ${data} follow-up(s) added.` : "."}`);
     router.refresh();
   }
@@ -51,7 +57,7 @@ export function FollowupQueue({ items, crmNames, enteredByName }: {
     const data = new FormData(form);
     const status = String(data.get("status"));
     const remark = String(data.get("remark")).trim();
-    if (status !== "FOLLOW UP DONE" && !remark) { setMessage("Follow Up Remark is required unless the follow-up is done."); return; }
+    if (!isDoneFollowup(status) && !remark) { setMessage("Follow Up Remark is required unless the follow-up is done."); return; }
     const { error } = await (createClient() as unknown as FollowupRpcClient).rpc("save_not_bought_followup", {
       p_followup_id: item.id,
       p_followup_status: status,
@@ -59,7 +65,7 @@ export function FollowupQueue({ items, crmNames, enteredByName }: {
       p_next_followup_date: String(data.get("next_date")) || null,
       p_remark: remark || null,
     });
-    if (error) { setMessage(`Could not save this follow-up: ${error.message}`); return; }
+    if (error) { setMessage("Could not save this follow-up. Please try again or contact an administrator."); return; }
     setOpen(null); setMessage("Follow-up saved."); router.refresh();
   }
 
@@ -76,7 +82,7 @@ export function FollowupQueue({ items, crmNames, enteredByName }: {
         <td className="p-3">{item.crm_name || "—"}</td><td className="p-3"><Link className="font-semibold text-amber-800 underline" href={`/clients/${item.client_id}`}>{item.client_name}</Link><div className="mt-1 flex gap-1"><span className="rounded bg-stone-100 px-1">{item.status}</span><span className="rounded bg-stone-100 px-1">FU: {item.followup_count}</span><span className="rounded bg-stone-100 px-1">HIST: {item.history_count}</span></div></td><td className="p-3">{item.phone}</td><td className="p-3">{displayDate(item.visit_date)}</td><td className="p-3">{displayDate(item.next_followup_date)}</td><td className="p-3">{item.reason || "—"}</td><td className="p-3">{item.seen_categories || "—"}</td><td className="p-3">{item.product_requirement || "—"}</td><td className="p-3 max-w-56 whitespace-pre-wrap">{item.product_seen_remark || "—"}</td><td className="p-3 max-w-56 whitespace-pre-wrap">{item.remark || "—"}</td><td className="p-3 max-w-56 whitespace-pre-wrap">{item.action_point || "—"}</td>
         <td className="p-3"><div className="flex flex-col gap-1"><Link className="rounded border px-2 py-1 text-center" href={`/clients/${item.client_id}`}>OPEN PROFILE</Link><button className="rounded border px-2 py-1" onClick={() => setOpen(open === item.id ? null : item.id)}>FOLLOW UP FORM</button><button className="rounded border px-2 py-1" onClick={() => setOpen(open === `${item.id}:history` ? null : `${item.id}:history`)}>VIEW HISTORY</button></div>
           {open === item.id && <form className="mt-2 grid min-w-56 gap-2" onSubmit={(event) => { event.preventDefault(); void save(item, event.currentTarget); }}>
-            <label>Follow Up Status<select aria-label="Follow Up Status" name="status" defaultValue={item.status === "FOLLOW UP DONE" ? "FOLLOW UP DONE" : item.status === "PENDING" ? "PENDING" : "IN PROCESS"} required className="mt-1 w-full rounded border p-1">{FOLLOW_UP_STATUSES.map((status) => <option key={status}>{status}</option>)}</select></label>
+            <label>Follow Up Status<select aria-label="Follow Up Status" name="status" defaultValue={item.status} required className="mt-1 w-full rounded border p-1">{!FOLLOW_UP_STATUSES.includes(item.status as typeof FOLLOW_UP_STATUSES[number]) && <option>{item.status}</option>}{FOLLOW_UP_STATUSES.map((status) => <option key={status}>{status}</option>)}</select></label>
             <label>Next Follow Up Date<input aria-label="Next Follow Up Date" name="next_date" type="date" defaultValue={item.next_followup_date ?? today} className="mt-1 w-full rounded border p-1" /></label>
             <label>Call Response<select aria-label="Call Response" name="call_response" required className="mt-1 w-full rounded border p-1">{CALL_RESPONSES.map((response) => <option key={response}>{response}</option>)}</select></label>
             <label>Entered By<input aria-label="Entered By" value={enteredByName} readOnly className="mt-1 w-full rounded border bg-stone-50 p-1" /></label>
