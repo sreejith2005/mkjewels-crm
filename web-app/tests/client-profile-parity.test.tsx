@@ -20,8 +20,9 @@ function renderProfile() {
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe("ClientProfile legacy parity", () => {
-  it("uses the walk-in select controls for gender and preferences", () => {
+  it("uses the walk-in select controls for gender and preferences in explicit edit mode", () => {
     renderProfile();
+    fireEvent.click(screen.getByRole("button", { name: "EDIT PROFILE" }));
     expect(screen.getByLabelText("Gender").tagName).toBe("SELECT");
     expect(screen.getByLabelText("beverage").tagName).toBe("SELECT");
     expect(screen.getByLabelText("Sugar").tagName).toBe("SELECT");
@@ -39,11 +40,10 @@ describe("ClientProfile legacy parity", () => {
   it("keeps the legacy timeline detail and field-level audit contract visible", () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(<QueryClientProvider client={queryClient}><ClientProfile client={client} timeline={[{ id: "timeline-1", created_at: "2026-07-29T10:00:00Z", event_date: "2026-07-29T09:00:00Z", event_type: "VISIT", buy_status: "YES", crm_name: "CRM A", remark: "Important", branch: "Kochi", salesperson: "Sales A", seen_categories: ["Ring"], bought_categories: ["Chain"], order_categories: ["Pendant"], product_requirement: "Bridal", reference_number: "REF-1" }]} audit={[{ id: 1, field_name: "city", old_value: "Old city", new_value: "Kochi", created_at: "2026-07-29T10:00:00Z", editor: "Sales A" }]} lookups={{ beverages: ["Tea"], snacks: ["Biscuits"] }} walkinContext={context} /></QueryClientProvider>);
-    fireEvent.click(screen.getByRole("button", { name: "Timeline" }));
-    expect(screen.getByText(/Seen: Ring/)).toBeTruthy();
-    expect(screen.getByText(/Product requirement: Bridal/)).toBeTruthy();
-    expect(screen.getByText(/Legacy edit eligible/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Audit log" }));
+    expect(screen.getByRole("heading", { name: "FULL TIMELINE HISTORY" })).toBeTruthy();
+    expect(screen.getByText("Ring")).toBeTruthy();
+    expect(screen.getByText("Bridal")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "PROFILE EDIT LOG" })).toBeTruthy();
     expect(screen.getByText("city")).toBeTruthy();
     expect(screen.getByText('"Old city"')).toBeTruthy();
     expect(screen.getByText('"Kochi"')).toBeTruthy();

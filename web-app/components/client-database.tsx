@@ -27,17 +27,20 @@ export function ClientDatabase({
     <main className="mx-auto max-w-7xl px-5 py-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold">Client database</h1>
-          <p className="mt-2 text-sm text-stone-600">Client data is always live and instant; no sync step is needed.</p>
+          <h1 className="text-3xl font-semibold">CLIENT DATABASE</h1>
+          <p className="mt-2 text-sm text-stone-600">SEARCH CLIENTS BY PHONE OR NAME. OPEN PROFILE TO VIEW PERSONAL DETAILS, PREFERENCES, STATS, AND FULL TIMELINE.</p>
         </div>
         <Link className="rounded bg-amber-800 px-4 py-2 font-medium text-white" href="/queue">Register Client</Link>
       </div>
       <form className="mt-5 flex flex-wrap gap-2" action="/clients">
         <label className="sr-only" htmlFor="client-database-search">Search clients</label>
         <input id="client-database-search" className="w-full max-w-xl rounded border p-2" name="search" defaultValue={search} placeholder="Search by primary phone / secondary phone / billing phone / other phones / client name" />
-        <button className="rounded border px-4 py-2" type="submit">Search</button>
+        <button className="rounded bg-stone-800 px-4 py-2 text-white" type="submit">SEARCH</button>
+        <Link className="rounded border px-4 py-2" href="/clients">CLEAR</Link>
       </form>
-      <section className="mt-6 overflow-x-auto rounded border bg-white">
+      <section className="mt-6 overflow-hidden rounded border bg-white">
+        <div className="border-b p-4"><h2 className="text-sm font-semibold tracking-wide">SEARCH RESULTS</h2><p className="mt-1 text-xs text-stone-600">{clients.length} RESULT(S) FOUND.</p></div>
+        <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead className="border-b bg-stone-50 text-xs uppercase text-stone-600"><tr><th className="p-3">Client ID</th><th className="p-3">Name</th><th className="p-3">Phone</th><th className="p-3">City</th><th className="p-3">State</th><th className="p-3">Total visits</th><th className="p-3">Last visit</th><th className="p-3">Last status</th><th className="p-3">Action</th></tr></thead>
           <tbody>
@@ -45,6 +48,7 @@ export function ClientDatabase({
             {clients.length === 0 ? <tr><td className="p-5 text-stone-600" colSpan={9}>No clients match this search.</td></tr> : null}
           </tbody>
         </table>
+        </div>
       </section>
     </main>
   );

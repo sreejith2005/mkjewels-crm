@@ -13,7 +13,12 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
   if (!profile || !auth.user) return null;
   const [{ data: user }, { data: branches }] = await Promise.all([supabase.from("users").select("branch_id").eq("id", auth.user.id).single(), supabase.from("branches").select("id,name").eq("active", true).order("name")]);
   const activeBranches = branches ?? [];
-  const selectedBranchId = profile.role === "super_admin" && activeBranches.some((branch) => branch.id === params.branch) ? params.branch! : user?.branch_id ?? activeBranches[0]?.id ?? "";
+  // An all-branches admin must deliberately choose a branch. Falling back to
+  // the first alphabetic branch (usually Andheri) caused the wrong roster to
+  // appear in both the queue and the walk-in form.
+  const selectedBranchId = profile.role === "super_admin"
+    ? activeBranches.some((branch) => branch.id === params.branch) ? params.branch! : ""
+    : user?.branch_id ?? "";
   const today = kolkataDateKey();
   const [{ data: allocation }, { data: availability }] = selectedBranchId ? await Promise.all([supabase.from("crm_allocation").select("crm_name").eq("branch_id", selectedBranchId).eq("active", true).order("created_at"), supabase.from("crm_daily_availability").select("crm_name,is_available").eq("branch_id", selectedBranchId).eq("date", today)]) : [{ data: [] }, { data: [] }];
   const queueCrms = rosterNames(allocation ?? []);

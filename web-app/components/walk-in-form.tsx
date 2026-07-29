@@ -44,12 +44,8 @@ const IMAGE_PROOF_DESCRIPTION = "JPEG, PNG, WebP, HEIC, or HEIF image";
 const TESTIMONIAL_PROOF_DESCRIPTION = `${IMAGE_PROOF_DESCRIPTION}, MP4, MOV, or WebM video`;
 const inputClass = "mt-1 w-full rounded border border-stone-300 bg-white p-2";
 const sections = [
-  "CLIENT DETAILS",
-  "CLIENT PROFILE & CONTACT",
-  "FAMILY / FRIENDS WITH CLIENT",
-  "VISIT DETAILS",
-  "CRM APPROACH",
-  "PREFERENCES, REMARKS & FOLLOW-UP",
+  "CLIENT DETAILS", "FAMILY / FRIENDS WITH CLIENT", "VISIT DETAILS",
+  "CRM APPROACH", "PREFERENCES", "REMARK",
 ] as const;
 const LEGACY_VISIT_STATUSES = [
   "YES", "NO", "REPAIR_PLACED", "REPAIR_PICKUP", "ORDER_PLACED",
@@ -190,6 +186,7 @@ export function WalkInForm({
   profile,
   branches,
   crms,
+  crmByBranch,
   queue,
   client,
   lookups = {
@@ -203,6 +200,7 @@ export function WalkInForm({
   profile: { role: string; branchId: string | null; name: string };
   branches: { id: string; name: string }[];
   crms: string[];
+  crmByBranch?: Record<string, string[]>;
   queue: Queue;
   client: Client | null;
   lookups?: {
@@ -232,6 +230,7 @@ export function WalkInForm({
   );
   const [proposedTimelineId] = useState(() => crypto.randomUUID());
   const [message, setMessage] = useState("");
+  const activeCrms = crmByBranch?.[values.branch_id] ?? crms;
   const [saving, setSaving] = useState(false);
   const submitWasExplicit = useRef(false);
   const [billingMatchesPrimary, setBillingMatchesPrimary] = useState(
@@ -642,20 +641,19 @@ export function WalkInForm({
           <button
             type="button"
             aria-label={`${index + 1}. ${["Client & visit", "Profile", "Companions", "Purchase outcome", "Engagement asks", "Preferences & planning"][index]}`}
-            onClick={() => setStep(index)}
-            className={
-              step === index
-                ? "legacy-walkin-step is-active"
-                : "legacy-walkin-step"
-            }
+            onClick={() => {
+              const target = document.getElementById(["client-details", "family-friends", "visit-details", "crm-approach", "preferences", "remark"][index]);
+              if (typeof target?.scrollIntoView === "function") target.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            className="legacy-walkin-step"
             key={label}
           >
             <span>{index + 1}</span>{label}
           </button>
         ))}
       </nav>
-      <section className="legacy-walkin-card mt-4">
-        {step === 0 ? (
+      <div className="legacy-walkin-sections mt-4">
+        <section id="client-details" className="legacy-walkin-card">
           <div className="grid gap-4 md:grid-cols-2">
             <h2 className="md:col-span-2 text-lg font-semibold">
               CLIENT DETAILS {" "}
@@ -701,7 +699,13 @@ export function WalkInForm({
                 <select
                   className={inputClass}
                   value={values.branch_id}
-                  onChange={(event) => set("branch_id", event.target.value)}
+                  onChange={(event) => setValues((current) => ({
+                    ...current,
+                    branch_id: event.target.value,
+                    crm_name: "",
+                    salesperson: "",
+                    salesperson_handled: "",
+                  }))}
                 >
                   <option value="">Choose branch</option>
                   {branches.map((item) => (
@@ -721,19 +725,17 @@ export function WalkInForm({
                 onChange={(event) => set("crm_name", event.target.value)}
               >
                 <option value="">Choose</option>
-                {crms.map((item) => (
+                {activeCrms.map((item) => (
                   <option value={item} key={item}>
                     {item}
                   </option>
                 ))}
               </select>
             </label>
-            <label className="block text-sm">Salesperson attending the client<select aria-label="Salesperson attending the client" className={inputClass} value={values.salesperson} onChange={(event) => set("salesperson", event.target.value)}><option value="">Choose</option>{crms.map((item) => <option value={item} key={item}>{item}</option>)}</select></label>
+            <label className="block text-sm">Salesperson attending the client<select aria-label="Salesperson attending the client" className={inputClass} value={values.salesperson} onChange={(event) => set("salesperson", event.target.value)} disabled={!values.branch_id}><option value="">{values.branch_id ? "Choose" : "Select branch first"}</option>{activeCrms.map((item) => <option value={item} key={item}>{item}</option>)}</select></label>
           </div>
-        ) : null}
-        {step === 1 ? (
           <div className="grid gap-4 md:grid-cols-2">
-            <h2 className="md:col-span-2 text-lg font-semibold">CLIENT PROFILE & CONTACT</h2>
+            <h3 className="md:col-span-2 text-sm font-bold tracking-wide">CLIENT PROFILE & CONTACT</h3>
             {selectField("gender", "Gender", ["FEMALE", "MALE", "OTHER"], true)}
             <label className="block text-sm"><span>Billing phone</span><input aria-label="Billing phone" className={inputClass} inputMode="numeric" value={values.billing_phone} disabled={billingMatchesPrimary} onChange={(event) => set("billing_phone", event.target.value)} /><span className="mt-2 flex items-center gap-2"><input aria-label="Same as mobile number" type="checkbox" checked={billingMatchesPrimary} onChange={(event) => { setBillingMatchesPrimary(event.target.checked); if (event.target.checked) set("billing_phone", values.primary_phone); }} />Same as mobile number</span></label>
             {field("country", "Country", "text", true)}
@@ -747,8 +749,16 @@ export function WalkInForm({
             {field("dob", "Date of birth", "date")}
             {field("anniversary", "Anniversary", "date")}
           </div>
-        ) : null}
-        {step === 2 ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            <h3 className="md:col-span-2 text-sm font-bold tracking-wide">CLIENT PLANNING</h3>
+            {selectField("occupation", "Occupation", ["BUSINESS OWNER", "SELF EMPLOYED", "SERVICE / SALARIED", "HOUSEWIFE / HOMEMAKER", "STUDENT", "DOCTOR", "LAWYER", "CHARTERED ACCOUNTANT / CA", "ENGINEER", "TEACHER / PROFESSOR", "BANKER / FINANCE", "GOVERNMENT EMPLOYEE", "REAL ESTATE", "FASHION / DESIGNER", "RETIRED", "OTHER"], true)}
+            {values.occupation.trim().toUpperCase() === "OTHER" ? field("occupation_other", "Occupation other", "text", true) : null}
+            {selectField("bridal_or_non_bridal", "Bridal / non-bridal", ["BRIDAL", "NON BRIDAL"], true)}
+            {values.bridal_or_non_bridal.trim().toUpperCase() === "BRIDAL" ? <>{selectField("wedding_month", "Wedding month", LEGACY_WEDDING_MONTHS, true)}{selectField("wedding_year", "Wedding year", Array.from({ length: 11 }, (_, index) => String(new Date().getFullYear() + index)), true)}</> : null}
+            {selectField("communication_preference", "Communication preference", LEGACY_COMMUNICATION_PREFERENCES, true)}
+          </div>
+        </section>
+        <section id="family-friends" className="legacy-walkin-card">
           <div>
             <h2 className="text-lg font-semibold">FAMILY / FRIENDS WITH CLIENT</h2>
             <label className="mt-3 block max-w-xs text-sm">How many family members / friends are with them?<select aria-label="How many family members / friends are with them?" className={inputClass} value={values.companions_count} onChange={(event) => { const count = Number(event.target.value); set("companions_count", event.target.value); setCompanions((current) => Array.from({ length: Number.isFinite(count) && count > 0 ? count : 0 }, (_, index) => current[index] ?? { name: "", mobile: "", relation: "" })); }}><option value="">Choose</option>{Array.from({ length: 11 }, (_, index) => <option key={index} value={String(index)}>{index}</option>)}</select></label>
@@ -803,8 +813,8 @@ export function WalkInForm({
               Add companion
             </button>
           </div>
-        ) : null}
-        {step === 3 ? (
+        </section>
+        <section id="visit-details" className="legacy-walkin-card">
           <div className="grid gap-4 md:grid-cols-2">
             <h2 className="md:col-span-2 text-lg font-semibold">
               VISIT DETAILS
@@ -864,42 +874,29 @@ export function WalkInForm({
                 {countAndTags("camefor_count", "camefor", "Number of products client came for", true)}
                 {asList(values.came_for_categories).some((item) => item.toUpperCase().startsWith("OTHER")) ? field("came_for_other", "Other (came-for category)") : null}
                 {selectField("repair_or_order_approach", "Did CRM approach to show new products?", ["YES", "NO"])}
-                {values.repair_or_order_approach === "YES" ? <>{selectField("new_things_choice", "Is client buying / making order for new things?", ["BUYING_NEW_PRODUCT", "MAKING_NEW_ORDER", "NO"])}{["BUYING_NEW_PRODUCT", "MAKING_NEW_ORDER"].includes(values.new_things_choice) ? <>{field("salesperson_handled", "Salesperson attending new buy / order")}{multiField("new_things_categories", "New buy / order categories")}{countAndTags("new_things_count", "new_things", "Number of new products")}{asList(values.new_things_categories).some((item) => item.toUpperCase().startsWith("OTHER")) ? field("new_things_other", "Other (new buy / order category)") : null}</> : null}</> : null}
+                {values.repair_or_order_approach === "YES" ? <>{selectField("new_things_choice", "Is client buying / making order for new things?", ["BUYING_NEW_PRODUCT", "MAKING_NEW_ORDER", "NO"])}{["BUYING_NEW_PRODUCT", "MAKING_NEW_ORDER"].includes(values.new_things_choice) ? <>{selectField("salesperson_handled", "Salesperson attending new buy / order", activeCrms, true)}{multiField("new_things_categories", "New buy / order categories")}{countAndTags("new_things_count", "new_things", "Number of new products")}{asList(values.new_things_categories).some((item) => item.toUpperCase().startsWith("OTHER")) ? field("new_things_other", "Other (new buy / order category)") : null}</> : null}</> : null}
               </> : null}
               {values.visit_status === "PRODUCT_EXCHANGE" ? <>
                 {multiField("came_for_categories", "Product categories client came for")}
                 {countAndTags("camefor_count", "camefor", "Number of products client came for", true)}
-                {field("salesperson_handled", "Salesperson attending the client (new buy / order)")}
+                {selectField("salesperson_handled", "Salesperson attending the client (new buy / order)", activeCrms, true)}
                 {multiField("new_things_categories", "New buy / order categories")}
                 {countAndTags("new_things_count", "new_things", "Number of new products")}
                 {asList(values.came_for_categories).some((item) => item.toUpperCase().startsWith("OTHER")) ? field("came_for_other", "Other (came for category)") : null}
                 {asList(values.new_things_categories).some((item) => item.toUpperCase().startsWith("OTHER")) ? field("new_things_other", "Other (new buy / order category)") : null}
               </> : null}
-              {values.visit_status !== "PRODUCT_EXCHANGE" ? (
-                <fieldset className="block text-sm" aria-label="Marketing message">
-                  <legend>Marketing message</legend>
-                  <div className="mt-1 flex gap-4">
-                    {["YES", "NO"].map((option) => (
-                      <label className="inline-flex items-center gap-1" key={option}>
-                        <input
-                          type="radio"
-                          name="marketing_message"
-                          value={option}
-                          checked={values.marketing_message_sent === option}
-                          onChange={(event) => set("marketing_message_sent", event.target.value)}
-                        />
-                        {option}
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-              ) : null}
             </> : null}
           </div>
-        ) : null}
-        {step === 4 && !["STORE_VISIT", "PRICE_CALCULATION"].includes(values.visit_status) ? (
+        </section>
+        {!['STORE_VISIT', 'PRICE_CALCULATION'].includes(values.visit_status) ? <section id="crm-approach" className="legacy-walkin-card">
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">CRM APPROACH</h2>
+            <fieldset className="block text-sm" aria-label="Marketing message">
+              <legend>Marketing message</legend>
+              <div className="mt-1 flex gap-4">
+                {["YES", "NO"].map((option) => <label className="inline-flex items-center gap-1" key={option}><input type="radio" name="marketing_message" value={option} checked={values.marketing_message_sent === option} onChange={(event) => set("marketing_message_sent", event.target.value)} />{option}</label>)}
+              </div>
+            </fieldset>
             {engagementKinds.map(([key, label, answers]) => {
               const item = engagement[key] ?? { asked: "", no_reason: "" };
               const proof = proofs[key];
@@ -987,12 +984,10 @@ export function WalkInForm({
               );
             })}
           </div>
-        ) : null}
-        {step === 5 ? (
+        </section> : null}
+        <section id="preferences" className="legacy-walkin-card">
           <div className="grid gap-4 md:grid-cols-2">
-            <h2 className="md:col-span-2 text-lg font-semibold">
-              PREFERENCES, REMARKS & FOLLOW-UP
-            </h2>
+            <h2 className="md:col-span-2 text-lg font-semibold">PREFERENCES</h2>
             {selectField("beverage", "Beverage", lookups.beverages)}
             {values.beverage === "Other:" ? field("beverage_other", "Other beverage") : null}
             {selectField("sugar", "Sugar", lookups.sugarOptions ?? [])}
@@ -1001,11 +996,11 @@ export function WalkInForm({
             {values.snack === "Other:" ? field("snack_other", "Other snack") : null}
             {selectField("gift", "Gift given", lookups.gifts ?? [])}
             {values.gift === "Other:" ? field("gift_other", "Other gift") : null}
-            {selectField("occupation", "Occupation", ["BUSINESS OWNER", "SELF EMPLOYED", "SERVICE / SALARIED", "HOUSEWIFE / HOMEMAKER", "STUDENT", "DOCTOR", "LAWYER", "CHARTERED ACCOUNTANT / CA", "ENGINEER", "TEACHER / PROFESSOR", "BANKER / FINANCE", "GOVERNMENT EMPLOYEE", "REAL ESTATE", "FASHION / DESIGNER", "RETIRED", "OTHER"], true)}
-            {values.occupation.trim().toUpperCase() === "OTHER" ? field("occupation_other", "Occupation other", "text", true) : null}
-            {selectField("bridal_or_non_bridal", "Bridal / non-bridal", ["BRIDAL", "NON BRIDAL"], true)}
-            {values.bridal_or_non_bridal.trim().toUpperCase() === "BRIDAL" ? <>{selectField("wedding_month", "Wedding month", LEGACY_WEDDING_MONTHS, true)}{selectField("wedding_year", "Wedding year", Array.from({ length: 11 }, (_, index) => String(new Date().getFullYear() + index)), true)}</> : null}
-            {selectField("communication_preference", "Communication preference", LEGACY_COMMUNICATION_PREFERENCES, true)}
+          </div>
+        </section>
+        <section id="remark" className="legacy-walkin-card">
+          <div className="grid gap-4 md:grid-cols-2">
+            <h2 className="md:col-span-2 text-lg font-semibold">REMARK</h2>
             {field("next_visit_date", "Next visit date", "date", values.visit_status === "NO")}
             {selectField("client_potential_category", "Client potential category", [
               ...(!isPotentialCategory(values.client_potential_category) && values.client_potential_category ? [values.client_potential_category] : []),
@@ -1021,35 +1016,12 @@ export function WalkInForm({
             {field("remark", "Remark")}
             <div className="md:col-span-2"><p className="text-sm">Upload photo (optional) — up to 10. Allowed: {IMAGE_PROOF_DESCRIPTION}.</p><div className="mt-2 grid gap-2 md:grid-cols-2">{Array.from({ length: remarkPhotoSlots }, (_, index) => { const key = `remark_photo_${index + 1}`; const proof = proofs[key]; return <label className="block text-sm" key={key}>Photo {index + 1}<input aria-label={`Remark photo ${index + 1}`} type="file" accept={IMAGE_PROOF_ACCEPT} capture="environment" className="mt-1 block text-sm" onChange={(event) => void uploadProof(key, event.target.files?.[0])} />{proof ? <span className="block text-xs text-stone-600">{proof.status === "ready" ? `${proof.fileName} uploaded` : proof.error ?? "Uploading…"}</span> : null}</label>; })}</div>{remarkPhotoSlots < 10 ? <button type="button" className="mt-2 rounded border px-3 py-1 text-sm" onClick={() => setRemarkPhotoSlots((current) => current + 1)}>Add more photo</button> : null}</div>
           </div>
-        ) : null}
-      </section>
-      <div className="mt-4 flex justify-between">
-        <button
-          type="button"
-          disabled={step === 0}
-          className="rounded border px-4 py-2 disabled:opacity-40"
-          onClick={() => setStep((current) => current - 1)}
-        >
-          Back
+        </section>
+      </div>
+      <div className="mt-4 flex justify-end">
+        <button type="submit" disabled={saving} className="rounded bg-amber-800 px-4 py-2 font-medium text-white disabled:opacity-50" onClick={() => { submitWasExplicit.current = true; }}>
+          {saving ? "Submitting…" : "Submit complete visit"}
         </button>
-        {step < sections.length - 1 ? (
-          <button
-            type="button"
-            className="rounded bg-stone-800 px-4 py-2 text-white"
-            onClick={() => setStep((current) => current + 1)}
-          >
-            Next
-          </button>
-        ) : (
-          <button
-            type="submit"
-            disabled={saving}
-            className="rounded bg-amber-800 px-4 py-2 font-medium text-white disabled:opacity-50"
-            onClick={() => { submitWasExplicit.current = true; }}
-          >
-            {saving ? "Submitting…" : "Submit complete visit"}
-          </button>
-        )}
       </div>
       {message ? <p className="mt-3 text-sm text-red-700">{message}</p> : null}
     </form>

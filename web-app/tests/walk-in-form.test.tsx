@@ -101,6 +101,23 @@ describe("WalkInForm proof image uploads", () => {
     expect((screen.getByLabelText("Client type") as HTMLSelectElement).value).toBe("new");
   });
 
+  it("clears and reloads CRM and salesperson choices when a super-admin selects another branch", () => {
+    const otherBranchId = "10000000-0000-4000-8000-000000000502";
+    render(<WalkInForm profile={{ role: "super_admin", branchId: null, name: "Admin" }} branches={[{ id: branchId, name: "Andheri" }, { id: otherBranchId, name: "Bandra" }]} crms={[]} crmByBranch={{ [branchId]: ["Andheri CRM"], [otherBranchId]: ["Bandra CRM"] }} queue={null} client={null} />);
+    const branch = screen.getByLabelText("Branch") as HTMLSelectElement;
+    const crm = screen.getByLabelText("CRM / salesperson") as HTMLSelectElement;
+    const salesperson = screen.getByLabelText("Salesperson attending the client") as HTMLSelectElement;
+    expect(salesperson.disabled).toBe(true);
+    fireEvent.change(branch, { target: { value: branchId } });
+    expect(Array.from(crm.options).map((option) => option.value)).toEqual(["", "Andheri CRM"]);
+    fireEvent.change(crm, { target: { value: "Andheri CRM" } });
+    fireEvent.change(salesperson, { target: { value: "Andheri CRM" } });
+    fireEvent.change(branch, { target: { value: otherBranchId } });
+    expect(crm.value).toBe("");
+    expect(salesperson.value).toBe("");
+    expect(Array.from(salesperson.options).map((option) => option.value)).toEqual(["", "Bandra CRM"]);
+  });
+
   it("uses legacy source, bridal, occupation, and category reveal rules", () => {
     render(<WalkInForm profile={{ role: "salesperson", branchId, name: "Test CRM" }} branches={[{ id: branchId, name: "Test Branch" }]} crms={["Test CRM"]} queue={null} client={null} lookups={{ productCategories: ["Ring", "Other"], notBoughtReasons: [], beverages: [], snacks: [] }} />);
     fireEvent.change(screen.getByLabelText("Source of lead"), { target: { value: "Reference" } });
@@ -248,7 +265,7 @@ describe("WalkInForm proof image uploads", () => {
     fireEvent.change(instagram.getByRole("combobox"), { target: { value: "yes" } });
     const picker = instagram.getByLabelText("Instagram follow proof image") as HTMLInputElement;
     expect(picker.accept).toBe(".jpg,.jpeg,.png,.webp,.heic,.heif");
-    expect(screen.getByText(/Allowed: JPEG, PNG, WebP, HEIC, or HEIF image/)).toBeTruthy();
+    expect(screen.getAllByText(/Allowed: JPEG, PNG, WebP, HEIC, or HEIF image/).length).toBeGreaterThan(0);
 
     fireEvent.change(picker, { target: { files: [new File(["not an image"], "proof.pdf", { type: "application/pdf" })] } });
     expect(await screen.findByText("Only JPEG, PNG, WebP, HEIC, or HEIF image files are allowed.")).toBeTruthy();

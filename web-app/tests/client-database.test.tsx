@@ -17,7 +17,7 @@ describe("ClientDatabase legacy presentation and queue launch", () => {
 
   it("uses the literal nine default result columns without potential filtering", () => {
     render(<ClientDatabase {...props} />);
-    expect(screen.getByText("Client data is always live and instant; no sync step is needed.")).toBeTruthy();
+    expect(screen.getByText("SEARCH CLIENTS BY PHONE OR NAME. OPEN PROFILE TO VIEW PERSONAL DETAILS, PREFERENCES, STATS, AND FULL TIMELINE.")).toBeTruthy();
     expect(screen.queryByLabelText("Potential category")).toBeNull();
     expect(screen.getAllByRole("columnheader").map((header) => header.textContent)).toEqual(["Client ID", "Name", "Phone", "City", "State", "Total visits", "Last visit", "Last status", "Action"]);
     expect(screen.getByRole("link", { name: "Register Client" }).getAttribute("href")).toBe("/queue");

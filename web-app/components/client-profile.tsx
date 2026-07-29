@@ -1,6 +1,6 @@
 "use client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/client";
 import { ExistingClientWalkinAction } from "@/components/existing-client-walkin-action";
@@ -48,19 +48,19 @@ const schema = z.object({
 type Form = z.infer<typeof schema>;
 const fieldGroups: { title: string; fields: (keyof Form)[] }[] = [
   {
-    title: "Identity & phones",
+    title: "PERSONAL DETAILS",
     fields: [
       "primary_name",
-      "primary_phone",
       "other_names",
-      "secondary_phone",
-      "billing_phone",
-      "other_known_phones",
       "gender",
+      "dob",
+      "anniversary",
+      "community",
+      "community_other",
     ],
   },
   {
-    title: "Location",
+    title: "ADDRESS",
     fields: [
       "country",
       "state",
@@ -68,15 +68,20 @@ const fieldGroups: { title: string; fields: (keyof Form)[] }[] = [
       "city_other",
       "pincode",
       "address",
-      "community",
-      "community_other",
     ],
   },
   {
-    title: "Personal preferences",
+    title: "CONTACT",
     fields: [
-      "dob",
-      "anniversary",
+      "primary_phone",
+      "secondary_phone",
+      "billing_phone",
+      "other_known_phones",
+    ],
+  },
+  {
+    title: "PREFERENCES",
+    fields: [
       "beverage",
       "sugar",
       "snack",
@@ -84,15 +89,20 @@ const fieldGroups: { title: string; fields: (keyof Form)[] }[] = [
     ],
   },
   {
-    title: "Relationship",
+    title: "CRM ACTIONS",
     fields: [
-      "client_potential_category",
-      "high_potential_reason",
       "instagram_status",
       "google_review_status",
       "testimonial_status",
       "referral_status",
       "next_visit_date",
+    ],
+  },
+  {
+    title: "POTENTIAL",
+    fields: [
+      "client_potential_category",
+      "high_potential_reason",
     ],
   },
 ];
@@ -133,12 +143,17 @@ function initial(client: Client): Form {
 function label(field: string) {
   return field.replaceAll("_", " ");
 }
+function LegacyProfileCard({ title, rows }: { title: string; rows: Array<[string, ReactNode]> }) {
+  return <section className="legacy-client-card"><h2>{title}</h2><div className="legacy-client-rows">{rows.map(([name, value]) => <div className="legacy-client-row" key={name}><span>{name}</span><b>{value || "NA"}</b></div>)}</div></section>;
+}
 export function ClientProfile({
   client,
   timeline,
   audit,
   lookups,
   walkinContext,
+  lastBranchName,
+  lastSalespersonName,
 }: {
   client: Client;
   timeline: Array<{
@@ -167,9 +182,12 @@ export function ClientProfile({
   }>;
   lookups: { beverages: string[]; snacks: string[]; sugars?: string[]; communities?: string[]; gifts?: string[] };
   walkinContext: { role: string; branchId: string | null; branches: { id: string; name: string }[] };
+  lastBranchName?: string | null;
+  lastSalespersonName?: string | null;
 }) {
   const [values, setValues] = useState(() => initial(client));
   const [tab, setTab] = useState<"profile" | "timeline" | "audit">("profile");
+  const [editing, setEditing] = useState(false);
   const [message, setMessage] = useState("");
   const queryClient = useQueryClient();
   const mutation = useMutation({
@@ -227,12 +245,38 @@ export function ClientProfile({
       queryClient.setQueryData(["client", client.client_id], updated);
       setMessage("Saved");
       setValues(initial(updated));
+      setEditing(false);
     },
     onError: () => setMessage("Could not save the profile. Check the entered values and try again."),
   });
+  if (!editing) {
+    const timelineRows = timeline.map((item) => <tr key={item.id}><td>{displayDate(item.created_at)}</td><td>{displayDate(item.event_date)}</td><td>{item.event_type}</td><td>{item.buy_status ?? "NA"}</td><td>{item.branch ?? "NA"}</td><td>{item.crm_name ?? "NA"}</td><td>{item.salesperson ?? "NA"}</td><td>{item.seen_categories.join(", ") || "NA"}</td><td>{item.bought_categories.join(", ") || "NA"}</td><td>{item.order_categories.join(", ") || "NA"}</td><td>{item.product_requirement ?? "NA"}</td><td>{item.remark ?? "NA"}</td><td>{item.reference_number ?? "NO REF"}</td></tr>);
+    return <main className="legacy-client-profile mx-auto max-w-7xl px-5 py-7">
+      <div className="legacy-profile-grid">
+        <aside className="legacy-profile-left">
+          <section className="legacy-client-hero"><h1>{client.primary_name}</h1><div className="legacy-client-badges"><span>{client.client_id}</span><span>{client.last_buy_status ?? "NA"}</span><span>{client.city ?? "NA"}</span></div><div className="legacy-client-hero-actions"><ExistingClientWalkinAction clientId={client.client_id} primaryName={client.primary_name} primaryPhone={client.primary_phone} role={walkinContext.role} branchId={walkinContext.branchId} branches={walkinContext.branches} /><button type="button" onClick={() => setEditing(true)}>EDIT PROFILE</button></div></section>
+          <LegacyProfileCard title="CONTACT" rows={[["PRIMARY PHONE", client.primary_phone], ["SECONDARY PHONE", client.secondary_phone ?? ""], ["BILLING PHONE", client.billing_phone ?? ""], ["OTHER KNOWN PHONES", client.other_known_phones?.join(", ") ?? ""]]} />
+          <LegacyProfileCard title="PREFERENCES" rows={[["BEVERAGE", client.beverage ?? ""], ["SUGAR", client.sugar ?? ""], ["SNACK", client.snack ?? ""], ["GIFT HISTORY", client.gift_history ? JSON.stringify(client.gift_history) : ""]]} />
+          <LegacyProfileCard title="CRM ACTIONS" rows={[["INSTAGRAM STATUS", client.instagram_status ?? ""], ["GOOGLE REVIEW STATUS", client.google_review_status ?? ""], ["TESTIMONIAL STATUS", client.testimonial_status ?? ""], ["REFERRAL STATUS", client.referral_status ?? ""], ["NEXT VISIT DATE", displayDate(client.next_visit_date)]]} />
+        </aside>
+        <section className="legacy-profile-content">
+          <div className="legacy-profile-pairs">
+            <LegacyProfileCard title="PERSONAL DETAILS" rows={[["PRIMARY NAME", client.primary_name], ["OTHER NAMES", client.other_names?.join(", ") ?? ""], ["GENDER", client.gender ?? ""], ["DOB", displayDate(client.dob)], ["ANNIVERSARY", displayDate(client.anniversary)], ["COMMUNITY", client.community ?? ""], ["COMMUNITY OTHER", client.community_other ?? ""]]} />
+            <LegacyProfileCard title="ADDRESS" rows={[["COUNTRY", client.country ?? ""], ["STATE", client.state ?? ""], ["CITY", client.city ?? ""], ["CITY OTHER", client.city_other ?? ""], ["PINCODE", client.pincode ?? ""], ["ADDRESS", client.address ?? ""]]} />
+            <LegacyProfileCard title="VISIT STATISTICS" rows={[["FIRST VISIT DATE", displayDate(client.first_visit_date)], ["LAST VISIT DATE", displayDate(client.last_visit_date)], ["TOTAL VISITS", String(client.total_visits)], ["TOTAL PURCHASE VISITS", String(client.total_purchase_visits)], ["TOTAL NON PURCHASE VISITS", String(client.total_non_purchase_visits)], ["TOTAL REPAIR VISITS", String(client.total_repair_visits)], ["TOTAL ORDER VISITS", String(client.total_order_visits)]]} />
+            <LegacyProfileCard title="LAST VISIT INFORMATION" rows={[["LAST BUY STATUS", client.last_buy_status ?? ""], ["LAST BRANCH", lastBranchName ?? ""], ["LAST CRM", client.last_crm_name ?? ""], ["LAST SALESPERSON", lastSalespersonName ?? ""], ["LAST REMARK", client.last_remark ?? ""], ["LAST PRODUCT REQUIREMENT", client.last_product_requirement ?? ""]]} />
+            <LegacyProfileCard title="PRODUCT INTERESTS" rows={[["LAST SEEN CATEGORIES", client.last_seen_categories?.join(", ") ?? ""], ["LAST BOUGHT CATEGORIES", client.last_bought_categories?.join(", ") ?? ""], ["LAST ORDER CATEGORIES", client.last_order_categories?.join(", ") ?? ""]]} />
+            <LegacyProfileCard title="POTENTIAL" rows={[["CLIENT POTENTIAL CATEGORY", client.client_potential_category ?? ""], ["HIGH POTENTIAL REASON", client.high_potential_reason ?? ""], ["PROFILE LAST UPDATED ON", displayDate(client.profile_updated_at)]]} />
+          </div>
+          <section className="legacy-timeline-card"><h2>FULL TIMELINE HISTORY</h2><div className="overflow-x-auto"><table><thead><tr>{["TIMESTAMP", "CLIENT VISIT DATE", "EVENT TYPE", "BUY STATUS", "BRANCH", "CRM", "SALESPERSON", "SEEN", "BOUGHT", "ORDER", "PRODUCT REQUIREMENT", "REMARK", "REFERENCE NUMBER"].map((heading) => <th key={heading}>{heading}</th>)}</tr></thead><tbody>{timelineRows.length ? timelineRows : <tr><td colSpan={13}>NO TIMELINE FOUND.</td></tr>}</tbody></table></div></section>
+          <section className="legacy-audit-card"><h2>PROFILE EDIT LOG</h2>{audit.length ? <div className="overflow-x-auto"><table><thead><tr><th>FIELD</th><th>OLD VALUE</th><th>NEW VALUE</th><th>UPDATED BY</th><th>UPDATED ON</th></tr></thead><tbody>{audit.map((item) => <tr key={item.id}><td>{label(item.field_name)}</td><td>{JSON.stringify(item.old_value)}</td><td>{JSON.stringify(item.new_value)}</td><td>{item.editor ?? "SYSTEM"}</td><td>{displayDate(item.created_at)}</td></tr>)}</tbody></table></div> : <p>NO PROFILE EDITS YET.</p>}</section>
+        </section>
+      </div>
+    </main>;
+  }
   return (
     <main className="mx-auto max-w-7xl px-5 py-7">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="legacy-profile-hero flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold">{client.primary_name}</h1>
           <p className="mt-1 text-stone-600">
@@ -240,14 +284,14 @@ export function ClientProfile({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="rounded border px-3 py-2 text-sm"><ExistingClientWalkinAction clientId={client.client_id} primaryName={client.primary_name} primaryPhone={client.primary_phone} {...walkinContext} /></span>
+          <button type="button" className="rounded border px-3 py-2 text-sm" onClick={() => { setEditing(false); setValues(initial(client)); setMessage(""); }}>Cancel edit</button>
           <span className="rounded-full bg-amber-100 px-3 py-1 text-sm text-amber-900">
             Potential: {client.client_potential_category ?? "Not set"}
             {potentialStars(client.client_potential_category) ? ` ${potentialStars(client.client_potential_category)}` : ""}
           </span>
         </div>
       </div>
-      <div className="mt-4 grid gap-3 rounded-xl border bg-white p-4 text-sm md:grid-cols-3">
+      <div className="legacy-last-visit mt-4 grid gap-3 rounded-xl border bg-white p-4 text-sm md:grid-cols-3">
         <p>
           <b>Last visit</b>
           <br />
@@ -304,7 +348,7 @@ export function ClientProfile({
                 className="rounded-xl border bg-white p-5"
                 key={group.title}
               >
-                <h2 className="font-semibold capitalize">{group.title}</h2>
+                <h2 className="font-semibold">{group.title}</h2>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   {group.fields.map((field) => (
                     <label
