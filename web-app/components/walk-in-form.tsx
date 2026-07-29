@@ -21,6 +21,7 @@ type Queue = {
 type Companion = { name: string; mobile: string; relation: string };
 type Proof = {
   path: string;
+  clientId: string;
   fileName: string;
   mimeType: string;
   status: "uploading" | "ready" | "error";
@@ -187,7 +188,7 @@ export function WalkInForm({
   const [remarkPhotoSlots, setRemarkPhotoSlots] = useState(1);
   const [proofs, setProofs] = useState<Record<string, Proof>>({});
   const [proposedClientId, setProposedClientId] = useState(
-    () => client?.client_id ?? crypto.randomUUID(),
+    () => client?.client_id ?? queue?.client_id ?? crypto.randomUUID(),
   );
   const [proposedTimelineId] = useState(() => crypto.randomUUID());
   const [message, setMessage] = useState("");
@@ -269,6 +270,7 @@ export function WalkInForm({
         ...current,
         [key]: {
           path: "",
+          clientId: "",
           fileName: file.name,
           mimeType: file.type,
           status: "error",
@@ -282,6 +284,7 @@ export function WalkInForm({
         ...current,
         [key]: {
           path: "",
+          clientId: "",
           fileName: file.name,
           mimeType: file.type,
           status: "error",
@@ -290,13 +293,30 @@ export function WalkInForm({
       }));
       return;
     }
+    // A phone lookup may still be in flight when the staff member reaches the
+    // engagement section. Resolve it here as well, before committing the
+    // immutable Storage path, so existing-client proofs use the actual client
+    // UUID rather than the temporary UUID reserved for a new client.
+    let proofClientId = client?.client_id || queue?.client_id || "";
+    if (!proofClientId) {
+      const matched = await lookupClientByPhone(values.primary_phone);
+      if (matched) {
+        proofClientId = matched.client_id;
+        setProposedClientId(matched.client_id);
+        setValues((current) => ({ ...current, client_id: matched.client_id, client_type: "existing" }));
+      } else {
+        setValues((current) => ({ ...current, client_id: "", client_type: "new" }));
+      }
+    }
+    proofClientId ||= proposedClientId;
     await removeProof(key);
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const path = `${proposedClientId}/${proposedTimelineId}/${crypto.randomUUID()}_${safeName}`;
+    const path = `${proofClientId}/${proposedTimelineId}/${crypto.randomUUID()}_${safeName}`;
     setProofs((current) => ({
       ...current,
       [key]: {
         path,
+        clientId: proofClientId,
         fileName: file.name,
         mimeType: file.type,
         status: "uploading",
@@ -310,6 +330,7 @@ export function WalkInForm({
         ...current,
         [key]: {
           path,
+          clientId: proofClientId,
           fileName: file.name,
           mimeType: file.type,
           status: "error",
@@ -322,6 +343,7 @@ export function WalkInForm({
       ...current,
       [key]: {
         path,
+        clientId: proofClientId,
         fileName: file.name,
         mimeType: file.type,
         status: "ready",
@@ -362,6 +384,15 @@ export function WalkInForm({
     }
     if (referrals.some((referral) => referral.name.trim().length === 0 || phoneDigits(referral.mobile).length !== 10)) {
       setMessage("Every referral needs a name and 10-digit mobile number.");
+      setStep(4);
+      return;
+    }
+    const targetClientId = values.client_id || client?.client_id || queue?.client_id || proposedClientId;
+    const mismatchedProof = Object.values(proofs).find(
+      (proof) => proof.status === "ready" && proof.clientId !== targetClientId,
+    );
+    if (mismatchedProof) {
+      setMessage("The mobile number changed after this proof was uploaded. Remove and add that proof again before submitting.");
       setStep(4);
       return;
     }
@@ -611,7 +642,7 @@ export function WalkInForm({
               </span>
             </label>
             {field("primary_name", "Client name", "text", true)}
-            <label className="block text-sm"><span>Mobile *</span><div className="mt-1 flex rounded border border-stone-300 bg-white"><span className="border-r border-stone-300 px-3 py-2 text-stone-600">+91</span><input aria-label="Mobile *" className="min-w-0 flex-1 rounded-r p-2" inputMode="numeric" value={values.primary_phone} onChange={(event) => { set("primary_phone", event.target.value); if (billingMatchesPrimary) set("billing_phone", event.target.value); setAutoFilledFields(new Set()); }} onBlur={() => { if (phoneDigits(values.primary_phone).length === 10) void lookupClientByPhone(values.primary_phone).then((matched) => { if (matched) { setValues((current) => ({ ...current, client_id: matched.client_id, client_type: "existing", primary_name: matched.primary_name, gender: matched.gender?.toUpperCase() ?? "", dob: matched.dob ?? "", community: matched.community ?? "", address: matched.address ?? "", pincode: matched.pincode ?? "", country: matched.country ?? "", state: matched.state ?? "", city: matched.city ?? "" })); setProposedClientId(matched.client_id); setAutoFilledFields(new Set(["primary_name", "gender", "dob", "community", "address", "pincode", "country", "state", "city"])); } }); }} /></div></label>
+            <label className="block text-sm"><span>Mobile *</span><div className="mt-1 flex rounded border border-stone-300 bg-white"><span className="border-r border-stone-300 px-3 py-2 text-stone-600">+91</span><input aria-label="Mobile *" className="min-w-0 flex-1 rounded-r p-2" inputMode="numeric" value={values.primary_phone} onChange={(event) => { setValues((current) => ({ ...current, primary_phone: event.target.value, client_id: client?.client_id || queue?.client_id || "", client_type: client?.client_id || queue?.client_id ? "existing" : "new" })); if (billingMatchesPrimary) set("billing_phone", event.target.value); setAutoFilledFields(new Set()); }} onBlur={() => { if (phoneDigits(values.primary_phone).length === 10) void lookupClientByPhone(values.primary_phone).then((matched) => { if (matched) { setValues((current) => ({ ...current, client_id: matched.client_id, client_type: "existing", primary_name: matched.primary_name, gender: matched.gender?.toUpperCase() ?? "", dob: matched.dob ?? "", community: matched.community ?? "", address: matched.address ?? "", pincode: matched.pincode ?? "", country: matched.country ?? "", state: matched.state ?? "", city: matched.city ?? "" })); setProposedClientId(matched.client_id); setAutoFilledFields(new Set(["primary_name", "gender", "dob", "community", "address", "pincode", "country", "state", "city"])); } }); }} /></div></label>
             {selectField("source_of_lead", "Source of lead", lookups.sourceOfLeads?.length ? lookups.sourceOfLeads : ["Walk-in", "Reference", "Instagram", "Google", "WhatsApp", "Advertisement", "Other"], true)}
             {values.source_of_lead.trim().toUpperCase() === "REFERENCE" ? (
               <>

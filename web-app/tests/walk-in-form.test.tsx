@@ -285,6 +285,29 @@ describe("WalkInForm proof image uploads", () => {
     expect(remove).not.toHaveBeenCalled();
   });
 
+  it("uses the resolved existing client UUID for a proof uploaded before the lookup effect finishes", async () => {
+    const existingClientId = "20000000-0000-4000-8000-000000000777";
+    rpc.mockImplementation((name: string) => name === "lookup_client_by_phone"
+      ? Promise.resolve({ data: [{ client_id: existingClientId, primary_name: "Existing Proof Client", primary_phone: "9012345777" }], error: null })
+      : Promise.resolve({ data: [{ client_id: existingClientId, timeline_id: "40000000-0000-4000-8000-000000000777", reference_number: "TES-260729-0001" }], error: null }));
+    upload.mockResolvedValueOnce({ error: null });
+
+    renderWalkInForm();
+    fireEvent.change(screen.getByLabelText("Client name *"), { target: { value: "Existing Proof Client" } });
+    fireEvent.change(screen.getByLabelText("Mobile *"), { target: { value: "9012345777" } });
+    completeLegacyRequiredFields();
+    answerRequiredEngagements({ "Google review": "YES" });
+
+    const googleReview = engagementRow("Google review");
+    fireEvent.change(
+      within(googleReview!).getByLabelText("Google review proof image"),
+      { target: { files: [new File(["proof"], "existing-proof.jpg", { type: "image/jpeg" })] } },
+    );
+
+    await waitFor(() => expect(upload).toHaveBeenCalledOnce());
+    expect(upload.mock.calls[0][0]).toMatch(new RegExp(`^${existingClientId}/`));
+  });
+
   it("keeps uploaded proof images when submit_walkin_visit fails", async () => {
     rpc.mockImplementation((name: string) => name === "submit_walkin_visit"
       ? Promise.resolve({ data: null, error: { message: "forced transaction failure" } })
