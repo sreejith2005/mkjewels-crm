@@ -241,6 +241,20 @@ describe("WalkInForm proof image uploads", () => {
     expect(instagramControls.getByPlaceholderText("Reason")).toBeTruthy();
   });
 
+  it("accepts only the named proof formats and rejects a PDF before upload", async () => {
+    renderWalkInForm();
+    openEngagementStep();
+    const instagram = within(engagementRow("Instagram follow")!);
+    fireEvent.change(instagram.getByRole("combobox"), { target: { value: "yes" } });
+    const picker = instagram.getByLabelText("Instagram follow proof image") as HTMLInputElement;
+    expect(picker.accept).toBe(".jpg,.jpeg,.png,.webp,.heic,.heif");
+    expect(screen.getByText(/Allowed: JPEG, PNG, WebP, HEIC, or HEIF image/)).toBeTruthy();
+
+    fireEvent.change(picker, { target: { files: [new File(["not an image"], "proof.pdf", { type: "application/pdf" })] } });
+    expect(await screen.findByText("Only JPEG, PNG, WebP, HEIC, or HEIF image files are allowed.")).toBeTruthy();
+    expect(upload).not.toHaveBeenCalled();
+  });
+
   it("submits an uploaded proof image and keeps the Storage object after a successful visit", async () => {
     rpc.mockImplementation((name: string) => name === "submit_walkin_visit"
       ? Promise.resolve({ data: [{ client_id: "20000000-0000-4000-8000-000000000501", timeline_id: "40000000-0000-4000-8000-000000000501", reference_number: "TES-260727-0001" }], error: null })
@@ -360,7 +374,7 @@ describe("WalkInForm proof image uploads", () => {
     answerRequiredEngagements();
     fireEvent.click(screen.getByRole("button", { name: "6. Preferences & planning" }));
     fireEvent.click(screen.getByRole("button", { name: "Submit complete visit" }));
-    expect(await screen.findByText("Wedding month or year is invalid. Select the wedding details again before submitting. Uploaded proof files were kept so you do not need to add them again.")).toBeTruthy();
+    expect(await screen.findByText("Wedding month or year is invalid. Select the wedding details again before submitting.")).toBeTruthy();
   });
 
   it("blocks submission when an engagement ask is yes without an uploaded proof image", async () => {

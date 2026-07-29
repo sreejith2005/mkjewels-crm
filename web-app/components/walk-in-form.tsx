@@ -32,6 +32,16 @@ type SubmitError = {
   message?: string;
 };
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const IMAGE_PROOF_MIME_TYPES = new Set([
+  "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif",
+]);
+const TESTIMONIAL_VIDEO_MIME_TYPES = new Set([
+  "video/mp4", "video/webm", "video/quicktime",
+]);
+const IMAGE_PROOF_ACCEPT = ".jpg,.jpeg,.png,.webp,.heic,.heif";
+const TESTIMONIAL_VIDEO_ACCEPT = ".mp4,.webm,.mov";
+const IMAGE_PROOF_DESCRIPTION = "JPEG, PNG, WebP, HEIC, or HEIF image";
+const TESTIMONIAL_PROOF_DESCRIPTION = `${IMAGE_PROOF_DESCRIPTION}, MP4, MOV, or WebM video`;
 const inputClass = "mt-1 w-full rounded border border-stone-300 bg-white p-2";
 const sections = [
   "Client & visit",
@@ -160,7 +170,7 @@ function walkInSubmitErrorMessage(error: SubmitError | null) {
   if (error?.code === "23514") {
     const detail = error.message ?? "";
     if (/documents_(storage_path|file_name)_check/i.test(detail)) {
-      return "This proof file is invalid. Remove and add that proof again before submitting.";
+      return "This proof file name is invalid. Remove and add that proof again before submitting.";
     }
     if (/wedding_(month|year)_check/i.test(detail)) {
       return "Wedding month or year is invalid. Select the wedding details again before submitting.";
@@ -291,7 +301,10 @@ export function WalkInForm({
   async function uploadProof(key: string, file: File | undefined) {
     if (!file) return;
     const allowsVideo = key === "testimonial";
-    if (!file.type.startsWith("image/") && !(allowsVideo && file.type.startsWith("video/"))) {
+    const allowedMimeTypes = allowsVideo
+      ? new Set([...IMAGE_PROOF_MIME_TYPES, ...TESTIMONIAL_VIDEO_MIME_TYPES])
+      : IMAGE_PROOF_MIME_TYPES;
+    if (!allowedMimeTypes.has(file.type.toLowerCase())) {
       setProofs((current) => ({
         ...current,
         [key]: {
@@ -300,7 +313,7 @@ export function WalkInForm({
           fileName: file.name,
           mimeType: file.type,
           status: "error",
-          error: allowsVideo ? "Choose an image or video file." : "Choose an image file.",
+          error: `Only ${allowsVideo ? TESTIMONIAL_PROOF_DESCRIPTION : IMAGE_PROOF_DESCRIPTION} files are allowed.`,
         },
       }));
       return;
@@ -547,7 +560,9 @@ export function WalkInForm({
           .map((proof) => proof.path),
       });
       const safeMessage = walkInSubmitErrorMessage(error);
-      setMessage(`${safeMessage} Uploaded proof files were kept so you do not need to add them again.`);
+      const invalidProof = /documents_(storage_path|file_name|mime_type)_check/i.test(error?.message ?? "");
+      const hasUploadedProof = Object.values(proofs).some((proof) => proof.status === "ready");
+      setMessage(`${safeMessage}${hasUploadedProof && !invalidProof ? " Uploaded proof files were kept so you do not need to add them again." : ""}`);
       return;
     }
     router.push(`/queue?completed=${encodeURIComponent(values.primary_name)}`);
@@ -918,7 +933,7 @@ export function WalkInForm({
                       <input
                         aria-label={`${label} proof image`}
                         type="file"
-                        accept={key === "testimonial" ? "image/*,video/*" : "image/*"}
+                        accept={key === "testimonial" ? `${IMAGE_PROOF_ACCEPT},${TESTIMONIAL_VIDEO_ACCEPT}` : IMAGE_PROOF_ACCEPT}
                         capture="environment"
                         className="text-sm"
                         disabled={proof?.status === "uploading"}
@@ -926,6 +941,7 @@ export function WalkInForm({
                           void uploadProof(key, event.target.files?.[0])
                         }
                       />
+                      <p className="mt-1 text-xs text-stone-600">Allowed: {key === "testimonial" ? TESTIMONIAL_PROOF_DESCRIPTION : IMAGE_PROOF_DESCRIPTION}. Maximum 10MB.</p>
                       {proof ? (
                         <p
                           className={
@@ -994,7 +1010,7 @@ export function WalkInForm({
             )}
             {notBoughtReasons.some((reason) => reason.trim().toUpperCase() === "WANT TO SEE MORE DESIGNS") ? multiField("categories_client_wants_more", "Which categories client wants to see more") : null}
             {field("remark", "Remark")}
-            <div className="md:col-span-2"><p className="text-sm">Upload photo (optional) — up to 10</p><div className="mt-2 grid gap-2 md:grid-cols-2">{Array.from({ length: remarkPhotoSlots }, (_, index) => { const key = `remark_photo_${index + 1}`; const proof = proofs[key]; return <label className="block text-sm" key={key}>Photo {index + 1}<input aria-label={`Remark photo ${index + 1}`} type="file" accept="image/*" capture="environment" className="mt-1 block text-sm" onChange={(event) => void uploadProof(key, event.target.files?.[0])} />{proof ? <span className="block text-xs text-stone-600">{proof.status === "ready" ? `${proof.fileName} uploaded` : proof.error ?? "Uploading…"}</span> : null}</label>; })}</div>{remarkPhotoSlots < 10 ? <button type="button" className="mt-2 rounded border px-3 py-1 text-sm" onClick={() => setRemarkPhotoSlots((current) => current + 1)}>Add more photo</button> : null}</div>
+            <div className="md:col-span-2"><p className="text-sm">Upload photo (optional) — up to 10. Allowed: {IMAGE_PROOF_DESCRIPTION}.</p><div className="mt-2 grid gap-2 md:grid-cols-2">{Array.from({ length: remarkPhotoSlots }, (_, index) => { const key = `remark_photo_${index + 1}`; const proof = proofs[key]; return <label className="block text-sm" key={key}>Photo {index + 1}<input aria-label={`Remark photo ${index + 1}`} type="file" accept={IMAGE_PROOF_ACCEPT} capture="environment" className="mt-1 block text-sm" onChange={(event) => void uploadProof(key, event.target.files?.[0])} />{proof ? <span className="block text-xs text-stone-600">{proof.status === "ready" ? `${proof.fileName} uploaded` : proof.error ?? "Uploading…"}</span> : null}</label>; })}</div>{remarkPhotoSlots < 10 ? <button type="button" className="mt-2 rounded border px-3 py-1 text-sm" onClick={() => setRemarkPhotoSlots((current) => current + 1)}>Add more photo</button> : null}</div>
           </div>
         ) : null}
       </section>
