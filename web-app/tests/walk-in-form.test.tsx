@@ -184,7 +184,7 @@ describe("WalkInForm proof image uploads", () => {
     completeLegacyRequiredFields("STORE_VISIT");
     fireEvent.click(screen.getByRole("button", { name: "6. Preferences & planning" }));
     fireEvent.click(screen.getByRole("button", { name: "Submit complete visit" }));
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/queue?completed=Queue%20Client"));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/queue?completed=Queue%20Client&completedClientId=20000000-0000-4000-8000-000000000509"));
   });
 
   it("never submits from beverage changes or implicit form submits", async () => {
@@ -312,7 +312,7 @@ describe("WalkInForm proof image uploads", () => {
         documents: [{ storage_path: storagePath, file_name: "review_proof__1_.jpg", mime_type: "image/jpeg" }],
       }),
     })));
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/queue?completed=Uploaded%20Proof%20Client"));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/queue?completed=Uploaded%20Proof%20Client&completedClientId=20000000-0000-4000-8000-000000000501"));
     expect(remove).not.toHaveBeenCalled();
   });
 

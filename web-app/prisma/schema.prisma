@@ -57,6 +57,7 @@ model User {
 
 model Client {
   clientId                String              @id @default(dbgenerated("gen_random_uuid()")) @map("client_id") @db.Uuid
+  clientCode              String              @unique @map("client_code") @db.VarChar(32)
   primaryName             String              @map("primary_name") @db.VarChar(160)
   otherNames              String[]            @default([]) @map("other_names")
   primaryPhone            String              @map("primary_phone") @db.VarChar(30)

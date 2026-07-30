@@ -226,6 +226,7 @@ export type Database = {
           billing_phone: string | null
           city: string | null
           city_other: string | null
+          client_code: string
           client_id: string
           client_potential_category: string | null
           community: string | null
@@ -275,6 +276,7 @@ export type Database = {
           billing_phone?: string | null
           city?: string | null
           city_other?: string | null
+          client_code?: string
           client_id?: string
           client_potential_category?: string | null
           community?: string | null
@@ -324,6 +326,7 @@ export type Database = {
           billing_phone?: string | null
           city?: string | null
           city_other?: string | null
+          client_code?: string
           client_id?: string
           client_potential_category?: string | null
           community?: string | null
@@ -517,6 +520,7 @@ export type Database = {
           assigned_crm_name: string | null
           branch_id: string
           client_id: string | null
+          client_is_new: boolean
           client_name: string
           created_at: string
           full_form_timestamp: string | null
@@ -530,6 +534,7 @@ export type Database = {
           assigned_crm_name?: string | null
           branch_id: string
           client_id?: string | null
+          client_is_new?: boolean
           client_name: string
           created_at?: string
           full_form_timestamp?: string | null
@@ -543,6 +548,7 @@ export type Database = {
           assigned_crm_name?: string | null
           branch_id?: string
           client_id?: string | null
+          client_is_new?: boolean
           client_name?: string
           created_at?: string
           full_form_timestamp?: string | null
@@ -1080,7 +1086,7 @@ export type Database = {
     Functions: {
       create_entry_queue: {
         Args: { p_assigned_crm_name?: string; p_branch_id?: string; p_client_id?: string; p_client_name: string; p_mobile: string }
-        Returns: { id: string; token: string; client_id: string | null; client_type: string }[]
+        Returns: { id: string; token: string; client_id: string; client_code: string; client_type: string }[]
       }
       manage_crm_roster: {
         Args: { p_branch_id?: string | null; p_crm_name?: string | null; p_operation: string; p_roster_id?: string | null; p_target_branch_id?: string | null }

@@ -7,7 +7,7 @@ const refresh = vi.fn();
 const rpc = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh }) }));
 vi.mock("next/link", () => ({ default: ({ children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => <a {...props}>{children}</a> }));
-vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ rpc }) }));
+vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ rpc, from: () => ({ select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: { client_code: "MKC-102727" } }) }) }) }) }) }));
 
 import { EntryQueue } from "@/components/entry-queue";
 
@@ -20,12 +20,12 @@ afterEach(() => { cleanup(); vi.resetAllMocks(); });
 
 describe("consolidated client walk-in queue", () => {
   it("registers in place, preserves entered values, and exposes only queue-originated walk-in actions", async () => {
-    rpc.mockImplementation((name: string) => name === "lookup_client_by_phone" ? Promise.resolve({ data: [], error: null }) : Promise.resolve({ data: [{ token: "0725-NEW01", client_type: "new" }], error: null }));
+    rpc.mockImplementation((name: string) => name === "lookup_client_by_phone" ? Promise.resolve({ data: [], error: null }) : Promise.resolve({ data: [{ token: "0725-NEW01", client_code: "MKC-102726", client_type: "new" }], error: null }));
     renderQueue();
     fireEvent.change(screen.getAllByRole("textbox")[0]!, { target: { value: "New Queue Client" } });
     fireEvent.change(screen.getByLabelText("Mobile Number"), { target: { value: "9012345602" } });
     fireEvent.click(screen.getByRole("button", { name: "REGISTER CLIENT" }));
-    await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Client registered: token 0725-NEW01"));
+    await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Client ID: MKC-102726"));
     expect(screen.getByDisplayValue("New Queue Client")).toBeTruthy();
     expect(screen.getByDisplayValue("9012345602")).toBeTruthy();
     expect(screen.getByRole("link", { name: "ADD WALKIN ENTRY" }).getAttribute("href")).toBe("/visits/new?queue=queue-1");

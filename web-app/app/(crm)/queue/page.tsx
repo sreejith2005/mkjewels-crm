@@ -5,7 +5,7 @@ import { rosterNames } from "@/lib/roster";
 import { queueMatchesLegacyScope } from "@/lib/queue-visibility";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function QueuePage({ searchParams }: { searchParams: Promise<{ branch?: string; crm?: string; completed?: string }> }) {
+export default async function QueuePage({ searchParams }: { searchParams: Promise<{ branch?: string; crm?: string; completed?: string; completedClientId?: string }> }) {
   const params = await searchParams;
   const supabase = await createClient();
   const [{ data: profileRows }, { data: auth }] = await Promise.all([supabase.rpc("get_my_profile"), supabase.auth.getUser()]);
@@ -26,5 +26,6 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
   const queue = selectedBranchId ? await (selectedCrm ? supabase.from("entry_queue").select("id,token,client_name,mobile,assigned_crm_name,status,created_at,client_id,branch_id").eq("branch_id", selectedBranchId).eq("assigned_crm_name", selectedCrm).order("created_at", { ascending: false }) : supabase.from("entry_queue").select("id,token,client_name,mobile,assigned_crm_name,status,created_at,client_id,branch_id").eq("branch_id", selectedBranchId).order("created_at", { ascending: false })) : { data: [] };
   const activeItems = (queue.data ?? []).filter((item) => queueMatchesLegacyScope(item, selectedBranchId, selectedCrm));
   const completedItems = (queue.data ?? []).filter((item) => item.branch_id === selectedBranchId && item.status === "complete" && (!selectedCrm || item.assigned_crm_name === selectedCrm));
-  return <main className="mx-auto max-w-7xl px-5 py-7"><div><p className="text-sm font-semibold uppercase tracking-wider text-amber-800">Front desk</p><h1 className="mt-1 text-3xl font-semibold">Client walk-in form</h1></div><EntryQueue key={`${selectedBranchId}-${selectedCrm}`} profile={{ role: profile.role, branchId: user?.branch_id ?? null }} selectedBranchId={selectedBranchId} selectedCrm={selectedCrm} branches={activeBranches} crms={availableCrmNames(allocation ?? [], availability ?? [])} queueCrms={queueCrms} initialItems={[...activeItems, ...completedItems]} completedName={params.completed} /></main>;
+  const completedClient = params.completedClientId ? await supabase.from("clients").select("client_code").eq("client_id", params.completedClientId).maybeSingle() : { data: null };
+  return <main className="mx-auto max-w-7xl px-5 py-7"><div><p className="text-sm font-semibold uppercase tracking-wider text-amber-800">Front desk</p><h1 className="mt-1 text-3xl font-semibold">Client walk-in form</h1></div>{params.completed ? <p role="status" className="mt-4 rounded border border-green-200 bg-green-50 p-4 text-sm font-medium text-green-800">Walk-in saved for {params.completed}. Client ID: {completedClient.data?.client_code ?? "available in the client record"}.</p> : null}<EntryQueue key={`${selectedBranchId}-${selectedCrm}`} profile={{ role: profile.role, branchId: user?.branch_id ?? null }} selectedBranchId={selectedBranchId} selectedCrm={selectedCrm} branches={activeBranches} crms={availableCrmNames(allocation ?? [], availability ?? [])} queueCrms={queueCrms} initialItems={[...activeItems, ...completedItems]} completedName={params.completed} /></main>;
 }

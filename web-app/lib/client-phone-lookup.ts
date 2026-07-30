@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/client";
 
 export type PhoneMatchedClient = {
   client_id: string;
+  client_code: string;
   primary_name: string;
   primary_phone: string;
   gender: string | null;

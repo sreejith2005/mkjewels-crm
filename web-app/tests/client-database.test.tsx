@@ -13,7 +13,7 @@ import { ClientDatabase } from "@/components/client-database";
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe("ClientDatabase legacy presentation and queue launch", () => {
-  const props = { clients: [{ client_id: "client-1", primary_name: "Anita", primary_phone: "9012345678", city: "Kochi", state: "Kerala", total_visits: 4, last_visit_date: "2026-07-25", last_buy_status: "YES" }], search: "", walkinContext: { role: "salesperson", branchId: "branch-1", branches: [{ id: "branch-1", name: "Kochi" }] } };
+  const props = { clients: [{ client_id: "client-1", client_code: "MKC-102707", primary_name: "Anita", primary_phone: "9012345678", city: "Kochi", state: "Kerala", total_visits: 4, last_visit_date: "2026-07-25", last_buy_status: "YES" }], search: "", walkinContext: { role: "salesperson", branchId: "branch-1", branches: [{ id: "branch-1", name: "Kochi" }] } };
 
   it("uses the literal nine default result columns without potential filtering", () => {
     render(<ClientDatabase {...props} />);
@@ -21,6 +21,7 @@ describe("ClientDatabase legacy presentation and queue launch", () => {
     expect(screen.queryByLabelText("Potential category")).toBeNull();
     expect(screen.getAllByRole("columnheader").map((header) => header.textContent)).toEqual(["Client ID", "Name", "Phone", "City", "State", "Total visits", "Last visit", "Last status", "Action"]);
     expect(screen.getByRole("link", { name: "Register Client" }).getAttribute("href")).toBe("/queue");
+    expect(screen.getByText("MKC-102707")).toBeTruthy();
   });
 
   it("creates an existing-client queue record and opens the canonical queue URL", async () => {

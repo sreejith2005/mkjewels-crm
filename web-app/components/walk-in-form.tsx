@@ -16,6 +16,7 @@ type Queue = {
   branch_id: string;
   assigned_crm_name: string | null;
   client_id: string | null;
+  client_is_new?: boolean;
   status: string;
 } | null;
 type Companion = { name: string; mobile: string; relation: string };
@@ -100,7 +101,7 @@ function initialValue(
     source_of_lead_other: "",
     reference_name: "",
     reference_phone: "",
-    client_type: client?.client_id || queue?.client_id ? "existing" : "new",
+    client_type: queue?.client_is_new ? "new" : client?.client_id || queue?.client_id ? "existing" : "new",
     did_buy: "",
     visit_status: "",
     not_bought_other: "",
@@ -261,7 +262,7 @@ export function WalkInForm({
           return;
         }
         const fields = ["primary_name", "gender", "dob", "community", "address", "pincode", "country", "state", "city"];
-        setValues((current) => ({ ...current, client_id: matched.client_id, client_type: "existing", primary_name: matched.primary_name, gender: matched.gender?.toUpperCase() ?? "", dob: matched.dob ?? "", community: matched.community ?? "", address: matched.address ?? "", pincode: matched.pincode ?? "", country: matched.country ?? "", state: matched.state ?? "", city: matched.city ?? "" }));
+        setValues((current) => ({ ...current, client_id: matched.client_id, client_type: queue?.client_is_new && matched.client_id === queue.client_id ? "new" : "existing", primary_name: matched.primary_name, gender: matched.gender?.toUpperCase() ?? "", dob: matched.dob ?? "", community: matched.community ?? "", address: matched.address ?? "", pincode: matched.pincode ?? "", country: matched.country ?? "", state: matched.state ?? "", city: matched.city ?? "" }));
         setProposedClientId(matched.client_id);
         setAutoFilledFields(new Set(fields));
       });
@@ -345,7 +346,7 @@ export function WalkInForm({
       if (matched) {
         proofClientId = matched.client_id;
         setProposedClientId(matched.client_id);
-        setValues((current) => ({ ...current, client_id: matched.client_id, client_type: "existing" }));
+        setValues((current) => ({ ...current, client_id: matched.client_id, client_type: queue?.client_is_new && matched.client_id === queue.client_id ? "new" : "existing" }));
       } else {
         setValues((current) => ({ ...current, client_id: "", client_type: "new" }));
       }
@@ -571,7 +572,7 @@ export function WalkInForm({
       setMessage(`${safeMessage}${hasUploadedProof && !invalidProof ? " Uploaded proof files were kept so you do not need to add them again." : ""}`);
       return;
     }
-    router.push(`/queue?completed=${encodeURIComponent(values.primary_name)}`);
+    router.push(`/queue?completed=${encodeURIComponent(values.primary_name)}&completedClientId=${encodeURIComponent(data[0].client_id)}`);
   }
   const requiredMark = <span className="text-red-600"> *</span>;
   const field = (key: keyof typeof values, label: string, type = "text", required = false) => (
