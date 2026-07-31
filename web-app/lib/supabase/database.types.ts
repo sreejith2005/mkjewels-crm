@@ -1079,6 +1079,30 @@ export type Database = {
           },
         ]
       }
+      lead_form_fields: {
+        Row: { id: string; field_key: string; label: string; field_type: Database["public"]["Enums"]["lead_field_type"]; is_mandatory: boolean; is_hidden: boolean; display_order: number; is_runo_synced: boolean; runo_field_name: string | null; parent_field_key: string | null; option_source: string | null; created_at: string; updated_at: string }
+        Insert: { id?: string; field_key: string; label: string; field_type: Database["public"]["Enums"]["lead_field_type"]; is_mandatory?: boolean; is_hidden?: boolean; display_order: number; is_runo_synced?: boolean; runo_field_name?: string | null; parent_field_key?: string | null; option_source?: string | null; created_at?: string; updated_at?: string }
+        Update: { label?: string; field_type?: Database["public"]["Enums"]["lead_field_type"]; is_mandatory?: boolean; is_hidden?: boolean; display_order?: number; option_source?: string | null }
+        Relationships: []
+      }
+      lead_form_field_options: {
+        Row: { id: string; field_id: string; option_value: string; display_order: number; triggers_field_key: string | null }
+        Insert: { id?: string; field_id: string; option_value: string; display_order: number; triggers_field_key?: string | null }
+        Update: { option_value?: string; display_order?: number; triggers_field_key?: string | null }
+        Relationships: []
+      }
+      leads: {
+        Row: { id: string; phone_number: string; name: string | null; source_channel: Database["public"]["Enums"]["lead_source_channel"]; field_values: Json; created_via: Database["public"]["Enums"]["lead_created_via"]; created_by: string; branch_id: string | null; runo_pushed: boolean; runo_push_error: string | null; runo_customer_id: string | null; converted_to_client_id: string | null; created_at: string; updated_at: string }
+        Insert: { id?: string; phone_number: string; name?: string | null; source_channel?: Database["public"]["Enums"]["lead_source_channel"]; field_values?: Json; created_via?: Database["public"]["Enums"]["lead_created_via"]; created_by: string; branch_id?: string | null; runo_pushed?: boolean; runo_push_error?: string | null; runo_customer_id?: string | null; converted_to_client_id?: string | null }
+        Update: { name?: string | null; source_channel?: Database["public"]["Enums"]["lead_source_channel"]; field_values?: Json; branch_id?: string | null; runo_pushed?: boolean; runo_push_error?: string | null; runo_customer_id?: string | null; converted_to_client_id?: string | null }
+        Relationships: []
+      }
+      lead_stage_history: {
+        Row: { id: string; lead_id: string; old_stage: Database["public"]["Enums"]["lead_source_channel"] | null; new_stage: Database["public"]["Enums"]["lead_source_channel"]; changed_by: string; changed_at: string; notes: string | null }
+        Insert: { id?: string; lead_id: string; old_stage?: Database["public"]["Enums"]["lead_source_channel"] | null; new_stage: Database["public"]["Enums"]["lead_source_channel"]; changed_by: string; changed_at?: string; notes?: string | null }
+        Update: never
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1190,7 +1214,10 @@ export type Database = {
         | "NON_PURCHASE_VISIT"
         | "STORE_VISIT"
         | "PRICE_CALCULATION_VISIT"
-        | "VISIT"
+        | "VISIT";
+      lead_field_type: "text" | "number" | "dropdown" | "date" | "geo" | "file";
+      lead_source_channel: "open" | "contacted" | "converted" | "lost";
+      lead_created_via: "crm_desktop" | "mobile_post_call";
       user_role: "super_admin" | "branch_manager" | "salesperson"
     }
     CompositeTypes: {
@@ -1354,6 +1381,9 @@ export const Constants = {
         "PRICE_CALCULATION_VISIT",
         "VISIT",
       ],
+      lead_field_type: ["text", "number", "dropdown", "date", "geo", "file"],
+      lead_source_channel: ["open", "contacted", "converted", "lost"],
+      lead_created_via: ["crm_desktop", "mobile_post_call"],
       user_role: ["super_admin", "branch_manager", "salesperson"],
     },
   },

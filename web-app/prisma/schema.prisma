@@ -23,6 +23,7 @@ model Branch {
   users                User[]
   notBoughtFollowups   NotBoughtFollowup[]
   referrals            Referral[]
+  leads                Lead[]
 
   @@map("branches")
 }
@@ -48,6 +49,8 @@ model User {
   referralCallUpdates    ReferralCallingHistory[] @relation("ReferralCallingHistoryUpdatedBy")
   campaignsCreated       Campaign[]              @relation("CampaignCreatedBy")
   campaignTagsApplied    ClientCampaignTag[]     @relation("ClientCampaignTagTaggedBy")
+  leadsCreated           Lead[]                   @relation("LeadCreatedBy")
+  leadStageChanges       LeadStageHistory[]       @relation("LeadStageChangedBy")
   branch                 Branch?             @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
   @@index([branchId])
@@ -116,6 +119,7 @@ model Client {
   referralsGiven          Referral[]
   convertedReferralCalls  ReferralCalling[]   @relation("ReferralConvertedClient")
   campaignTags            ClientCampaignTag[]
+  convertedLeads          Lead[]                  @relation("LeadConvertedClient")
 
   @@index([primaryPhone])
   @@index([lastBranchId, lastVisitDate])
@@ -482,6 +486,82 @@ model ReferralCallingHistory {
   @@map("referral_calling_history")
 }
 
+model LeadFormField {
+  id              String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fieldKey        String               @unique @map("field_key")
+  label           String
+  fieldType       LeadFieldType        @map("field_type")
+  isMandatory     Boolean              @default(false) @map("is_mandatory")
+  isHidden        Boolean              @default(false) @map("is_hidden")
+  displayOrder    Int                  @map("display_order")
+  isRunoSynced    Boolean              @default(false) @map("is_runo_synced")
+  runoFieldName   String?              @map("runo_field_name")
+  parentFieldKey  String?              @map("parent_field_key")
+  optionSource    String?              @map("option_source")
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  parent          LeadFormField?       @relation("LeadFieldHierarchy", fields: [parentFieldKey], references: [fieldKey])
+  children        LeadFormField[]      @relation("LeadFieldHierarchy")
+  options         LeadFormFieldOption[] @relation("LeadFieldOptions")
+  triggeredBy     LeadFormFieldOption[] @relation("LeadOptionTriggers")
+
+  @@index([displayOrder])
+  @@map("lead_form_fields")
+}
+
+model LeadFormFieldOption {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fieldId          String         @map("field_id") @db.Uuid
+  optionValue      String         @map("option_value")
+  displayOrder     Int            @map("display_order")
+  triggersFieldKey String?        @map("triggers_field_key")
+  field            LeadFormField  @relation("LeadFieldOptions", fields: [fieldId], references: [id], onDelete: Cascade)
+  triggersField    LeadFormField? @relation("LeadOptionTriggers", fields: [triggersFieldKey], references: [fieldKey])
+
+  @@unique([fieldId, optionValue])
+  @@map("lead_form_field_options")
+}
+
+model Lead {
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phoneNumber         String            @unique @map("phone_number") @db.VarChar(30)
+  name                String?           @db.VarChar(160)
+  sourceChannel       LeadSourceChannel @default(open) @map("source_channel")
+  fieldValues         Json              @default("{}") @map("field_values")
+  createdVia          LeadCreatedVia    @default(crm_desktop) @map("created_via")
+  createdById         String            @map("created_by") @db.Uuid
+  branchId            String?           @map("branch_id") @db.Uuid
+  runoPushed          Boolean           @default(false) @map("runo_pushed")
+  runoPushError       String?           @map("runo_push_error")
+  runoCustomerId      String?           @map("runo_customer_id")
+  convertedToClientId String?           @map("converted_to_client_id") @db.Uuid
+  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy           User              @relation("LeadCreatedBy", fields: [createdById], references: [id])
+  branch              Branch?           @relation(fields: [branchId], references: [id])
+  convertedToClient   Client?           @relation("LeadConvertedClient", fields: [convertedToClientId], references: [clientId])
+  stageHistory        LeadStageHistory[]
+
+  @@index([branchId, createdAt(sort: Desc)])
+  @@index([createdById, createdAt(sort: Desc)])
+  @@map("leads")
+}
+
+model LeadStageHistory {
+  id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  leadId      String            @map("lead_id") @db.Uuid
+  oldStage    LeadSourceChannel? @map("old_stage")
+  newStage    LeadSourceChannel @map("new_stage")
+  changedById String            @map("changed_by") @db.Uuid
+  changedAt   DateTime          @default(now()) @map("changed_at") @db.Timestamptz(6)
+  notes       String?
+  lead        Lead              @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  changedBy   User              @relation("LeadStageChangedBy", fields: [changedById], references: [id])
+
+  @@index([leadId, changedAt(sort: Desc)])
+  @@map("lead_stage_history")
+}
+
 model LookupCity {
   id     String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   label  String  @unique @db.VarChar(160)
@@ -632,4 +712,31 @@ enum EventType {
   VISIT
 
   @@map("event_type")
+}
+
+enum LeadFieldType {
+  text
+  number
+  dropdown
+  date
+  geo
+  file
+
+  @@map("lead_field_type")
+}
+
+enum LeadSourceChannel {
+  open
+  contacted
+  converted
+  lost
+
+  @@map("lead_source_channel")
+}
+
+enum LeadCreatedVia {
+  crm_desktop
+  mobile_post_call
+
+  @@map("lead_created_via")
 }
